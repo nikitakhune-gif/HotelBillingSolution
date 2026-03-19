@@ -1,0 +1,31 @@
+@model HotelBilling.Application.DTOs.Request.CreateBillRequest
+
+@{
+    ViewData["Title"] = "Generate Bill";
+}
+
+<h2>Generate Bill</h2>
+
+<form asp-action="Create" method="post">
+    <div class="mb-3">
+        <label class="form-label">Customer Id</label>
+        <input asp-for="CustomerId" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Room Id</label>
+        <input asp-for="RoomId" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Room Charge</label>
+        <input asp-for="RoomCharge" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Food Charge</label>
+        <input asp-for="FoodCharge" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Other Charges</label>
+        <input asp-for="OtherCharges" class="form-control" />
+    </div>
+    <button class="btn btn-primary">Generate</button>
+</form>

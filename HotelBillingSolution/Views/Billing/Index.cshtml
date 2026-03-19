@@ -1,0 +1,36 @@
+@model IEnumerable<HotelBilling.Application.DTOs.Response.BillResponse>
+
+@{
+    ViewData["Title"] = "Bills";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Bills</h2>
+    <a asp-action="Create" class="btn btn-primary">Generate Bill</a>
+</div>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Id</th>
+            <th>Customer</th>
+            <th>Room</th>
+            <th>Total</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var b in Model)
+    {
+        <tr>
+            <td>@b.Id</td>
+            <td>@b.CustomerId</td>
+            <td>@b.RoomId</td>
+            <td>@b.TotalAmount</td>
+            <td>
+                <a asp-action="Details" asp-route-id="@b.Id" class="btn btn-sm btn-secondary me-1">Details</a>
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>

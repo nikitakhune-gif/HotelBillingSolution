@@ -1,0 +1,70 @@
+﻿@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="dashboard-cards">
+    <div class="dashboard-card bg-blue">
+        <h5>Total Customers</h5>
+        <h2>120</h2>
+    </div>
+    <div class="dashboard-card bg-green">
+        <h5>Total Revenue</h5>
+        <h2>₹50,000</h2>
+    </div>
+    <div class="dashboard-card bg-orange">
+        <h5>Active Bookings</h5>
+        <h2>15</h2>
+    </div>
+    <div class="dashboard-card bg-red">
+        <h5>Pending Bills</h5>
+        <h2>5</h2>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 chart-card">
+        <h5>Sales Overview</h5>
+        <canvas id="salesChart" height="200"></canvas>
+    </div>
+    <div class="col-md-6 chart-card">
+        <h5>Active Users</h5>
+        <canvas id="usersChart" height="200"></canvas>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const salesCtx = document.getElementById('salesChart').getContext('2d');
+    const salesChart = new Chart(salesCtx, {
+        type: 'line',
+        data: {
+            labels: ['Jan','Feb','Mar','Apr','May','Jun'],
+            datasets: [{
+                label: 'Revenue',
+                data: [12000, 19000, 14000, 22000, 20000, 25000],
+                borderColor: '#0288d1',
+                backgroundColor: 'rgba(2,136,209,0.2)',
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+
+    const usersCtx = document.getElementById('usersChart').getContext('2d');
+    const usersChart = new Chart(usersCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+            datasets: [{
+                label: 'Active Users',
+                data: [50, 75, 60, 80, 70, 90, 60],
+                backgroundColor: '#43a047'
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+</script>

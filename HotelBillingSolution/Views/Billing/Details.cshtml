@@ -1,0 +1,15 @@
+@model HotelBilling.Application.DTOs.Response.BillResponse
+
+@{
+    ViewData["Title"] = "Bill Details";
+}
+
+<h2>Bill Details</h2>
+
+<div class="card p-3">
+    <p><strong>Id:</strong> @Model.Id</p>
+    <p><strong>Customer:</strong> @Model.CustomerId</p>
+    <p><strong>Room:</strong> @Model.RoomId</p>
+    <p><strong>Total:</strong> @Model.TotalAmount</p>
+    <p><strong>Status:</strong> @Model.PaymentStatus</p>
+</div>

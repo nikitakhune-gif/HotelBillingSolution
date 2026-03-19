@@ -1,0 +1,24 @@
+@model HotelBilling.Application.DTOs.Response.CustomerResponse
+
+@{
+    ViewData["Title"] = "Edit Customer";
+}
+
+<h2>Edit Customer</h2>
+
+<form asp-action="Edit" method="post">
+    <input type="hidden" name="id" value="@Model.Id" />
+    <div class="mb-3">
+        <label class="form-label">Name</label>
+        <input name="Name" value="@Model.Name" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Email</label>
+        <input name="Email" value="@Model.Email" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Phone</label>
+        <input name="Phone" value="@Model.Phone" class="form-control" />
+    </div>
+    <button class="btn btn-primary">Update</button>
+</form>
