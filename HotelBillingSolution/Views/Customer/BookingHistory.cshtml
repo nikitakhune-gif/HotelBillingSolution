@@ -1,0 +1,353 @@
+﻿@model HotelBilling.Application.DTOs.Customer.CustomerDto
+@{
+    ViewData["Title"] = "Booking History";
+    // Controller currently passes ViewBag.Bookings as an empty placeholder list until
+    // IBookingService.GetBookingsByCustomerIdAsync(id) (or similar) exists. Swap the
+    // ViewBag.Bookings cast below for the real booking DTO once that's wired up.
+    var bookings = ViewBag.Bookings as System.Collections.Generic.List<HotelBilling.Application.DTOs.Booking.BookingListItemDto> ?? new System.Collections.Generic.List<HotelBilling.Application.DTOs.Booking.BookingListItemDto>();
+}
+
+<div class="bh-page">
+
+    <!-- ============ PAGE HEADER ============ -->
+    <div class="bh-header">
+        <div class="bh-header__text">
+            <h1 class="bh-header__title">Booking History</h1>
+            <p class="bh-header__subtitle">@Model.FirstName @Model.LastName · @($"CUST-{Model.Id:D4}")</p>
+        </div>
+        <div class="bh-header__actions">
+            <a asp-controller="Customer" asp-action="Details" asp-route-id="@Model.Id" class="bhbtn bhbtn-ghost">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span>Back to Profile</span>
+            </a>
+            <a asp-controller="Customer" asp-action="Invoice" asp-route-id="@Model.Id" class="bhbtn bhbtn-ghost">
+                <i class="fa-solid fa-file-invoice"></i>
+                <span>View Invoices</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- ============ SUMMARY STRIP ============ -->
+    <div class="bh-summary-grid">
+        <div class="bh-summary-card">
+            <span class="bh-summary-card__icon"><i class="fa-solid fa-calendar-check"></i></span>
+            <div>
+                <span class="bh-summary-card__value">@bookings.Count</span>
+                <span class="bh-summary-card__label">Total Bookings</span>
+            </div>
+        </div>
+        <div class="bh-summary-card">
+            <span class="bh-summary-card__icon"><i class="fa-solid fa-bed"></i></span>
+            <div>
+                <span class="bh-summary-card__value">0</span>
+                <span class="bh-summary-card__label">Nights Stayed</span>
+            </div>
+        </div>
+        <div class="bh-summary-card">
+            <span class="bh-summary-card__icon"><i class="fa-solid fa-indian-rupee-sign"></i></span>
+            <div>
+                <span class="bh-summary-card__value">₹0</span>
+                <span class="bh-summary-card__label">Total Spend</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ BOOKINGS TABLE ============ -->
+    <div class="bh-table-card">
+        <div class="table-responsive">
+            <table class="bh-table">
+                <thead>
+                    <tr>
+                        <th>Booking ID</th>
+                        <th>Room</th>
+                        <th>Check-in</th>
+                        <th>Check-out</th>
+                        <th>Nights</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th class="col-actions">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!bookings.Any())
+                    {
+                        <tr>
+                            <td colspan="8">
+                                <div class="bh-empty">
+                                    <i class="fa-solid fa-calendar-xmark"></i>
+                                    <p>No bookings found for this customer yet.</p>
+                                    <a asp-controller="Booking" asp-action="AddBooking" asp-route-customerId="@Model.Id" class="bhbtn bhbtn-primary-glow">
+                                        <i class="fa-solid fa-plus"></i>
+                                        <span>Create Booking</span>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var b in bookings)
+                        {
+                            <tr>
+                                <td>@b.BookingNumber</td>
+                                <td>@b.RoomNumber</td>
+                                <td>@b.CheckInDate.ToString("dd MMM yyyy")</td>
+                                <td>@b.CheckOutDate.ToString("dd MMM yyyy")</td>
+                                <td>@b.TotalNights</td>
+                                <td>₹@b.TotalAmount.ToString("F2")</td>
+                                <td>@b.BookingStatus</td>
+                                <td class="col-actions">
+                                    <a asp-controller="Booking" asp-action="Details" asp-route-id="@b.Id" class="bhbtn bhbtn-ghost">View</a>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<style>
+    /* ==========================================================================
+           BOOKING HISTORY — Premium Dark/Light SaaS UI
+           Scoped under .bh-page / bh- prefix, uses shared site.css theme tokens.
+           ========================================================================== */
+    .bh-page {
+        --bh-primary: var(--primary-color, #3b82f6);
+        --bh-primary-2: var(--primary-color-2, #2563eb);
+        --bh-primary-soft: var(--primary-soft, rgba(59,130,246,0.14));
+        --bh-card: var(--card-color, #ffffff);
+        --bh-surface-border: var(--border-color, rgba(15,23,42,0.08));
+        --bh-text-primary: var(--text-color, #0f172a);
+        --bh-text-secondary: var(--text-secondary, #475569);
+        --bh-text-muted: var(--text-muted, #64748b);
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: var(--bh-text-primary);
+        background: transparent;
+        animation: bhFadeIn 0.45s ease;
+    }
+
+    [data-theme="dark"] .bh-page {
+        --bh-card: var(--card-color, #101a2e);
+        --bh-surface-border: var(--border-color, rgba(255,255,255,0.08));
+        --bh-text-primary: var(--text-color, #eef2f7);
+        --bh-text-secondary: var(--text-secondary, #94a3b8);
+        --bh-text-muted: var(--text-muted, #64748b);
+    }
+
+    @@keyframes bhFadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(6px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .bh-page * {
+        box-sizing: border-box;
+    }
+
+    .bh-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin-bottom: 20px;
+    }
+
+    .bh-header__title {
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        margin: 0;
+        color: var(--bh-text-primary);
+    }
+
+    .bh-header__subtitle {
+        margin: 4px 0 0;
+        font-size: 14px;
+        color: var(--bh-text-secondary);
+    }
+
+    .bh-header__actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .bhbtn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13.5px;
+        font-weight: 600;
+        padding: 10px 16px;
+        border-radius: 10px;
+        border: 1px solid transparent;
+        cursor: pointer;
+        transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+        white-space: nowrap;
+        text-decoration: none;
+    }
+
+    .bhbtn-ghost {
+        background: rgba(127,127,127,0.06);
+        border-color: var(--bh-surface-border);
+        color: var(--bh-text-secondary);
+    }
+
+        .bhbtn-ghost:hover {
+            color: var(--bh-text-primary);
+            background: rgba(127,127,127,0.12);
+            transform: translateY(-2px);
+        }
+
+    .bhbtn-primary-glow {
+        background: linear-gradient(135deg, var(--bh-primary), var(--bh-primary-2));
+        color: #fff;
+        box-shadow: 0 6px 18px rgba(37,99,235,0.35);
+    }
+
+        .bhbtn-primary-glow:hover {
+            box-shadow: 0 10px 26px rgba(37,99,235,0.5);
+            transform: translateY(-2px);
+        }
+
+    /* ============ SUMMARY STRIP ============ */
+    .bh-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin-bottom: 20px;
+    }
+
+    .bh-summary-card {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        background: var(--bh-card);
+        border: 1px solid var(--bh-surface-border);
+        border-radius: 16px;
+        padding: 18px 20px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    }
+
+    .bh-summary-card__icon {
+        width: 46px;
+        height: 46px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--bh-primary-soft);
+        color: var(--bh-primary);
+        font-size: 18px;
+        flex-shrink: 0;
+    }
+
+    .bh-summary-card__value {
+        display: block;
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--bh-text-primary);
+        line-height: 1.2;
+    }
+
+    .bh-summary-card__label {
+        display: block;
+        font-size: 12px;
+        color: var(--bh-text-muted);
+        font-weight: 500;
+    }
+
+    /* ============ TABLE ============ */
+    .bh-table-card {
+        background: var(--bh-card);
+        border: 1px solid var(--bh-surface-border);
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow: 0 10px 26px rgba(0,0,0,0.12);
+    }
+
+    .bh-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        min-width: 760px;
+    }
+
+        .bh-table thead th {
+            text-align: left;
+            font-size: 11.5px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--bh-text-muted);
+            font-weight: 600;
+            padding: 13px 18px;
+            border-bottom: 1px solid var(--bh-surface-border);
+            white-space: nowrap;
+        }
+
+        .bh-table tbody td {
+            padding: 13px 18px;
+            font-size: 13.5px;
+            font-weight: 600;
+            color: var(--bh-text-primary);
+            border-bottom: 1px solid var(--bh-surface-border);
+            vertical-align: middle;
+        }
+
+        .bh-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .bh-table tbody tr:hover {
+            background: rgba(59,130,246,0.05);
+        }
+
+    .col-actions {
+        text-align: right;
+    }
+
+    .bh-empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        padding: 48px 20px;
+        color: var(--bh-text-muted);
+        text-align: center;
+    }
+
+        .bh-empty i {
+            font-size: 34px;
+            opacity: 0.5;
+        }
+
+        .bh-empty p {
+            margin: 0;
+            font-size: 14px;
+        }
+
+    /* ============ RESPONSIVE ============ */
+    @@media (max-width: 900px) {
+        .bh-summary-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @@media (max-width: 640px) {
+        .bh-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+    }
+</style>

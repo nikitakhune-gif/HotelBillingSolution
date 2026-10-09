@@ -9,7 +9,10 @@ namespace HotelBilling.Domain.Enums
     public enum PaymentStatus
     {
         Pending = 1,
-        Paid = 2,
-        Cancelled = 3
+        Success = 2,
+        Failed = 3,
+        Refunded = 4,
+        Paid = 5,
+        Cancelled = 6
     }
 }

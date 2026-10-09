@@ -1,0 +1,1262 @@
+﻿@{
+    ViewData["Title"] = "Rooms";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="rooms-page">
+
+    <!-- ============ PAGE HEADER ============ -->
+    <div class="rooms-header">
+        <div class="rooms-header__text">
+            <h1 class="rooms-header__title">Rooms</h1>
+            <p class="rooms-header__subtitle">Manage hotel rooms efficiently</p>
+        </div>
+        <div class="rooms-header__actions">
+            <form id="importForm" asp-controller="Rooms" asp-action="Import" method="post" enctype="multipart/form-data" style="display:inline-block;">
+                <input type="file" name="file" id="importFileInput" accept="text/csv" style="display:none" />
+                <button type="button" class="btn btn-ghost" id="btnImport">
+                    <i class="fa-solid fa-file-import"></i>
+                    <span>Import</span>
+                </button>
+            </form>
+            <a asp-controller="Rooms" asp-action="Export" class="btn btn-ghost" id="btnExport">
+                <i class="fa-solid fa-file-export"></i>
+                <span>Export</span>
+            </a>
+            <a asp-controller="Rooms"
+               asp-action="AddRoom"
+               class="cbtn cbtn-primary-glow">
+                <i class="fa-solid fa-plus"></i>
+                <span>Add Room</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- ============ SUMMARY CARDS ============ -->
+    <div class="summary-grid">
+
+        <div class="summary-card summary-card--blue">
+            <div class="summary-card__icon">
+                <i class="fa-solid fa-bed"></i>
+            </div>
+            <div class="summary-card__body">
+                <span class="summary-card__label">Total Rooms</span>
+                <span class="summary-card__value" id="totalRoomsCount">0</span>
+                <span class="summary-card__hint">View all rooms</span>
+            </div>
+        </div>
+
+        <div class="summary-card summary-card--green">
+            <div class="summary-card__icon">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <div class="summary-card__body">
+                <span class="summary-card__label">Available Rooms</span>
+                <span class="summary-card__value" id="availableRoomsCount">0</span>
+                <span class="summary-card__hint">Currently ready</span>
+            </div>
+        </div>
+
+        <div class="summary-card summary-card--orange">
+            <div class="summary-card__icon">
+                <i class="fa-solid fa-user-group"></i>
+            </div>
+            <div class="summary-card__body">
+                <span class="summary-card__label">Occupied Rooms</span>
+                <span class="summary-card__value" id="occupiedRoomsCount">0</span>
+                <span class="summary-card__hint">Currently occupied</span>
+            </div>
+        </div>
+
+        <div class="summary-card summary-card--purple">
+            <div class="summary-card__icon">
+                <i class="fa-solid fa-screwdriver-wrench"></i>
+            </div>
+            <div class="summary-card__body">
+                <span class="summary-card__label">Maintenance Rooms</span>
+                <span class="summary-card__value" id="maintenanceRoomsCount">0</span>
+                <span class="summary-card__hint">Under maintenance</span>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+            document.getElementById('btnImport')?.addEventListener('click', function () {
+                var input = document.getElementById('importFileInput');
+                if (!input) return;
+                input.click();
+            });
+
+            document.getElementById('importFileInput')?.addEventListener('change', function (e) {
+                var form = document.getElementById('importForm');
+                if (!form) return;
+                form.submit();
+            });
+
+            // show import result
+            (function () {
+                var msg = '@(TempData["ImportResult"] ?? "")';
+                if (msg) {
+                    // simple alert for now — the app has notification UI; integrate later
+                    alert(msg);
+                }
+            })();
+    </script>
+
+    <!-- ============ FILTER SECTION ============ -->
+    <div class="filter-card">
+        <div class="filter-card__row">
+
+            <div class="filter-field filter-field--search">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="roomSearch" class="filter-input" placeholder="Search room no, room type..." />
+            </div>
+
+            <div class="filter-field">
+                <select id="filterRoomType" class="filter-select">
+                    <option value="">All Room Types</option>
+                    <option value="Deluxe Room">Deluxe Room</option>
+                    <option value="Superior Room">Superior Room</option>
+                    <option value="Suite Room">Suite Room</option>
+                    <option value="Executive Room">Executive Room</option>
+                    <option value="Presidential Suite">Presidential Suite</option>
+                </select>
+            </div>
+
+            <div class="filter-field">
+                <select id="filterStatus" class="filter-select">
+                    <option value="">All Status</option>
+                    <option value="Available">Available</option>
+                    <option value="Occupied">Occupied</option>
+                    <option value="Maintenance">Maintenance</option>
+                    <option value="OutOfService">Out of Service</option>
+                </select>
+            </div>
+
+            <div class="filter-field">
+                <select id="filterFloor" class="filter-select">
+                    <option value="">All Floors</option>
+                    <option value="1">Floor 1</option>
+                    <option value="2">Floor 2</option>
+                    <option value="3">Floor 3</option>
+                    <option value="4">Floor 4</option>
+                </select>
+            </div>
+
+            <div class="filter-field">
+                <select id="filterPrice" class="filter-select">
+                    <option value="">Price Range</option>
+                    <option value="0-3000">Under ₹3,000</option>
+                    <option value="3000-6000">₹3,000 - ₹6,000</option>
+                    <option value="6000-10000">₹6,000 - ₹10,000</option>
+                    <option value="10000-999999">Above ₹10,000</option>
+                </select>
+            </div>
+
+            <div class="filter-field__actions">
+                <button type="button" class="btn btn-reset" id="btnResetFilter" title="Reset filters">
+                    <i class="fa-solid fa-arrow-rotate-left"></i>
+                </button>
+                <button type="button" class="btn btn-search" id="btnSearchFilter">
+                    <i class="fa-solid fa-filter"></i>
+                    <span>Search</span>
+                </button>
+            </div>
+
+        </div>
+    
+        <div class="table-responsive rooms-table-scroll">
+            <table class="rooms-table" id="roomsTable">
+                <thead>
+                    <tr>
+                        <th class="col-image">Room</th>
+                        <th class="sortable" data-sort="roomNo">Room No <i class="fa-solid fa-sort"></i></th>
+                        <th class="sortable" data-sort="roomName">Room Name <i class="fa-solid fa-sort"></i></th>
+                        <th class="sortable" data-sort="roomType">Room Type <i class="fa-solid fa-sort"></i></th>
+                        <th class="sortable" data-sort="floor">Floor <i class="fa-solid fa-sort"></i></th>
+                        <th>Capacity</th>
+                        <th class="sortable" data-sort="price">Price / Night <i class="fa-solid fa-sort"></i></th>
+                        <th>Status</th>
+                        <th>Housekeeping</th>
+                        <th class="sortable" data-sort="created">Created Date <i class="fa-solid fa-sort"></i></th>
+                        <th class="col-actions">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="roomsTableBody">
+                    @if (Model != null)
+                    {
+                        var rooms = (IEnumerable<HotelBilling.Application.DTOs.Room.RoomDto>)Model;
+                        foreach (var room in rooms)
+                        {
+                            <tr data-room-no="@room.RoomNumber" data-room-type="@room.RoomType" data-status="@room.Availability" data-floor="@room.Floor" data-price="@(room.PricePerNight ?? 0)">
+                                <td class="col-image"><span class="room-thumb"><i class="fa-solid fa-bed-front"></i></span></td>
+                                <td class="fw-cell">@room.RoomNumber</td>
+                                <td>@room.RoomName</td>
+                                <td>@room.RoomType</td>
+                                <td>@room.Floor</td>
+                                <td><i class="fa-solid fa-user"></i> @((room.CapacityAdults ?? 0))</td>
+                                <td class="price-cell">@((room.PricePerNight.HasValue) ? string.Format("₹{0:N0}", room.PricePerNight) : "—")</td>
+                                <td><span class="badge-status badge-status--@(room.Availability?.ToLowerInvariant().Replace(" ", "") ?? "available")">@room.Availability</span></td>
+                                <td><span class="badge-hk">@room.HousekeepingStatus</span></td>
+                                <td>@room.CreatedDate.ToString("dd MMM yyyy")</td>
+                                <td class="col-actions">
+                                    <div class="action-group">
+                                        <a class="action-btn action-btn--view" title="View" href="@Url.Action("Edit", "Rooms", new { id = room.Id })"><i class="fa-solid fa-eye"></i></a>
+                                        <a class="action-btn action-btn--edit" title="Edit" href="@Url.Action("Edit", "Rooms", new { id = room.Id })"><i class="fa-solid fa-pen"></i></a>
+                                        <a class="action-btn action-btn--delete" title="Delete" href="@Url.Action("Delete", "Rooms", new { id = room.Id })"><i class="fa-solid fa-trash"></i></a>
+                                        <div class="dropdown">
+                                            <button class="action-btn action-btn--more" data-bs-toggle="dropdown" title="More"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                                            <ul class="dropdown-menu dropdown-menu-end">
+                                                <li><a class="dropdown-item" href="#"><i class="fa-solid fa-clock-rotate-left"></i> View History</a></li>
+                                                <li><a class="dropdown-item" href="#"><i class="fa-solid fa-broom"></i> Assign Housekeeping</a></li>
+                                                <li><a class="dropdown-item" href="#"><i class="fa-solid fa-ban"></i> Mark Out of Service</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ============ BOTTOM SECTION ============ -->
+        <div class="table-card__footer">
+            <div class="table-card__count" id="roomsCountLabel">
+                Showing 1 to 8 of 120 rooms
+            </div>
+            <nav aria-label="Rooms pagination">
+                <ul class="pagination-premium" id="roomsPagination">
+                    <li class="page-item disabled"><a class="page-link" href="#" data-page="prev"><i class="fa-solid fa-chevron-left"></i></a></li>
+                    <li class="page-item active"><a class="page-link" href="#" data-page="1">1</a></li>
+                    <li class="page-item"><a class="page-link" href="#" data-page="2">2</a></li>
+                    <li class="page-item"><a class="page-link" href="#" data-page="3">3</a></li>
+                    <li class="page-item"><a class="page-link" href="#" data-page="4">4</a></li>
+                    <li class="page-item page-item--dots"><span>…</span></li>
+                    <li class="page-item"><a class="page-link" href="#" data-page="15">15</a></li>
+                    <li class="page-item"><a class="page-link" href="#" data-page="next"><i class="fa-solid fa-chevron-right"></i></a></li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+
+</div>
+
+<style>
+    /* ==========================================================================
+           ROOMS MANAGEMENT — Premium SaaS UI (theme-aware)
+           Background is intentionally transparent; the parent layout supplies it.
+           Every surface/text/border value below is taken from the real theme
+           tokens defined in themes.css — no hardcoded light/dark fallbacks.
+           ========================================================================== */
+
+    .rooms-page {
+        --room-blue: var(--primary-color);
+        --room-blue-soft: var(--primary-soft);
+        --room-green: var(--success-color);
+        --room-green-soft: var(--success-soft);
+        --room-orange: var(--warning-color);
+        --room-orange-soft: var(--warning-soft);
+        --room-purple: var(--primary-color-2);
+        --room-purple-soft: color-mix(in srgb, var(--card-color) 96%, var(--primary-color-2) 4%);
+        --room-red: var(--danger-color);
+        --room-red-soft: var(--danger-soft);
+        /* Map component tokens to global theme tokens so dark/light are exact */
+        --surface: var(--card-color);
+        --surface-strong: var(--card-color-2);
+        --surface-border: var(--border-color);
+        --text-primary: var(--text-color);
+        --text-secondary: var(--text-secondary);
+        --text-muted: var(--text-muted);
+        --radius-lg: 18px;
+        --radius-md: 14px;
+        --radius-sm: 10px;
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: var(--text-primary);
+        animation: roomsFadeIn 0.45s ease;
+    }
+
+    @@keyframes roomsFadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(6px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .rooms-page * {
+        box-sizing: border-box;
+    }
+
+    /* ============ HEADER ============ */
+    .rooms-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .rooms-header__title {
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        margin: 0;
+        color: var(--text-primary);
+    }
+
+    .rooms-header__subtitle {
+        margin: 4px 0 0;
+        font-size: 14px;
+        color: var(--text-secondary);
+    }
+
+    .rooms-header__actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13.5px;
+        font-weight: 600;
+        padding: 10px 16px;
+        border-radius: var(--radius-sm);
+        border: 1px solid transparent;
+        cursor: pointer;
+        transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+        white-space: nowrap;
+    }
+
+        .btn:active {
+            transform: translateY(1px) scale(0.98);
+        }
+
+    .btn-ghost {
+        background: var(--surface);
+        border-color: var(--surface-border);
+        color: var(--text-secondary);
+    }
+
+        .btn-ghost:hover {
+            color: var(--text-primary);
+            background: var(--surface-strong);
+            transform: translateY(-2px);
+        }
+
+    .page-actions {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .cbtn-primary-glow {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 14px 24px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, var(--primary-color-2), var(--primary-color));
+        color: var(--on-primary, #fff);
+        text-decoration: none;
+        font-weight: 600;
+        border: 1px solid rgba(255,255,255,.08);
+        box-shadow: var(--active-shadow);
+        transition: .3s ease;
+    }
+
+        .cbtn-primary-glow:hover {
+            transform: translateY(-2px);
+            color: #fff;
+            box-shadow: var(--hover-glow);
+        }
+
+    .btn-primary-glow {
+        background: linear-gradient(135deg, var(--primary-color-2) 0%, var(--primary-color) 100%);
+        color: #ffffff;
+        box-shadow: var(--active-shadow);
+    }
+
+        .btn-primary-glow:hover {
+            box-shadow: var(--hover-glow);
+            transform: translateY(-2px);
+        }
+
+    /* ============ SUMMARY CARDS ============ */
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 18px;
+        margin-bottom: 22px;
+    }
+
+    .summary-card {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        height: 120px;
+        padding: 18px 20px;
+        border-radius: var(--radius-lg);
+        background: var(--surface);
+        border: 1px solid var(--surface-border);
+        border-left: 3px solid transparent;
+        box-shadow: var(--shadow-md);
+        overflow: hidden;
+        transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+    }
+
+        .summary-card::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(120px 90px at 90% 0%, rgba(255,255,255,0.06), transparent 70%);
+            pointer-events: none;
+        }
+
+        .summary-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+    .summary-card--blue {
+        border-left-color: var(--room-blue);
+    }
+
+    .summary-card--green {
+        border-left-color: var(--room-green);
+    }
+
+    .summary-card--orange {
+        border-left-color: var(--room-orange);
+    }
+
+    .summary-card--purple {
+        border-left-color: var(--room-purple);
+    }
+
+    .summary-card__icon {
+        flex-shrink: 0;
+        width: 52px;
+        height: 52px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 14px;
+        font-size: 20px;
+        transition: transform 0.25s ease;
+    }
+
+    .summary-card:hover .summary-card__icon {
+        transform: scale(1.08) rotate(-3deg);
+    }
+
+    .summary-card--blue .summary-card__icon {
+        background: var(--room-blue-soft);
+        color: var(--room-blue);
+    }
+
+    .summary-card--green .summary-card__icon {
+        background: var(--room-green-soft);
+        color: var(--room-green);
+    }
+
+    .summary-card--orange .summary-card__icon {
+        background: var(--room-orange-soft);
+        color: var(--room-orange);
+    }
+
+    .summary-card--purple .summary-card__icon {
+        background: var(--room-purple-soft);
+        color: var(--room-purple);
+    }
+
+    .summary-card__body {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+    }
+
+    .summary-card__label {
+        font-size: 12.5px;
+        color: var(--text-secondary);
+        font-weight: 500;
+    }
+
+    .summary-card__value {
+        font-size: 26px;
+        font-weight: 700;
+        line-height: 1.1;
+        color: var(--text-primary);
+        letter-spacing: -0.01em;
+    }
+
+    .summary-card__hint {
+        font-size: 12px;
+        font-weight: 500;
+    }
+
+    .summary-card--blue .summary-card__hint {
+        color: var(--room-blue);
+    }
+
+    .summary-card--green .summary-card__hint {
+        color: var(--room-green);
+    }
+
+    .summary-card--orange .summary-card__hint {
+        color: var(--room-orange);
+    }
+
+    .summary-card--purple .summary-card__hint {
+        color: var(--room-purple);
+    }
+
+    /* ============ FILTER SECTION ============ */
+    .filter-card {
+        background: var(--surface);
+        border: 1px solid var(--surface-border);
+        border-radius: var(--radius-lg);
+        padding: 16px 18px;
+        margin-bottom: 22px;
+        box-shadow: var(--shadow-sm);
+    }
+
+    /* Keep the whole filter bar on ONE line. If the viewport is too
+       narrow to fit everything, scroll horizontally instead of wrapping
+       to a second row. */
+    .filter-card__row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding-bottom: 4px;
+        scrollbar-width: thin;
+        scrollbar-color: var(--surface-border) transparent;
+    }
+
+        .filter-card__row::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .filter-card__row::-webkit-scrollbar-thumb {
+            background: var(--surface-border);
+            border-radius: 999px;
+        }
+
+        .filter-card__row::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+    .filter-field {
+        position: relative;
+        flex: 0 0 180px;
+        min-width: 180px;
+    }
+
+    .filter-field--search {
+        flex: 0 0 260px;
+        min-width: 220px;
+        display: flex;
+        align-items: center;
+    }
+
+        .filter-field--search i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 13px;
+            pointer-events: none;
+        }
+
+    .filter-input,
+    .filter-select {
+        width: 100%;
+        background: var(--input-color);
+        border: 1px solid var(--surface-border);
+        border-radius: var(--radius-sm);
+        color: var(--text-primary);
+        font-size: 13.5px;
+        padding: 10px 14px;
+        outline: none;
+        transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .filter-input {
+        padding-left: 38px;
+    }
+
+    .filter-select {
+        appearance: none;
+        -webkit-appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2394a3b8' stroke-width='1.5' fill='none' fill-rule='evenodd'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 14px center;
+        padding-right: 32px;
+        cursor: pointer;
+        /* Tell the browser which palette to render native chrome (the
+           dropdown popup, scrollbars, etc.) with, so it doesn't fall
+           back to a light popup with light text on dark themes. */
+        color-scheme: light dark;
+    }
+
+   
+    .filter-select option {
+        background-color: var(--surface-strong);
+        color: var(--text-primary);
+    }
+
+    .filter-select--sm {
+        padding: 6px 30px 6px 12px;
+        font-size: 13px;
+    }
+
+    .filter-input:focus,
+    .filter-select:focus {
+        border-color: var(--room-blue);
+        background: var(--hover-bg);
+        box-shadow: 0 0 0 3px var(--primary-soft);
+    }
+
+    .filter-input::placeholder {
+        color: var(--text-muted);
+    }
+
+    .filter-field__actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex: 0 0 auto;
+    }
+
+    .btn-reset {
+        width: 40px;
+        height: 40px;
+        padding: 0;
+        justify-content: center;
+        background: var(--surface);
+        border-color: var(--surface-border);
+        color: var(--text-secondary);
+    }
+
+        .btn-reset:hover {
+            color: var(--text-primary);
+            transform: rotate(-90deg);
+            background: var(--surface-strong);
+        }
+
+    .btn-search {
+        background: linear-gradient(135deg, var(--primary-color-2), var(--primary-color));
+        color: #fff;
+        box-shadow: var(--active-shadow);
+    }
+
+        .btn-search:hover {
+            box-shadow: var(--hover-glow);
+            transform: translateY(-2px);
+        }
+
+    /* ============ TABLE CARD ============ */
+    .table-card {
+        background: var(--surface);
+        border: 1px solid var(--surface-border);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-md);
+        overflow: hidden;
+    }
+
+    .table-card__toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--surface-border);
+    }
+
+    .table-card__rows-per-page {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: var(--text-secondary);
+    }
+
+    .table-card__quick-search {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+
+        .table-card__quick-search i {
+            position: absolute;
+            left: 12px;
+            color: var(--text-muted);
+            font-size: 12.5px;
+        }
+
+        .table-card__quick-search input {
+            background: var(--input-color);
+            border: 1px solid var(--surface-border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-size: 13px;
+            padding: 8px 12px 8px 32px;
+            width: 220px;
+            outline: none;
+            transition: border-color 0.18s ease;
+        }
+
+            .table-card__quick-search input:focus {
+                border-color: var(--room-blue);
+            }
+
+    /* ============ TABLE ============ */
+    .rooms-table-scroll {
+        max-height: 560px;
+        overflow-y: auto;
+        overflow-x: auto;
+    }
+
+    .rooms-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        min-width: 1100px;
+    }
+
+        .rooms-table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            background: var(--surface-strong);
+            text-align: left;
+            font-size: 11.5px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text-muted);
+            font-weight: 600;
+            padding: 13px 16px;
+            border-bottom: 1px solid var(--surface-border);
+            white-space: nowrap;
+        }
+
+            .rooms-table thead th.sortable {
+                cursor: pointer;
+                user-select: none;
+            }
+
+                .rooms-table thead th.sortable i {
+                    margin-left: 6px;
+                    font-size: 10px;
+                    opacity: 0.5;
+                }
+
+                .rooms-table thead th.sortable:hover {
+                    color: var(--text-secondary);
+                }
+
+                    .rooms-table thead th.sortable:hover i {
+                        opacity: 1;
+                    }
+
+        .rooms-table tbody td {
+            padding: 12px 16px;
+            font-size: 13.5px;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--surface-border);
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
+        .rooms-table tbody tr {
+            transition: background 0.16s ease;
+        }
+
+            .rooms-table tbody tr:hover {
+                background: var(--hover-bg);
+            }
+
+            .rooms-table tbody tr:last-child td {
+                border-bottom: none;
+            }
+
+    .fw-cell {
+        color: var(--text-primary);
+        font-weight: 600;
+    }
+
+    .price-cell {
+        color: var(--text-primary);
+        font-weight: 600;
+    }
+
+    .room-thumb {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        background: var(--room-blue-soft);
+        color: var(--room-blue);
+        font-size: 16px;
+    }
+
+    /* ============ STATUS BADGES ============ */
+    .badge-status {
+        display: inline-flex;
+        align-items: center;
+        padding: 5px 12px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+        .badge-status:hover {
+            transform: translateY(-1px);
+        }
+
+    .badge-status--available {
+        background: var(--room-green-soft);
+        color: var(--room-green);
+    }
+
+    .badge-status--occupied {
+        background: var(--room-orange-soft);
+        color: var(--room-orange);
+    }
+
+    .badge-status--maintenance {
+        background: var(--room-purple-soft);
+        color: var(--room-purple);
+    }
+
+    .badge-status--outofservice {
+        background: var(--room-red-soft);
+        color: var(--room-red);
+    }
+
+    /* ============ HOUSEKEEPING BADGES ============ */
+    .badge-hk {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text-secondary);
+    }
+
+        .badge-hk i {
+            font-size: 11px;
+        }
+
+    .badge-hk--clean i {
+        color: var(--room-blue);
+    }
+
+    .badge-hk--dirty i {
+        color: var(--room-orange);
+    }
+
+    .badge-hk--cleaning i {
+        color: var(--room-purple);
+    }
+
+    .badge-hk--inspection i {
+        color: var(--info-color);
+    }
+
+    /* ============ ACTIONS ============ */
+    .col-actions {
+        text-align: right;
+    }
+
+    .action-group {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .action-btn {
+        width: 30px;
+        height: 30px;
+        border-radius: 9px;
+        border: 1px solid var(--surface-border);
+        background: var(--surface);
+        color: var(--text-secondary);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.16s ease;
+    }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+        }
+
+    .action-btn--view:hover {
+        color: var(--room-blue);
+        border-color: var(--room-blue);
+        background: var(--room-blue-soft);
+    }
+
+    .action-btn--edit:hover {
+        color: var(--room-green);
+        border-color: var(--room-green);
+        background: var(--room-green-soft);
+    }
+
+    .action-btn--delete:hover {
+        color: var(--room-red);
+        border-color: var(--room-red);
+        background: var(--room-red-soft);
+    }
+
+    .action-btn--more:hover {
+        color: var(--text-primary);
+        background: var(--surface-strong);
+    }
+
+    .dropdown-menu {
+        background: var(--dropdown-color);
+        border: 1px solid var(--surface-border);
+        border-radius: var(--radius-sm);
+        padding: 6px;
+        box-shadow: var(--shadow-lg);
+    }
+
+    .dropdown-item {
+        color: var(--text-secondary);
+        font-size: 13px;
+        border-radius: 8px;
+        padding: 8px 10px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+        .dropdown-item i {
+            width: 14px;
+            color: var(--text-muted);
+        }
+
+        .dropdown-item:hover {
+            background: var(--hover-bg);
+            color: var(--text-primary);
+        }
+
+    /* ============ FOOTER / PAGINATION ============ */
+    .table-card__footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        padding: 16px 20px;
+        border-top: 1px solid var(--surface-border);
+    }
+
+    .table-card__count {
+        font-size: 13px;
+        color: var(--text-secondary);
+    }
+
+    .pagination-premium {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+        .pagination-premium .page-link {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 32px;
+            height: 32px;
+            padding: 0 8px;
+            border-radius: 9px;
+            background: var(--surface);
+            border: 1px solid var(--surface-border);
+            color: var(--text-secondary);
+            font-size: 12.5px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.16s ease;
+        }
+
+            .pagination-premium .page-link:hover {
+                background: var(--surface-strong);
+                color: var(--text-primary);
+                transform: translateY(-1px);
+            }
+
+        .pagination-premium .page-item.active .page-link {
+            background: linear-gradient(135deg, var(--primary-color-2), var(--primary-color));
+            border-color: transparent;
+            color: #fff;
+            box-shadow: var(--active-shadow);
+        }
+
+        .pagination-premium .page-item.disabled .page-link {
+            opacity: 0.35;
+            pointer-events: none;
+        }
+
+        .pagination-premium .page-item--dots span {
+            color: var(--text-muted);
+            padding: 0 4px;
+            font-size: 13px;
+        }
+
+    /* ============ RESPONSIVE ============ */
+    @@media (max-width: 1200px) {
+        .summary-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .rooms-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .rooms-header__actions {
+            justify-content: flex-start;
+        }
+
+        .summary-grid {
+            grid-template-columns: 1fr;
+        }
+
+       
+        .filter-card__row {
+            flex-wrap: nowrap;
+        }
+
+        .table-card__footer {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+    }
+</style>
+
+<script>
+    
+
+    (function () {
+        "use strict";
+
+        document.addEventListener("DOMContentLoaded", init);
+
+        function init() {
+            const table = document.getElementById("roomsTable");
+            if (!table) return;
+
+            const tbody = document.getElementById("roomsTableBody");
+            const rows = () => Array.from(tbody.querySelectorAll("tr"));
+
+            const searchInput = document.getElementById("roomSearch");
+            const quickSearchInput = document.getElementById("tableQuickSearch");
+            const typeSelect = document.getElementById("filterRoomType");
+            const statusSelect = document.getElementById("filterStatus");
+            const floorSelect = document.getElementById("filterFloor");
+            const priceSelect = document.getElementById("filterPrice");
+            const resetBtn = document.getElementById("btnResetFilter");
+            const searchBtn = document.getElementById("btnSearchFilter");
+            const countLabel = document.getElementById("roomsCountLabel");
+            const sortableHeaders = table.querySelectorAll("th.sortable");
+
+            let sortState = { key: null, dir: 1 };
+
+            // ---------- FILTERING ----------
+            function applyFilters() {
+                const term = ((searchInput && searchInput.value) || (quickSearchInput && quickSearchInput.value) || "")
+                    .trim()
+                    .toLowerCase();
+                const type = typeSelect ? typeSelect.value : "";
+                const status = statusSelect ? statusSelect.value : "";
+                const floor = floorSelect ? floorSelect.value : "";
+                const priceRange = priceSelect ? priceSelect.value : "";
+
+                let [minPrice, maxPrice] = priceRange ? priceRange.split("-").map(Number) : [null, null];
+
+                let visibleCount = 0;
+
+                rows().forEach((row) => {
+                    const roomNo = row.dataset.roomNo || "";
+                    const roomType = row.dataset.roomType || "";
+                    const roomStatus = row.dataset.status || "";
+                    const roomFloor = row.dataset.floor || "";
+                    const roomPrice = Number(row.dataset.price || 0);
+                    const rowText = row.textContent.toLowerCase();
+
+                    let visible = true;
+
+                    if (term && !rowText.includes(term)) visible = false;
+                    if (type && roomType !== type) visible = false;
+                    if (status && roomStatus !== status) visible = false;
+                    if (floor && roomFloor !== floor) visible = false;
+                    if (priceRange && (roomPrice < minPrice || roomPrice > maxPrice)) visible = false;
+
+                    row.style.display = visible ? "" : "none";
+                    if (visible) visibleCount++;
+                });
+
+                updateCountLabel(visibleCount);
+            }
+
+            function updateCountLabel(visibleCount) {
+                if (!countLabel) return;
+                const total = rows().length;
+                const shown = Math.min(visibleCount, total);
+                countLabel.textContent = `Showing ${shown === 0 ? 0 : 1} to ${shown} of ${total} rooms`;
+            }
+
+            function resetFilters() {
+                if (searchInput) searchInput.value = "";
+                if (quickSearchInput) quickSearchInput.value = "";
+                if (typeSelect) typeSelect.value = "";
+                if (statusSelect) statusSelect.value = "";
+                if (floorSelect) floorSelect.value = "";
+                if (priceSelect) priceSelect.value = "";
+                applyFilters();
+            }
+
+            if (searchInput) searchInput.addEventListener("input", debounce(applyFilters, 200));
+            if (quickSearchInput) quickSearchInput.addEventListener("input", debounce(applyFilters, 200));
+            [typeSelect, statusSelect, floorSelect, priceSelect].forEach((el) => {
+                if (el) el.addEventListener("change", applyFilters);
+            });
+            if (resetBtn) resetBtn.addEventListener("click", resetFilters);
+            if (searchBtn) searchBtn.addEventListener("click", applyFilters);
+
+            // ---------- SORTING ----------
+            sortableHeaders.forEach((th) => {
+                th.addEventListener("click", () => {
+                    const key = th.dataset.sort;
+                    sortState.dir = sortState.key === key ? sortState.dir * -1 : 1;
+                    sortState.key = key;
+
+                    sortableHeaders.forEach((h) => h.querySelector("i").className = "fa-solid fa-sort");
+                    const icon = th.querySelector("i");
+                    icon.className = sortState.dir === 1 ? "fa-solid fa-sort-up" : "fa-solid fa-sort-down";
+
+                    sortRows(key, sortState.dir);
+                });
+            });
+
+            function sortRows(key, dir) {
+                const map = {
+                    roomNo: (r) => Number(r.dataset.roomNo),
+                    roomName: (r) => r.children[2].textContent.trim().toLowerCase(),
+                    roomType: (r) => r.dataset.roomType,
+                    floor: (r) => Number(r.dataset.floor),
+                    price: (r) => Number(r.dataset.price),
+                    created: (r) => new Date(r.children[9].textContent.trim())
+                };
+                const getValue = map[key];
+                if (!getValue) return;
+
+                const sorted = rows().sort((a, b) => {
+                    const va = getValue(a);
+                    const vb = getValue(b);
+                    if (va < vb) return -1 * dir;
+                    if (va > vb) return 1 * dir;
+                    return 0;
+                });
+
+                sorted.forEach((row) => tbody.appendChild(row));
+            }
+
+            // ---------- PAGINATION (demo only — hooks up to real paging later) ----------
+            const pagination = document.getElementById("roomsPagination");
+            if (pagination) {
+                pagination.addEventListener("click", (e) => {
+                    const link = e.target.closest(".page-link");
+                    if (!link) return;
+                    e.preventDefault();
+
+                    const items = Array.from(pagination.querySelectorAll(".page-item"));
+                    const current = pagination.querySelector(".page-item.active");
+
+                    items.forEach((li) => li.classList.remove("active"));
+                    const parentLi = link.closest(".page-item");
+                    if (parentLi && link.dataset.page !== "prev" && link.dataset.page !== "next") {
+                        parentLi.classList.add("active");
+                    }
+                    // Real implementation: fetch page data via AJAX from RoomsController
+                    // and re-render tbody + countLabel accordingly.
+                });
+            }
+
+            // ---------- ROWS PER PAGE ----------
+            const rowsPerPage = document.getElementById("rowsPerPage");
+            if (rowsPerPage) {
+                rowsPerPage.addEventListener("change", () => {
+                    // Hook into server-side paging with rowsPerPage.value
+                    applyFilters();
+                });
+            }
+
+            // ---------- UTIL ----------
+            function debounce(fn, delay) {
+                let timer;
+                return function (...args) {
+                    clearTimeout(timer);
+                    timer = setTimeout(() => fn.apply(this, args), delay);
+                };
+            }
+
+            // Initial count
+            updateCountLabel(rows().length);
+
+            // Update summary cards using rendered rows (derived from DB)
+            function updateSummaryCards() {
+                const all = rows();
+                const total = all.length;
+                const available = all.filter(r => (r.dataset.status || '').toLowerCase().includes('available')).length;
+                const occupied = all.filter(r => (r.dataset.status || '').toLowerCase().includes('occupied')).length;
+                const maintenance = all.filter(r => (r.dataset.status || '').toLowerCase().includes('maintenance')).length;
+
+                const elTotal = document.getElementById('totalRoomsCount');
+                const elAvail = document.getElementById('availableRoomsCount');
+                const elOcc = document.getElementById('occupiedRoomsCount');
+                const elMaint = document.getElementById('maintenanceRoomsCount');
+
+                if (elTotal) elTotal.textContent = total;
+                if (elAvail) elAvail.textContent = available;
+                if (elOcc) elOcc.textContent = occupied;
+                if (elMaint) elMaint.textContent = maintenance;
+            }
+
+            updateSummaryCards();
+        }
+    })();
+
+</script>

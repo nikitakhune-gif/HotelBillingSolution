@@ -1,15 +1,1076 @@
-@model HotelBilling.Application.DTOs.Response.BillResponse
-
 @{
     ViewData["Title"] = "Bill Details";
 }
 
-<h2>Bill Details</h2>
+@using System.Linq
+@using HotelBilling.Application.DTOs.Bill
+@model BillDto
 
-<div class="card p-3">
-    <p><strong>Id:</strong> @Model.Id</p>
-    <p><strong>Customer:</strong> @Model.CustomerId</p>
-    <p><strong>Room:</strong> @Model.RoomId</p>
-    <p><strong>Total:</strong> @Model.TotalAmount</p>
-    <p><strong>Status:</strong> @Model.PaymentStatus</p>
+@*
+    ============================================================================
+    ASSUMPTIONS ABOUT BillDto (please verify / extend in Application layer):
+      - CustomerEmail, CustomerPhone, CustomerAddress   (guest contact info)
+      - RoomType, CheckInDate, CheckOutDate, Nights      (booking info)
+      - SubTotal, DiscountPercent, DiscountAmount,
+        TaxPercent, TaxAmount, ServiceCharge             (amount breakdown)
+      - PaymentMethod, TransactionNumber, PaymentDate,
+        PaidAmount                                       (payment info)
+      - Notes                                             (free text notes)
+      - Items : List<BillItemDto> { Name, Quantity, Rate, Amount }
+
+    These mirror exactly what Create.cshtml (New Bill) already collects and
+    saves, so Details is just rendering the same record back. If any of
+    these are not yet on BillDto, add them (or map them in the controller)
+    and the razor null-checks below will simply hide the section until then.
+    ============================================================================
+*@
+
+<style>
+    /* ===================== Bill Details Page Scoped Styles ===================== */
+    .bd-page {
+        --bd-primary: var(--primary-color);
+        --bd-primary-dark: var(--primary-color-2);
+        --bd-primary-light: color-mix(in srgb, var(--card-color) 88%, var(--primary-color) 12%);
+        --bd-green: var(--success-color);
+        --bd-green-light: var(--success-soft);
+        --bd-orange: var(--warning-color);
+        --bd-orange-light: var(--warning-soft);
+        --bd-red: var(--danger-color);
+        --bd-red-light: var(--danger-soft);
+        --bd-blue-light: color-mix(in srgb, var(--card-color) 88%, var(--primary-color) 12%);
+        --bd-text: var(--text-color);
+        --bd-text-muted: var(--text-muted);
+        --bd-border: var(--border-color);
+        --bd-radius: 18px;
+        --bd-radius-sm: 12px;
+        --bd-shadow: var(--shadow-sm);
+        --bd-shadow-hover: var(--shadow-md);
+        color: var(--text-color);
+        font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+        padding: 28px;
+    }
+
+        .bd-page * {
+            box-sizing: border-box;
+        }
+
+    @@media (max-width: 991px) {
+        .bd-page {
+            padding: 16px;
+        }
+    }
+
+    .bd-page .bd-card {
+        background: var(--card-color);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        border: 1px solid var(--bd-border);
+        border-radius: var(--bd-radius);
+        box-shadow: var(--bd-shadow);
+        transition: box-shadow .25s ease;
+    }
+
+        .bd-page .bd-card:hover {
+            box-shadow: var(--bd-shadow-hover);
+        }
+
+    /* ---- Header ---- */
+    .bd-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 22px;
+    }
+
+    .bd-header-left {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .bd-back-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        border: 1px solid var(--bd-border);
+        background: var(--input-color);
+        color: var(--bd-text);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition: all .18s ease;
+        cursor: pointer;
+    }
+
+        .bd-back-btn:hover {
+            border-color: var(--bd-primary);
+            color: var(--bd-primary);
+            transform: translateX(-2px);
+        }
+
+    .bd-header h1 {
+        font-size: 1.55rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        margin: 0 0 4px 0;
+        color: var(--bd-text);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .bd-header p {
+        margin: 0;
+        color: var(--bd-text-muted);
+        font-size: 0.9rem;
+    }
+
+    .bd-header-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .bd-btn {
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 0.86rem;
+        padding: 0.6rem 1.1rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all .2s ease;
+        border: 1px solid transparent;
+        white-space: nowrap;
+        cursor: pointer;
+    }
+
+    .bd-btn-outline {
+        background: var(--input-color);
+        border-color: var(--bd-border);
+        color: var(--bd-text);
+    }
+
+        .bd-btn-outline:hover {
+            border-color: var(--bd-primary);
+            color: var(--bd-primary);
+            transform: translateY(-1px);
+        }
+
+    .bd-btn-primary {
+        background: linear-gradient(135deg, var(--bd-primary), var(--bd-primary-dark));
+        color: var(--on-primary, #fff);
+        border: none;
+        box-shadow: 0 8px 18px color-mix(in srgb, var(--bd-primary) 40%, transparent);
+    }
+
+        .bd-btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 12px 22px color-mix(in srgb, var(--bd-primary) 50%, transparent);
+            color: var(--on-primary, #fff);
+        }
+
+    .bd-btn-danger-outline {
+        background: var(--bd-red-light);
+        border-color: transparent;
+        color: var(--bd-red);
+    }
+
+        .bd-btn-danger-outline:hover {
+            background: var(--bd-red);
+            color: #fff;
+            transform: translateY(-1px);
+        }
+
+    /* ---- Status badges ---- */
+    .bd-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0.34rem 0.85rem;
+        border-radius: 999px;
+        font-size: 0.74rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .02em;
+    }
+
+        .bd-badge::before {
+            content: "";
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+    .bd-badge-paid {
+        background: var(--bd-green-light);
+        color: var(--bd-green);
+    }
+
+        .bd-badge-paid::before {
+            background: var(--bd-green);
+        }
+
+    .bd-badge-partial {
+        background: var(--bd-orange-light);
+        color: var(--bd-orange);
+    }
+
+        .bd-badge-partial::before {
+            background: var(--bd-orange);
+        }
+
+    .bd-badge-pending {
+        background: var(--bd-red-light);
+        color: var(--bd-red);
+    }
+
+        .bd-badge-pending::before {
+            background: var(--bd-red);
+        }
+
+    .bd-badge-completed {
+        background: var(--bd-green-light);
+        color: var(--bd-green);
+    }
+
+        .bd-badge-completed::before {
+            background: var(--bd-green);
+        }
+
+    .bd-badge-checkedout {
+        background: var(--bd-blue-light);
+        color: var(--bd-primary);
+    }
+
+        .bd-badge-checkedout::before {
+            background: var(--bd-primary);
+        }
+
+    .bd-badge-due {
+        background: var(--bd-orange-light);
+        color: var(--bd-orange);
+    }
+
+        .bd-badge-due::before {
+            background: var(--bd-orange);
+        }
+
+    /* ---- Main layout ---- */
+    .bd-main-row {
+        display: grid;
+        grid-template-columns: 68% 32%;
+        gap: 20px;
+        align-items: start;
+    }
+
+    @@media (max-width: 1199.98px) {
+        .bd-main-row {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* ---- Panels ---- */
+    .bd-panel {
+        padding: 22px 24px;
+        margin-bottom: 20px;
+    }
+
+    .bd-panel-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 1.02rem;
+        font-weight: 700;
+        color: var(--bd-text);
+        margin-bottom: 18px;
+    }
+
+    .bd-icon-badge {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background: var(--primary-soft);
+        color: var(--bd-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 15px;
+        flex-shrink: 0;
+    }
+
+    /* ---- Invoice head strip (guest + invoice meta) ---- */
+    .bd-invoice-strip {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        flex-wrap: wrap;
+        padding-bottom: 18px;
+        margin-bottom: 18px;
+        border-bottom: 1px dashed var(--bd-border);
+    }
+
+    .bd-guest-block {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .bd-guest-avatar {
+        width: 52px;
+        height: 52px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, var(--bd-primary), #60A5FA);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 1.05rem;
+        flex-shrink: 0;
+    }
+
+    .bd-guest-name {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: var(--bd-text);
+        margin-bottom: 2px;
+    }
+
+    .bd-guest-meta {
+        font-size: 0.82rem;
+        color: var(--bd-text-muted);
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+    }
+
+        .bd-guest-meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+    .bd-invoice-meta {
+        text-align: right;
+    }
+
+    .bd-invoice-no {
+        font-size: 1.15rem;
+        font-weight: 800;
+        color: var(--bd-primary);
+        letter-spacing: -0.01em;
+    }
+
+    .bd-invoice-date {
+        font-size: 0.8rem;
+        color: var(--bd-text-muted);
+        margin-top: 2px;
+    }
+
+    /* ---- Info grid (booking details) ---- */
+    .bd-info-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+    }
+
+    @@media (max-width: 767.98px) {
+        .bd-info-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    .bd-info-item {
+        background: var(--card-color-2, var(--card-color));
+        border: 1px solid var(--bd-border);
+        border-radius: var(--bd-radius-sm);
+        padding: 12px 14px;
+    }
+
+    .bd-info-label {
+        font-size: 0.70rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        color: var(--bd-text-muted);
+        margin-bottom: 4px;
+    }
+
+    .bd-info-value {
+        font-size: 0.92rem;
+        font-weight: 600;
+        color: var(--bd-text);
+    }
+
+    /* ---- Items table ---- */
+    .bd-table-wrap {
+        overflow-x: auto;
+    }
+
+    table.bd-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        min-width: 560px;
+        color: var(--bd-text);
+    }
+
+        table.bd-table thead th {
+            text-transform: uppercase;
+            font-size: 0.70rem;
+            letter-spacing: 0.04em;
+            color: var(--bd-text-muted);
+            font-weight: 700;
+            border-bottom: 1px solid var(--bd-border);
+            padding: 10px 12px;
+            white-space: nowrap;
+            background: var(--card-color-2);
+        }
+
+        table.bd-table tbody td {
+            padding: 12px;
+            font-size: 0.87rem;
+            border-bottom: 1px solid var(--bd-border);
+            vertical-align: middle;
+            color: var(--bd-text);
+        }
+
+        table.bd-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        table.bd-table th:nth-child(2),
+        table.bd-table th:nth-child(3),
+        table.bd-table th:nth-child(4),
+        table.bd-table td:nth-child(2),
+        table.bd-table td:nth-child(3),
+        table.bd-table td:nth-child(4) {
+            text-align: right;
+        }
+
+    .bd-item-row-index {
+        color: var(--bd-text-muted);
+        font-weight: 600;
+    }
+
+    .bd-item-amount {
+        font-weight: 700;
+    }
+
+    .bd-empty-state {
+        text-align: center;
+        color: var(--bd-text-muted);
+        padding: 18px;
+        font-size: 0.86rem;
+    }
+
+    /* ---- Notes ---- */
+    .bd-notes-box {
+        background: var(--card-color-2, var(--card-color));
+        border: 1px solid var(--bd-border);
+        border-radius: var(--bd-radius-sm);
+        padding: 14px 16px;
+        font-size: 0.86rem;
+        color: var(--bd-text-muted);
+        line-height: 1.55;
+    }
+
+    /* ---- Timeline (audit trail placeholder) ---- */
+    .bd-timeline {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .bd-timeline-item {
+        display: flex;
+        gap: 14px;
+        padding-bottom: 18px;
+        position: relative;
+    }
+
+        .bd-timeline-item:last-child {
+            padding-bottom: 0;
+        }
+
+        .bd-timeline-item:not(:last-child)::before {
+            content: "";
+            position: absolute;
+            left: 11px;
+            top: 26px;
+            bottom: 0;
+            width: 2px;
+            background: var(--bd-border);
+        }
+
+    .bd-timeline-dot {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: var(--bd-green-light);
+        color: var(--bd-green);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.68rem;
+        flex-shrink: 0;
+        z-index: 1;
+    }
+
+    .bd-timeline-title {
+        font-size: 0.86rem;
+        font-weight: 700;
+        color: var(--bd-text);
+    }
+
+    .bd-timeline-sub {
+        font-size: 0.78rem;
+        color: var(--bd-text-muted);
+        margin-top: 2px;
+    }
+
+    /* ---- Sidebar summary ---- */
+    .bd-sticky-col {
+        position: sticky;
+        top: 20px;
+    }
+
+    @@media (max-width: 1199.98px) {
+        .bd-sticky-col {
+            position: static;
+        }
+    }
+
+    .bd-summary-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 0.86rem;
+        color: var(--bd-text-muted);
+        margin-bottom: 12px;
+    }
+
+        .bd-summary-row .bd-val {
+            color: var(--bd-text);
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+        }
+
+            .bd-summary-row .bd-val.neg {
+                color: var(--bd-red);
+            }
+
+            .bd-summary-row .bd-val.pos {
+                color: var(--bd-green);
+            }
+
+    .bd-divider {
+        border: none;
+        border-top: 1px dashed var(--bd-border);
+        margin: 14px 0;
+    }
+
+    .bd-total-block {
+        background: linear-gradient(135deg, var(--primary-soft) 0%, color-mix(in srgb, var(--card-color) 94%, var(--bd-primary) 6%) 100%);
+        border: 1px solid color-mix(in srgb, var(--bd-primary) 25%, transparent);
+        padding: 14px;
+        border-radius: 12px;
+        margin: 4px 0 16px;
+    }
+
+        .bd-total-block .bd-total-label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--bd-text-muted);
+            text-transform: uppercase;
+            letter-spacing: .03em;
+        }
+
+        .bd-total-block .bd-total-amount {
+            font-size: 1.55rem;
+            font-weight: 800;
+            letter-spacing: -0.01em;
+            color: var(--bd-primary);
+            font-variant-numeric: tabular-nums;
+        }
+
+    .bd-paid-due {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 4px;
+    }
+
+    .bd-mini-box {
+        border-radius: 12px;
+        padding: 10px 12px;
+        text-align: center;
+    }
+
+        .bd-mini-box.paid {
+            background: var(--bd-green-light);
+        }
+
+        .bd-mini-box.due {
+            background: var(--bd-red-light);
+        }
+
+        .bd-mini-box .bd-mini-label {
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            margin-bottom: 4px;
+        }
+
+        .bd-mini-box.paid .bd-mini-label {
+            color: var(--bd-green);
+        }
+
+        .bd-mini-box.due .bd-mini-label {
+            color: var(--bd-red);
+        }
+
+        .bd-mini-box .bd-mini-value {
+            font-weight: 800;
+            font-size: 0.95rem;
+        }
+
+        .bd-mini-box.paid .bd-mini-value {
+            color: var(--bd-green);
+        }
+
+        .bd-mini-box.due .bd-mini-value {
+            color: var(--bd-red);
+        }
+
+    /* ---- Payment info card ---- */
+    .bd-payment-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--bd-border);
+        font-size: 0.85rem;
+    }
+
+        .bd-payment-row:last-child {
+            border-bottom: none;
+        }
+
+        .bd-payment-row span:first-child {
+            color: var(--bd-text-muted);
+        }
+
+        .bd-payment-row span.bd-val {
+            color: var(--bd-text);
+            font-weight: 600;
+        }
+
+    /* Print */
+    @@media print {
+        .bd-header-actions, .bd-back-btn, .no-print {
+            display: none !important;
+        }
+
+        .bd-main-row {
+            grid-template-columns: 1fr;
+        }
+
+        .bd-page {
+            padding: 0;
+        }
+    }
+</style>
+
+<div class="bd-page">
+
+    <!-- ===================== PAGE HEADER ===================== -->
+    <div class="bd-header">
+        <div class="bd-header-left">
+            <button type="button" class="bd-back-btn no-print" id="btnBack" title="Back to list">
+                <i class="fa-solid fa-arrow-left"></i>
+            </button>
+            <div>
+                <h1>
+                    Bill Details
+                    @{
+                        var statusClass = (Model.BillStatus == "Completed") ? "bd-badge-completed"
+                            : (Model.BillStatus == "Checked Out") ? "bd-badge-checkedout"
+                            : "bd-badge-due";
+                    }
+                    <span class="bd-badge @statusClass">@Model.BillStatus</span>
+                </h1>
+                <p>Invoice <strong>@Model.BillNumber</strong> &middot; @Model.BillDate.ToString("dd MMM yyyy")</p>
+            </div>
+        </div>
+        <div class="bd-header-actions no-print">
+            <button type="button" class="bd-btn bd-btn-outline" id="btnPrint">
+                <i class="fa-solid fa-print"></i> Print
+            </button>
+            <button type="button" class="bd-btn bd-btn-outline" id="btnDownload">
+                <i class="fa-solid fa-file-pdf"></i> Download PDF
+            </button>
+            <a class="bd-btn bd-btn-outline" href="@Url.Action("Edit", "Billing", new { id = Model.Id })">
+                <i class="fa-solid fa-pen"></i> Edit
+            </a>
+            <button type="button" class="bd-btn bd-btn-danger-outline" id="btnDelete">
+                <i class="fa-solid fa-trash"></i> Delete
+            </button>
+        </div>
+    </div>
+
+    <!-- ===================== MAIN CONTENT ===================== -->
+    <div class="bd-main-row">
+
+        <!-- LEFT COLUMN -->
+        <div>
+            <!-- Guest + Booking Info -->
+            <div class="bd-card bd-panel">
+                <div class="bd-invoice-strip">
+                    <div class="bd-guest-block">
+                        <div class="bd-guest-avatar">
+                            @((Model.CustomerName ?? string.Empty).Split(' ').Select(x => x.FirstOrDefault()).Where(x => x != '\0').Take(2).Aggregate(string.Empty, (a, c) => a + c))
+                        </div>
+                        <div>
+                            <div class="bd-guest-name">@Model.CustomerName</div>
+                            <div class="bd-guest-meta">
+                                <span><i class="fa-solid fa-door-closed"></i> Room @Model.RoomNumber</span>
+                                @{
+                                    var ext = Model as dynamic;
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bd-invoice-meta">
+                        <div class="bd-invoice-no">@Model.BillNumber</div>
+                        <div class="bd-invoice-date">Billed on @Model.BillDate.ToString("dd MMM yyyy")</div>
+                    </div>
+                </div>
+
+                <div class="bd-info-grid">
+                    <div class="bd-info-item">
+                        <div class="bd-info-label">Room Number</div>
+                        <div class="bd-info-value">@Model.RoomNumber</div>
+                    </div>
+                    <div class="bd-info-item">
+                        <div class="bd-info-label">Bill Date</div>
+                        <div class="bd-info-value">@Model.BillDate.ToString("dd/MM/yyyy")</div>
+                    </div>
+                    <div class="bd-info-item">
+                        <div class="bd-info-label">Payment Status</div>
+                        <div class="bd-info-value">@Model.PaymentStatus</div>
+                    </div>
+                    <div class="bd-info-item">
+                        <div class="bd-info-label">Bill Status</div>
+                        <div class="bd-info-value">@Model.BillStatus</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bill Items -->
+            <div class="bd-card bd-panel">
+                <div class="bd-panel-title">
+                    <span class="bd-icon-badge"><i class="fa-solid fa-list-check"></i></span>
+                    Bill Items
+                </div>
+
+                <div class="bd-table-wrap">
+                    <table class="bd-table">
+                        <thead>
+                            <tr>
+                                <th style="width:40px;">#</th>
+                                <th>Item</th>
+                                <th style="width:90px;">Qty</th>
+                                <th style="width:110px;">Rate</th>
+                                <th style="width:130px;">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @* If BillDto exposes an Items collection (List<BillItemDto>), it will render here. *@
+                            @{
+                                var items = (Model as dynamic)?.Items as System.Collections.IEnumerable;
+                            }
+                            @if (items != null && items.Cast<object>().Any())
+                            {
+                                int i = 1;
+                                foreach (dynamic item in items)
+                                {
+                                    <tr>
+                                        <td class="bd-item-row-index">@i</td>
+                                        <td>@item.Name</td>
+                                        <td>@item.Quantity</td>
+                                        <td>₹@String.Format("{0:N2}", (decimal)item.Rate)</td>
+                                        <td class="bd-item-amount">₹@String.Format("{0:N2}", (decimal)item.Amount)</td>
+                                    </tr>
+                                    i++;
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="5" class="bd-empty-state">
+                                        No itemized line items on this bill.<br />
+                                        <span style="font-size:.78rem;">(Add an <code>Items</code> collection to <code>BillDto</code> to list them here.)</span>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Notes (only if present) -->
+            @{
+                var notes = (Model as dynamic)?.Notes as string;
+            }
+            @if (!string.IsNullOrWhiteSpace(notes))
+            {
+                <div class="bd-card bd-panel">
+                    <div class="bd-panel-title">
+                        <span class="bd-icon-badge"><i class="fa-solid fa-note-sticky"></i></span>
+                        Notes
+                    </div>
+                    <div class="bd-notes-box">@notes</div>
+                </div>
+            }
+
+            <!-- Bill Timeline -->
+            <div class="bd-card bd-panel" style="margin-bottom:0;">
+                <div class="bd-panel-title">
+                    <span class="bd-icon-badge"><i class="fa-solid fa-clock-rotate-left"></i></span>
+                    Activity
+                </div>
+                <div class="bd-timeline">
+                    <div class="bd-timeline-item">
+                        <div class="bd-timeline-dot"><i class="fa-solid fa-file-invoice"></i></div>
+                        <div>
+                            <div class="bd-timeline-title">Bill generated</div>
+                            <div class="bd-timeline-sub">@Model.BillDate.ToString("dd MMM yyyy, hh:mm tt")</div>
+                        </div>
+                    </div>
+                    @if (Model.DueAmount <= 0)
+                    {
+                        <div class="bd-timeline-item">
+                            <div class="bd-timeline-dot"><i class="fa-solid fa-check"></i></div>
+                            <div>
+                                <div class="bd-timeline-title">Payment completed</div>
+                                <div class="bd-timeline-sub">Full amount received</div>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="bd-timeline-item">
+                            <div class="bd-timeline-dot" style="background:var(--bd-orange-light); color:var(--bd-orange);"><i class="fa-solid fa-hourglass-half"></i></div>
+                            <div>
+                                <div class="bd-timeline-title">Payment pending</div>
+                                <div class="bd-timeline-sub">₹@String.Format("{0:N2}", Model.DueAmount) due</div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN -->
+        <div>
+            <div class="bd-sticky-col">
+
+                <!-- Bill Summary -->
+                <div class="bd-card bd-panel">
+                    <div class="bd-panel-title">
+                        <span class="bd-icon-badge"><i class="fa-solid fa-receipt"></i></span>
+                        Bill Summary
+                    </div>
+
+                    @{
+                        var d = Model as dynamic;
+                        decimal? subtotal = null, discountAmt = null, taxAmt = null, serviceCharge = null;
+                        try { subtotal = (decimal?)d?.SubTotal; } catch { }
+                        try { discountAmt = (decimal?)d?.DiscountAmount; } catch { }
+                        try { taxAmt = (decimal?)d?.TaxAmount; } catch { }
+                        try { serviceCharge = (decimal?)d?.ServiceCharge; } catch { }
+                    }
+
+                    @if (subtotal.HasValue)
+                    {
+                        <div class="bd-summary-row">
+                            <span>Subtotal</span>
+                            <span class="bd-val">₹@String.Format("{0:N2}", subtotal.Value)</span>
+                        </div>
+                    }
+                    @if (discountAmt.HasValue && discountAmt.Value > 0)
+                    {
+                        <div class="bd-summary-row">
+                            <span>Discount</span>
+                            <span class="bd-val neg">- ₹@String.Format("{0:N2}", discountAmt.Value)</span>
+                        </div>
+                    }
+                    @if (taxAmt.HasValue && taxAmt.Value > 0)
+                    {
+                        <div class="bd-summary-row">
+                            <span>Tax</span>
+                            <span class="bd-val pos">+ ₹@String.Format("{0:N2}", taxAmt.Value)</span>
+                        </div>
+                    }
+                    @if (serviceCharge.HasValue && serviceCharge.Value > 0)
+                    {
+                        <div class="bd-summary-row">
+                            <span>Service Charge</span>
+                            <span class="bd-val pos">+ ₹@String.Format("{0:N2}", serviceCharge.Value)</span>
+                        </div>
+                    }
+
+                    <hr class="bd-divider">
+
+                    <div class="bd-total-block">
+                        <div class="bd-total-label">Total Amount</div>
+                        <div class="bd-total-amount">₹@String.Format("{0:N2}", Model.TotalAmount)</div>
+                    </div>
+
+                    <div class="bd-paid-due">
+                        <div class="bd-mini-box paid">
+                            <div class="bd-mini-label">Paid</div>
+                            <div class="bd-mini-value">₹@String.Format("{0:N2}", Model.TotalAmount - Model.DueAmount)</div>
+                        </div>
+                        <div class="bd-mini-box due">
+                            <div class="bd-mini-label">Due</div>
+                            <div class="bd-mini-value">₹@String.Format("{0:N2}", Model.DueAmount)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment Info -->
+                <div class="bd-card bd-panel">
+                    <div class="bd-panel-title">
+                        <span class="bd-icon-badge"><i class="fa-solid fa-credit-card"></i></span>
+                        Payment Info
+                    </div>
+
+                    @{
+                        string paymentMethod = null, transactionNo = null;
+                        DateTime? paymentDate = null;
+                        try { paymentMethod = (string)d?.PaymentMethod; } catch { }
+                        try { transactionNo = (string)d?.TransactionNumber; } catch { }
+                        try { paymentDate = (DateTime?)d?.PaymentDate; } catch { }
+                    }
+
+                    <div class="bd-payment-row">
+                        <span>Status</span>
+                        @{
+                            var payClass = (!string.IsNullOrWhiteSpace(Model.PaymentStatus) && Model.PaymentStatus.Equals("Paid", StringComparison.OrdinalIgnoreCase)) ? "bd-badge-paid"
+                                : (!string.IsNullOrWhiteSpace(Model.PaymentStatus) && Model.PaymentStatus.Equals("Partial", StringComparison.OrdinalIgnoreCase)) ? "bd-badge-partial"
+                                : "bd-badge-pending";
+                        }
+                        <span class="bd-badge @payClass">@Model.PaymentStatus</span>
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(paymentMethod))
+                    {
+                        <div class="bd-payment-row">
+                            <span>Method</span>
+                            <span class="bd-val">@paymentMethod</span>
+                        </div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(transactionNo))
+                    {
+                        <div class="bd-payment-row">
+                            <span>Transaction No.</span>
+                            <span class="bd-val">@transactionNo</span>
+                        </div>
+                    }
+                    @if (paymentDate.HasValue)
+                    {
+                        <div class="bd-payment-row">
+                            <span>Payment Date</span>
+                            <span class="bd-val">@paymentDate.Value.ToString("dd MMM yyyy")</span>
+                        </div>
+                    }
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="bd-card bd-panel no-print" style="margin-bottom:0;">
+                    <div class="bd-panel-title">
+                        <span class="bd-icon-badge"><i class="fa-solid fa-bolt"></i></span>
+                        Quick Actions
+                    </div>
+                    <div class="d-flex flex-column gap-2">
+                        <a class="bd-btn bd-btn-primary w-100 justify-content-center" href="@Url.Action("Create", "Billing", new { customerId = Model.Id })">
+                            <i class="fa-solid fa-plus"></i> New Bill for Guest
+                        </a>
+                        <button type="button" class="bd-btn bd-btn-outline w-100 justify-content-center" id="btnEmailInvoice">
+                            <i class="fa-solid fa-envelope"></i> Email Invoice
+                        </button>
+                        <a class="bd-btn bd-btn-outline w-100 justify-content-center" href="@Url.Action("Index", "Billing")">
+                            <i class="fa-solid fa-list"></i> Back to Billing List
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
 </div>
+
+<script>
+    (function () {
+        'use strict';
+
+        var btnBack = document.getElementById('btnBack');
+        if (btnBack) {
+            btnBack.addEventListener('click', function () {
+                window.location.href = '@Url.Action("Index", "Billing")';
+            });
+        }
+
+        var btnPrint = document.getElementById('btnPrint');
+        if (btnPrint) {
+            btnPrint.addEventListener('click', function () {
+                window.print();
+            });
+        }
+
+        var btnDownload = document.getElementById('btnDownload');
+        if (btnDownload) {
+            btnDownload.addEventListener('click', function () {
+                // Navigate to controller action that streams a generated PDF
+                window.location.href = '@Url.Action("DownloadPdf", "Billing", new { id = Model.Id })';
+            });
+        }
+
+        var btnDelete = document.getElementById('btnDelete');
+        if (btnDelete) {
+            btnDelete.addEventListener('click', function () {
+                if (confirm('Are you sure you want to delete this bill? This action cannot be undone.')) {
+                    // Wire this up to a controller POST/DELETE action, e.g.:
+                    // window.location.href = '@Url.Action("Delete", "Billing", new { id = Model.Id })';
+                    console.log('Delete bill @Model.Id');
+                }
+            });
+        }
+
+        var btnEmailInvoice = document.getElementById('btnEmailInvoice');
+        if (btnEmailInvoice) {
+            btnEmailInvoice.addEventListener('click', function () {
+                console.log('Email invoice @Model.BillNumber');
+            });
+        }
+    })();
+</script>
+<script>
+    (function () {
+        // Auto-print when opened with ?print=true
+        try {
+            var params = new URLSearchParams(window.location.search);
+            if (params.get('print') === 'true') {
+                // give the page a short moment to render fully
+                setTimeout(function () { window.print(); }, 250);
+            }
+        } catch (e) { /* ignore */ }
+    })();
+</script>

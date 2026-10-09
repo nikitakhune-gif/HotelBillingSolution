@@ -12,7 +12,20 @@ namespace HotelBilling.Infrastructure.Data.Configurations
 
             builder.HasKey(x => x.Id);
 
-            builder.Property(x => x.Amount)
+            // Bill entity uses SubTotal/DiscountAmount/TaxAmount/ServiceCharge/TotalAmount
+            builder.Property(x => x.SubTotal)
+                   .HasColumnType("decimal(18,2)");
+
+            builder.Property(x => x.DiscountAmount)
+                   .HasColumnType("decimal(18,2)");
+
+            builder.Property(x => x.TaxAmount)
+                   .HasColumnType("decimal(18,2)");
+
+            builder.Property(x => x.ServiceCharge)
+                   .HasColumnType("decimal(18,2)");
+
+            builder.Property(x => x.TotalAmount)
                    .HasColumnType("decimal(18,2)");
 
             // Relationships
@@ -20,9 +33,9 @@ namespace HotelBilling.Infrastructure.Data.Configurations
                    .WithMany(c => c.Bills)
                    .HasForeignKey(b => b.CustomerId);
 
-            builder.HasOne(b => b.Room)
-                   .WithMany(r => r.Bills)
-                   .HasForeignKey(b => b.RoomId);
+            //builder.HasOne(b => b.Room)
+            //       .WithMany(r => r.Bills)
+            //       .HasForeignKey(b => b.RoomId);
         }
     }
 }

@@ -12,4 +12,5 @@ namespace HotelBilling.Domain.Enums
         Double = 2,
         Suite = 3
     }
+    
 }

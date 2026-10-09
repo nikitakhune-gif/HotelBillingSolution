@@ -1,0 +1,533 @@
+﻿@model HotelBilling.Application.DTOs.Customer.CustomerDto
+@{
+    ViewData["Title"] = "Customer Details";
+    var initials = ((Model.FirstName?.Length > 0 ? Model.FirstName[0].ToString() : "") + (Model.LastName?.Length > 0 ? Model.LastName[0].ToString() : "")).ToUpper();
+}
+
+<div class="dt-page">
+
+    <!-- ============ PAGE HEADER ============ -->
+    <div class="dt-header">
+        <div class="dt-header__text">
+            <h1 class="dt-header__title">Customer Details</h1>
+            <p class="dt-header__subtitle">@($"CUST-{Model.Id:D4}") · Full profile overview</p>
+        </div>
+        <div class="dt-header__actions">
+            <a asp-controller="Customer" asp-action="Index" class="dtbtn dtbtn-ghost">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span>Back to Customers</span>
+            </a>
+            <a asp-controller="Customer" asp-action="Edit" asp-route-id="@Model.Id" class="dtbtn dtbtn-primary-glow">
+                <i class="fa-solid fa-pen"></i>
+                <span>Edit Customer</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- ============ PROFILE SUMMARY CARD ============ -->
+    <div class="dt-profile-card">
+        <div class="dt-profile-card__avatar">
+            @if (!string.IsNullOrEmpty(Model.ProfilePhotoPath))
+            {
+                <img src="@Model.ProfilePhotoPath" alt="@Model.FirstName @Model.LastName" />
+            }
+            else
+            {
+                <span>@initials</span>
+            }
+        </div>
+        <div class="dt-profile-card__info">
+            <h2>@Model.FirstName @Model.LastName</h2>
+            <div class="dt-profile-card__badges">
+                <span class="badge-membership badge-membership--@((Model.Membership ?? "regular").ToLower())">@Model.Membership</span>
+                <span class="badge-cstatus badge-cstatus--@((Model.Status ?? "inactive").ToLower())">@Model.Status</span>
+                <span class="dt-tag">@Model.CustomerType</span>
+            </div>
+            <div class="dt-profile-card__meta">
+                <span><i class="fa-solid fa-envelope"></i> @Model.Email</span>
+                <span><i class="fa-solid fa-phone"></i> @Model.MobileNumber</span>
+                @if (!string.IsNullOrEmpty(Model.City))
+                {
+                    <span><i class="fa-solid fa-location-dot"></i> @Model.City@(string.IsNullOrEmpty(Model.Country) ? "" : ", " + Model.Country)</span>
+                }
+            </div>
+        </div>
+        <div class="dt-profile-card__quicklinks">
+            <a asp-controller="Customer" asp-action="BookingHistory" asp-route-id="@Model.Id" class="dt-quicklink">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+                <span>Booking History</span>
+            </a>
+            <a asp-controller="Customer" asp-action="Invoice" asp-route-id="@Model.Id" class="dt-quicklink">
+                <i class="fa-solid fa-file-invoice"></i>
+                <span>Invoices</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- ============ DETAIL SECTIONS ============ -->
+    <div class="dt-grid">
+
+        <div class="dt-card">
+            <div class="dt-card__header">
+                <span class="dt-card__icon"><i class="fa-solid fa-user"></i></span>
+                <h3>Personal Information</h3>
+            </div>
+            <div class="dt-card__body">
+                <div class="dt-row"><span>First Name</span><strong>@(Model.FirstName ?? "-")</strong></div>
+                <div class="dt-row"><span>Last Name</span><strong>@(Model.LastName ?? "-")</strong></div>
+                <div class="dt-row"><span>Date of Birth</span><strong>@(Model.DateOfBirth?.ToString("dd MMM yyyy") ?? "-")</strong></div>
+                <div class="dt-row"><span>Gender</span><strong>@(Model.Gender ?? "-")</strong></div>
+                <div class="dt-row"><span>Nationality</span><strong>@(Model.Nationality ?? "-")</strong></div>
+            </div>
+        </div>
+
+        <div class="dt-card">
+            <div class="dt-card__header">
+                <span class="dt-card__icon"><i class="fa-solid fa-location-dot"></i></span>
+                <h3>Address</h3>
+            </div>
+            <div class="dt-card__body">
+                <div class="dt-row"><span>Address Line 1</span><strong>@(Model.AddressLine1 ?? "-")</strong></div>
+                <div class="dt-row"><span>Address Line 2</span><strong>@(Model.AddressLine2 ?? "-")</strong></div>
+                <div class="dt-row"><span>City</span><strong>@(Model.City ?? "-")</strong></div>
+                <div class="dt-row"><span>State</span><strong>@(Model.State ?? "-")</strong></div>
+                <div class="dt-row"><span>Country</span><strong>@(Model.Country ?? "-")</strong></div>
+                <div class="dt-row"><span>Postal Code</span><strong>@(Model.PostalCode ?? "-")</strong></div>
+            </div>
+        </div>
+
+        <div class="dt-card">
+            <div class="dt-card__header">
+                <span class="dt-card__icon"><i class="fa-solid fa-fingerprint"></i></span>
+                <h3>Identity &amp; Professional</h3>
+            </div>
+            <div class="dt-card__body">
+                <div class="dt-row"><span>ID Proof Type</span><strong>@(Model.IdProofType ?? "-")</strong></div>
+                <div class="dt-row"><span>ID Number</span><strong>@(Model.IdNumber ?? "-")</strong></div>
+                <div class="dt-row"><span>Company</span><strong>@(Model.CompanyName ?? "-")</strong></div>
+                <div class="dt-row"><span>Occupation</span><strong>@(Model.Occupation ?? "-")</strong></div>
+                <div class="dt-row"><span>GST Number</span><strong>@(Model.GstNumber ?? "-")</strong></div>
+            </div>
+        </div>
+
+        <div class="dt-card">
+            <div class="dt-card__header">
+                <span class="dt-card__icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
+                <h3>Emergency Contact</h3>
+            </div>
+            <div class="dt-card__body">
+                <div class="dt-row"><span>Contact Person</span><strong>@(Model.EmergencyContactPerson ?? "-")</strong></div>
+                <div class="dt-row"><span>Relationship</span><strong>@(Model.EmergencyRelationship ?? "-")</strong></div>
+                <div class="dt-row"><span>Mobile</span><strong>@(Model.EmergencyMobile ?? "-")</strong></div>
+                <div class="dt-row"><span>Alternate Mobile</span><strong>@(Model.EmergencyAltMobile ?? "-")</strong></div>
+            </div>
+        </div>
+
+        <div class="dt-card dt-card--full">
+            <div class="dt-card__header">
+                <span class="dt-card__icon"><i class="fa-solid fa-note-sticky"></i></span>
+                <h3>Preferences &amp; Notes</h3>
+            </div>
+            <div class="dt-card__body dt-card__body--split">
+                <div class="dt-row"><span>Preferred Room Type</span><strong>@(Model.PreferredRoomType ?? "-")</strong></div>
+                <div class="dt-row"><span>Meal Preference</span><strong>@(Model.MealPreference ?? "-")</strong></div>
+                <div class="dt-row dt-row--full"><span>Customer Notes</span><strong>@(string.IsNullOrEmpty(Model.CustomerNotes) ? "-" : Model.CustomerNotes)</strong></div>
+                <div class="dt-row dt-row--full"><span>Special Requirements</span><strong>@(string.IsNullOrEmpty(Model.SpecialRequirements) ? "-" : Model.SpecialRequirements)</strong></div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<style>
+    /* ==========================================================================
+           CUSTOMER DETAILS — Premium Dark/Light SaaS UI
+           Scoped under .dt-page / dt- prefix, uses shared site.css theme tokens
+           plus light-mode defaults with a [data-theme="dark"] override.
+           ========================================================================== */
+    .dt-page {
+        --dt-primary: var(--primary-color, #3b82f6);
+        --dt-primary-2: var(--primary-color-2, #2563eb);
+        --dt-primary-soft: var(--primary-soft, rgba(59,130,246,0.14));
+        --dt-card: var(--card-color, #ffffff);
+        --dt-surface-border: var(--border-color, rgba(15,23,42,0.08));
+        --dt-text-primary: var(--text-color, #0f172a);
+        --dt-text-secondary: var(--text-secondary, #475569);
+        --dt-text-muted: var(--text-muted, #64748b);
+        --dt-gold: #eab308;
+        --dt-gold-soft: rgba(234, 179, 8, 0.14);
+        --dt-success: var(--success-color, #22c55e);
+        --dt-success-soft: var(--success-soft, rgba(34,197,94,0.14));
+        --dt-warning: var(--warning-color, #f59e0b);
+        --dt-warning-soft: var(--warning-soft, rgba(245,158,11,0.14));
+        --dt-danger: var(--danger-color, #ef4444);
+        --dt-danger-soft: var(--danger-soft, rgba(239,68,68,0.14));
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: var(--dt-text-primary);
+        background: transparent;
+        animation: dtFadeIn 0.45s ease;
+    }
+
+    [data-theme="dark"] .dt-page {
+        --dt-card: var(--card-color, #101a2e);
+        --dt-surface-border: var(--border-color, rgba(255,255,255,0.08));
+        --dt-text-primary: var(--text-color, #eef2f7);
+        --dt-text-secondary: var(--text-secondary, #94a3b8);
+        --dt-text-muted: var(--text-muted, #64748b);
+    }
+
+    @@keyframes dtFadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(6px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .dt-page * {
+        box-sizing: border-box;
+    }
+
+    /* ============ HEADER ============ */
+    .dt-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin-bottom: 20px;
+    }
+
+    .dt-header__title {
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        margin: 0;
+        color: var(--dt-text-primary);
+    }
+
+    .dt-header__subtitle {
+        margin: 4px 0 0;
+        font-size: 14px;
+        color: var(--dt-text-secondary);
+    }
+
+    .dt-header__actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .dtbtn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13.5px;
+        font-weight: 600;
+        padding: 10px 16px;
+        border-radius: 10px;
+        border: 1px solid transparent;
+        cursor: pointer;
+        transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+        white-space: nowrap;
+        text-decoration: none;
+    }
+
+    .dtbtn-ghost {
+        background: rgba(127,127,127,0.06);
+        border-color: var(--dt-surface-border);
+        color: var(--dt-text-secondary);
+    }
+
+        .dtbtn-ghost:hover {
+            color: var(--dt-text-primary);
+            background: rgba(127,127,127,0.12);
+            transform: translateY(-2px);
+        }
+
+    .dtbtn-primary-glow {
+        background: linear-gradient(135deg, var(--dt-primary), var(--dt-primary-2));
+        color: #fff;
+        box-shadow: 0 6px 18px rgba(37,99,235,0.35);
+    }
+
+        .dtbtn-primary-glow:hover {
+            box-shadow: 0 10px 26px rgba(37,99,235,0.5);
+            transform: translateY(-2px);
+        }
+
+    /* ============ PROFILE CARD ============ */
+    .dt-profile-card {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        flex-wrap: wrap;
+        background: var(--dt-card);
+        border: 1px solid var(--dt-surface-border);
+        border-radius: 18px;
+        padding: 24px;
+        margin-bottom: 22px;
+        box-shadow: 0 10px 26px rgba(0,0,0,0.12);
+    }
+
+    .dt-profile-card__avatar {
+        width: 84px;
+        height: 84px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, var(--dt-primary), var(--dt-primary-2));
+        color: #fff;
+        font-size: 26px;
+        font-weight: 700;
+        overflow: hidden;
+        box-shadow: 0 8px 20px rgba(59,130,246,0.35);
+    }
+
+        .dt-profile-card__avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+    .dt-profile-card__info {
+        flex: 1;
+        min-width: 220px;
+    }
+
+        .dt-profile-card__info h2 {
+            margin: 0 0 8px;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--dt-text-primary);
+        }
+
+    .dt-profile-card__badges {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+    }
+
+    .dt-tag {
+        display: inline-flex;
+        align-items: center;
+        padding: 5px 12px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+        background: rgba(127,127,127,0.1);
+        color: var(--dt-text-secondary);
+    }
+
+    .dt-profile-card__meta {
+        display: flex;
+        gap: 18px;
+        flex-wrap: wrap;
+        font-size: 13px;
+        color: var(--dt-text-secondary);
+    }
+
+        .dt-profile-card__meta i {
+            margin-right: 6px;
+            color: var(--dt-text-muted);
+        }
+
+    .dt-profile-card__quicklinks {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .dt-quicklink {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 14px;
+        border-radius: 10px;
+        background: var(--dt-primary-soft);
+        color: var(--dt-primary);
+        font-size: 13px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: transform 0.16s ease, background 0.16s ease;
+        white-space: nowrap;
+    }
+
+        .dt-quicklink:hover {
+            transform: translateY(-2px);
+            background: rgba(59,130,246,0.22);
+        }
+
+    /* ============ BADGES (shared naming with Index page) ============ */
+    .badge-membership, .badge-cstatus {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 12px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .badge-membership--vip {
+        background: var(--dt-gold-soft);
+        color: var(--dt-gold);
+    }
+
+    .badge-membership--corporate {
+        background: var(--dt-primary-soft);
+        color: var(--dt-primary);
+    }
+
+    .badge-membership--regular {
+        background: rgba(148,163,184,0.14);
+        color: var(--dt-text-secondary);
+    }
+
+    .badge-cstatus--active {
+        background: var(--dt-success-soft);
+        color: var(--dt-success);
+    }
+
+    .badge-cstatus--inactive {
+        background: var(--dt-warning-soft);
+        color: var(--dt-warning);
+    }
+
+    .badge-cstatus--blocked {
+        background: var(--dt-danger-soft);
+        color: var(--dt-danger);
+    }
+
+    /* ============ DETAIL GRID ============ */
+    .dt-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 18px;
+    }
+
+    .dt-card {
+        background: var(--dt-card);
+        border: 1px solid var(--dt-surface-border);
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    }
+
+    .dt-card--full {
+        grid-column: 1 / -1;
+    }
+
+    .dt-card__header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--dt-surface-border);
+    }
+
+        .dt-card__header h3 {
+            margin: 0;
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--dt-text-primary);
+        }
+
+    .dt-card__icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--dt-primary-soft);
+        color: var(--dt-primary);
+        font-size: 14px;
+        flex-shrink: 0;
+    }
+
+    .dt-card__body {
+        padding: 16px 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .dt-card__body--split {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px 20px;
+    }
+
+    .dt-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        font-size: 13.5px;
+    }
+
+        .dt-row span {
+            color: var(--dt-text-muted);
+        }
+
+        .dt-row strong {
+            color: var(--dt-text-primary);
+            font-weight: 600;
+            text-align: right;
+        }
+
+    .dt-row--full {
+        grid-column: 1 / -1;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+        .dt-row--full strong {
+            text-align: left;
+            font-weight: 500;
+            line-height: 1.5;
+        }
+
+    /* ============ RESPONSIVE ============ */
+    @@media (max-width: 900px) {
+        .dt-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .dt-card__body--split {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @@media (max-width: 640px) {
+        .dt-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .dt-profile-card {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .dt-profile-card__quicklinks {
+            flex-direction: row;
+            width: 100%;
+        }
+
+        .dt-quicklink {
+            flex: 1;
+            justify-content: center;
+        }
+    }
+</style>

@@ -12,15 +12,21 @@ namespace HotelBilling.Infrastructure.Data.Configurations
 
             builder.HasKey(x => x.Id);
 
-            builder.Property(x => x.Name)
+            // Map first & last name instead of a single Name property
+            builder.Property(x => x.FirstName)
                    .IsRequired()
-                   .HasMaxLength(100);
+                   .HasMaxLength(50);
+
+            builder.Property(x => x.LastName)
+                   .IsRequired()
+                   .HasMaxLength(50);
 
             builder.Property(x => x.Email)
                    .IsRequired()
                    .HasMaxLength(150);
 
-            builder.Property(x => x.Phone)
+            // Customer stores mobile number as MobileNumber
+            builder.Property(x => x.MobileNumber)
                    .HasMaxLength(15);
         }
     }

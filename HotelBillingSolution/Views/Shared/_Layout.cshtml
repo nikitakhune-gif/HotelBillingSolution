@@ -1,79 +1,1825 @@
-﻿<!DOCTYPE html>
+﻿@using System.Globalization
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Hotel Billing</title>
+    <title>@ViewData["Title"] - HotelBill</title>
 
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-    <link href="~/css/site.css" rel="stylesheet" />
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+    <!-- App CSS (single combined file: tokens + sidebar + dashboard + navbar dropdowns + device preview) -->
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+
+    @* Theme must apply before first paint — inline here so there's no flash of the wrong theme *@
+    <script>
+            (function () {
+                try {
+                    var saved = localStorage.getItem("hb-theme");
+                    var theme = saved || (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+                    document.documentElement.setAttribute("data-theme", theme);
+                } catch (e) {
+                    document.documentElement.setAttribute("data-theme", "light");
+                }
+            })();
+    </script>
+
+    @await RenderSectionAsync("Styles", required: false)
 </head>
 <body>
-    <div class="d-flex" id="wrapper">
+    @{
+        // ActiveMenu is set by each controller/view via ViewBag.ActiveMenu, e.g. "Dashboard", "Rooms", ...
+        string active = ViewBag.ActiveMenu as string ?? "";
+        Func<string, string> navCls = (name) => active == name ? "hb-nav-link active" : "hb-nav-link";
+    }
+    <div class="hb-shell" id="hbShell">
 
-        <!-- Sidebar -->
-        <div id="sidebar-wrapper">
-            <div class="sidebar-heading text-white fs-4 py-3 text-center">🏨 Hotel Billing</div>
-            <div class="list-group list-group-flush">
-                <a asp-controller="Home" asp-action="Index" class="list-group-item list-group-item-action sidebar-link">
-                    <i class="fa-solid fa-gauge"></i> Dashboard
+        <!-- ============ SIDEBAR ============ -->
+        <aside class="hb-sidebar" id="hbSidebar">
+
+            <!-- Logo -->
+            <div class="hb-logo">
+                <a asp-controller="Home" asp-action="Index" class="hb-logo-icon" title="HotelBill">
+                    <i class="fa-solid fa-building"></i>
                 </a>
-                <a asp-controller="Customer" asp-action="Index" class="list-group-item list-group-item-action sidebar-link">
-                    <i class="fa-solid fa-user"></i> Customers
-                </a>
-                <a asp-controller="Billing" asp-action="Index" class="list-group-item list-group-item-action sidebar-link">
-                    <i class="fa-solid fa-receipt"></i> Billing
-                </a>
-                <a asp-controller="Report" asp-action="Index" class="list-group-item list-group-item-action sidebar-link">
-                    <i class="fa-solid fa-chart-line"></i> Reports
-                </a>
+                <div class="hb-logo-text">
+                    <span class="hb-logo-name">Hotel<span class="hb-brand-accent">Bill</span></span>
+                    <span class="hb-logo-tag">Smart Hotel Billing</span>
+                </div>
             </div>
-        </div>
 
-        <!-- Page Content -->
-        <div id="page-content-wrapper" class="flex-grow-1">
+            <!-- Nav -->
+            <nav class="hb-nav">
 
-            <!-- Top Navbar -->
-            <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom">
-                <div class="container-fluid">
-                    <button class="btn btn-dark" id="sidebarToggle">☰</button>
-                    <div class="ms-auto d-flex align-items-center">
-                        @if (User?.Identity?.IsAuthenticated ?? false)
-                        {
-                            <span class="navbar-text me-3">Welcome, @User.Identity.Name</span>
-                            <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
-                                @Html.AntiForgeryToken()
-                                <button type="submit" class="btn btn-outline-light btn-sm">Logout</button>
-                            </form>
-                        }
-                        else
-                        {
-                            <a asp-controller="Account" asp-action="Login" class="btn btn-outline-light btn-sm">Login</a>
-                        }
-                     </div>
-                 </div>
-             </nav>
+                <div class="hb-nav-group">
+                    <ul class="hb-nav-list">
+                        <li>
+                            <a asp-controller="Home" asp-action="Index" class="@navCls("Dashboard")" data-label="Dashboard">
+                                <i class="fa-solid fa-table-cells-large"></i>
+                                <span class="hb-nav-label">Dashboard</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
 
-            <!-- Main Content -->
-            <div class="container-fluid px-4 py-4">
+                <div class="hb-nav-group">
+                    <span class="hb-nav-heading">Hotel Management</span>
+                    <ul class="hb-nav-list">
+                        <li>
+                            <a asp-controller="Rooms" asp-action="Index" class="@navCls("Rooms")" data-label="Rooms">
+                                <i class="fa-solid fa-bed"></i>
+                                <span class="hb-nav-label">Rooms</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-controller="Customer" asp-action="Index" class="@navCls("Customers")" data-label="Customers">
+                                <i class="fa-solid fa-users"></i>
+                                <span class="hb-nav-label">Customers</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-controller="Booking" asp-action="Index" class="@navCls("Bookings")" data-label="Bookings">
+                                <i class="fa-solid fa-calendar-check"></i>
+                                <span class="hb-nav-label">Bookings</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-controller="Housekeeping" asp-action="Index" class="@navCls("Housekeeping")" data-label="Housekeeping">
+                                <i class="fa-solid fa-broom"></i>
+                                <span class="hb-nav-label">Housekeeping</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-controller="Reports" asp-action="Index" class="@navCls("Reports")" data-label="Reports">
+                                <i class="fa-solid fa-chart-column"></i>
+                                <span class="hb-nav-label">Reports</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="hb-nav-group">
+                    <span class="hb-nav-heading">Finance</span>
+                    <ul class="hb-nav-list">
+                        <li>
+                            <a asp-controller="Billing" asp-action="Index" class="@navCls("Billing")" data-label="Billing">
+                                <i class="fa-solid fa-receipt"></i>
+                                <span class="hb-nav-label">Billing</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-controller="Payment" asp-action="Index" class="@navCls("Payments")" data-label="Payments">
+                                <i class="fa-solid fa-credit-card"></i>
+                                <span class="hb-nav-label">Payments</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-controller="Expense" asp-action="Index" class="@navCls("Expenses")" data-label="Expenses">
+                                <i class="fa-solid fa-sack-dollar"></i>
+                                <span class="hb-nav-label">Expenses</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="hb-nav-group">
+                    <span class="hb-nav-heading">Others</span>
+                    <ul class="hb-nav-list">
+                        <li>
+                            <a asp-controller="Settings" asp-action="Index" class="@navCls("Settings")" data-label="Settings">
+                                <i class="fa-solid fa-gear"></i>
+                                <span class="hb-nav-label">Settings</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-controller="UsersRoles" asp-action="Index" class="@navCls("UsersRoles")" data-label="Users &amp; Roles">
+                                <i class="fa-solid fa-user-shield"></i>
+                                <span class="hb-nav-label">Users &amp; Roles</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-controller="Support" asp-action="Index" class="@navCls("Support")" data-label="Support Desk">
+                                <i class="fa-solid fa-headset"></i>
+                                <span class="hb-nav-label">Support Desk</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-controller="Alerts" asp-action="Index" class="@navCls("Alerts")" data-label="Alerts">
+                                <i class="fa-solid fa-bell"></i>
+                                <span class="hb-nav-label">Alerts</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+            </nav>
+
+            <!-- ============ SIDEBAR BOTTOM (fixed, never scrolls) ============ -->
+            <div class="hb-sidebar-footer">
+                <div class="hb-profile-card">
+                    <img src="https://i.pravatar.cc/96?img=12" alt="Admin User" class="hb-profile-avatar" />
+                    <div class="hb-profile-info">
+                        <span class="hb-profile-name">Admin</span>
+                        <span class="hb-profile-email">admin@hotelbill.com</span>
+                        <span class="hb-profile-badge">SUPER ADMIN</span>
+                    </div>
+                    <div class="hb-profile-actions">
+                        <a asp-controller="Settings" asp-action="Index" class="hb-profile-action-btn" title="Settings">
+                            <i class="fa-solid fa-gear"></i>
+                        </a>
+                        <form asp-controller="Account" asp-action="Logout" method="post" class="hb-logout-form">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="hb-profile-action-btn" title="Logout">
+                                <i class="fa-solid fa-right-from-bracket"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Mobile / tablet overlay backdrop -->
+        <div class="hb-overlay" id="hbOverlay"></div>
+
+        <!-- Floating tooltip element used by site.js while sidebar is collapsed -->
+        <div class="hb-tooltip" id="hbTooltip"></div>
+
+        <!-- ============ MAIN ============ -->
+        <div class="hb-main">
+
+            <!-- ============ TOP NAVBAR ============ -->
+            <header class="hb-navbar">
+                <div class="hb-navbar-left">
+                    <button class="hb-icon-btn hb-ripple" id="hbBurger" aria-label="Toggle sidebar" title="Toggle sidebar">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+
+                    <div class="hb-search">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" placeholder="Search rooms, guests, invoices..." />
+                    </div>
+                </div>
+
+                <div class="hb-navbar-right">
+                    <button class="hb-date-btn hb-ripple" type="button">
+                        <i class="fa-regular fa-calendar"></i>
+                        <span>@DateTime.Now.ToString("d MMM yyyy", CultureInfo.InvariantCulture)</span>
+                    </button>
+
+                    <button class="hb-icon-btn hb-ripple" id="hbFullscreen" aria-label="Fullscreen" title="Fullscreen">
+                        <i class="fa-solid fa-expand"></i>
+                    </button>
+                    <!-- Device preview toggle: Tablet / Mobile only (Desktop removed — that's just the normal page) -->
+                    <div class="hb-device-toggle" id="hbDeviceToggle">
+                        <button type="button" class="hb-device-btn" data-device="tablet" title="Tablet">
+                            <i class="fa-solid fa-tablet-screen-button"></i>
+                        </button>
+                        <button type="button" class="hb-device-btn" data-device="mobile" title="Mobile">
+                            <i class="fa-solid fa-mobile-screen-button"></i>
+                        </button>
+                    </div>
+
+                    <button class="hb-icon-btn hb-theme-btn hb-ripple" id="hbThemeToggle" aria-label="Toggle theme" title="Switch to Dark Theme">
+                        <i class="fa-solid fa-moon"></i>
+                    </button>
+
+                   
+
+                    <!-- Notifications dropdown -->
+                    <div class="hb-dropdown-wrap" id="hbNotifWrap">
+                        <button class="hb-icon-btn hb-ripple" id="hbNotifBtn" aria-label="Notifications" title="Notifications">
+                            <i class="fa-solid fa-bell"></i>
+                            <span class="hb-badge">4</span>
+                        </button>
+                        <div class="hb-dropdown-panel" id="hbNotifPanel">
+                            <div class="hb-dropdown-head">
+                                <h6>Notifications</h6>
+                                <a href="#">Mark all read</a>
+                            </div>
+                            <div class="hb-dropdown-sub">4 unread</div>
+                            <div class="hb-dropdown-stats">
+                                <div><strong>7</strong><span>Today</span></div>
+                                <div><strong>23</strong><span>This Week</span></div>
+                                <div><strong>3</strong><span>Approvals</span></div>
+                            </div>
+
+                            <div class="hb-dd-item">
+                                <div class="hb-dd-icon blue"><i class="fa-solid fa-calendar-check"></i></div>
+                                <div class="hb-dd-body">
+                                    <p class="hb-dd-title">New Booking Confirmed</p>
+                                    <p class="hb-dd-desc">Room 204 booked by Rohan Mehta for 3 nights</p>
+                                    <div class="hb-dd-time">5m ago</div>
+                                </div>
+                                <div class="hb-dd-dot"></div>
+                            </div>
+                            <div class="hb-dd-item">
+                                <div class="hb-dd-icon amber"><i class="fa-solid fa-broom"></i></div>
+                                <div class="hb-dd-body">
+                                    <p class="hb-dd-title">Checkout Overdue</p>
+                                    <p class="hb-dd-desc">Guest in Room 302 has not checked out yet</p>
+                                    <div class="hb-dd-time">58m ago</div>
+                                </div>
+                                <div class="hb-dd-dot"></div>
+                            </div>
+                            <div class="hb-dd-item">
+                                <div class="hb-dd-icon green"><i class="fa-solid fa-circle-check"></i></div>
+                                <div class="hb-dd-body">
+                                    <p class="hb-dd-title">Payment Received</p>
+                                    <p class="hb-dd-desc">Invoice #INV-3921 settled successfully</p>
+                                    <div class="hb-dd-time">2h ago</div>
+                                </div>
+                            </div>
+                            <div class="hb-dd-item">
+                                <div class="hb-dd-icon red"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                                <div class="hb-dd-body">
+                                    <p class="hb-dd-title">Housekeeping Alert</p>
+                                    <p class="hb-dd-desc">Room 108 flagged for maintenance check</p>
+                                    <div class="hb-dd-time">3h ago</div>
+                                </div>
+                            </div>
+
+                            <div class="hb-dropdown-foot"><a href="#">Open notification center &rarr;</a></div>
+                        </div>
+                    </div>
+
+                    <!-- Emails dropdown -->
+                    <div class="hb-dropdown-wrap" id="hbMailWrap">
+                        <button class="hb-icon-btn hb-ripple" id="hbMailBtn" aria-label="Messages" title="Messages">
+                            <i class="fa-solid fa-envelope"></i>
+                            <span class="hb-badge">3</span>
+                        </button>
+                        <div class="hb-dropdown-panel" id="hbMailPanel">
+                            <div class="hb-dropdown-head">
+                                <h6>Emails</h6>
+                                <a href="#">Mark all read</a>
+                            </div>
+                            <div class="hb-dropdown-sub">3 unread</div>
+
+                            <div class="hb-dd-item">
+                                <div class="hb-dd-icon blue"><i class="fa-solid fa-user"></i></div>
+                                <div class="hb-dd-body">
+                                    <p class="hb-dd-title">Priya Sharma</p>
+                                    <p class="hb-dd-desc">Inquiry about early check-in for Room 210</p>
+                                    <div class="hb-dd-time">12m ago</div>
+                                </div>
+                                <div class="hb-dd-dot"></div>
+                            </div>
+                            <div class="hb-dd-item">
+                                <div class="hb-dd-icon amber"><i class="fa-solid fa-building"></i></div>
+                                <div class="hb-dd-body">
+                                    <p class="hb-dd-title">Acme Corporate Travel</p>
+                                    <p class="hb-dd-desc">Requesting GST invoice for booking #B-2291</p>
+                                    <div class="hb-dd-time">1h ago</div>
+                                </div>
+                                <div class="hb-dd-dot"></div>
+                            </div>
+                            <div class="hb-dd-item">
+                                <div class="hb-dd-icon red"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                                <div class="hb-dd-body">
+                                    <p class="hb-dd-title">Sanjay Patil</p>
+                                    <p class="hb-dd-desc">Complaint: AC not working in Room 115</p>
+                                    <div class="hb-dd-time">4h ago</div>
+                                </div>
+                                <div class="hb-dd-dot"></div>
+                            </div>
+
+                            <div class="hb-dropdown-foot"><a href="#">Open inbox &rarr;</a></div>
+                        </div>
+                    </div>
+
+                    <!-- Chat dropdown -->
+                    <div class="hb-dropdown-wrap" id="hbChatWrap">
+                        <button class="hb-icon-btn hb-ripple" id="hbChatBtn" aria-label="Chat" title="Chat">
+                            <i class="fa-solid fa-comment-dots"></i>
+                            <span class="hb-badge">2</span>
+                        </button>
+                        <div class="hb-dropdown-panel" id="hbChatPanel">
+                            <div class="hb-dropdown-head">
+                                <h6>Staff Chat</h6>
+                                <a href="#">Mark all read</a>
+                            </div>
+                            <div class="hb-dropdown-sub">2 new messages</div>
+
+                            <div class="hb-dd-item">
+                                <div class="hb-dd-icon blue"><i class="fa-solid fa-concierge-bell"></i></div>
+                                <div class="hb-dd-body">
+                                    <p class="hb-dd-title">Reception Desk</p>
+                                    <p class="hb-dd-desc">Room 204 guest requesting extra towels</p>
+                                    <div class="hb-dd-time">3m ago</div>
+                                </div>
+                                <div class="hb-dd-dot"></div>
+                            </div>
+                            <div class="hb-dd-item">
+                                <div class="hb-dd-icon green"><i class="fa-solid fa-broom"></i></div>
+                                <div class="hb-dd-body">
+                                    <p class="hb-dd-title">Housekeeping Team</p>
+                                    <p class="hb-dd-desc">Room 310 cleaning completed</p>
+                                    <div class="hb-dd-time">20m ago</div>
+                                </div>
+                                <div class="hb-dd-dot"></div>
+                            </div>
+                            <div class="hb-dd-item">
+                                <div class="hb-dd-icon amber"><i class="fa-solid fa-user-tie"></i></div>
+                                <div class="hb-dd-body">
+                                    <p class="hb-dd-title">Front Office Manager</p>
+                                    <p class="hb-dd-desc">VIP guest arriving 6 PM, prep Suite 501</p>
+                                    <div class="hb-dd-time">1h ago</div>
+                                </div>
+                            </div>
+
+                            <div class="hb-dropdown-foot"><a href="#">Open chat &rarr;</a></div>
+                        </div>
+                    </div>
+
+                    <div class="hb-user-chip">
+                        <img src="https://i.pravatar.cc/64?img=12" alt="Admin User" />
+                        <div class="hb-user-chip-text">
+                            <span class="hb-user-chip-name">Admin</span>
+                            <span class="hb-user-chip-role">Super Admin</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-down" style="font-size:10px;color:var(--text-faint);"></i>
+                    </div>
+                </div>
+            </header>
+
+            <!-- ============ PAGE CONTENT ============ -->
+            <main class="hb-content">
                 @RenderBody()
-            </div>
+            </main>
+
+            <footer class="hb-footer">
+                <span>&copy; @DateTime.Now.Year HotelBill. All rights reserved.</span>
+                <span>Crafted with <i class="fa-solid fa-heart hb-heart"></i> by Your Company</span>
+            </footer>
         </div>
     </div>
 
     <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- ApexCharts -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.49.1/dist/apexcharts.min.js"></script>
 
-    <!-- Sidebar Toggle Script -->
+    <!-- jQuery and jQuery validation (must be loaded before site scripts/unobtrusive validation) -->
+    <script src="~/lib/jquery/dist/jquery.js" asp-append-version="true"></script>
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js" asp-append-version="true"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js" asp-append-version="true"></script>
+
+    <!-- App JS (single combined file: theme switch + sidebar behavior + charts + device preview + navbar dropdowns) -->
+    <script src="~/js/site.js" asp-append-version="true"></script>
+
+
+
+
+
+    <div id="chatToggleBtn" onclick="toggleChat()" title="Hotel Assistant">
+        <span class="chat-btn-icon">🤖</span>
+        <span class="chat-btn-pulse"></span>
+    </div>
+
+    <!-- Chat Box -->
+    <div id="chatBox" class="chatbot-box">
+        <div class="chat-header">
+            <div class="chat-header-info">
+                <span class="chat-avatar">🤖</span>
+                <div>
+                    <div class="chat-title">Hotel Assistant</div>
+                    <div class="chat-status"><span class="status-dot"></span> Online</div>
+                </div>
+            </div>
+            <div class="chat-header-actions">
+                <button onclick="clearChat()" title="Clear Chat" class="chat-action-btn">🗑️</button>
+                <button onclick="toggleChat()" title="Close" class="chat-action-btn">✕</button>
+            </div>
+        </div>
+
+        <div id="chatBody" class="chat-body">
+            <div class="bot-msg-wrap">
+                <span class="msg-avatar">🤖</span>
+                <div class="bot-msg">Hi 👋 <b>@(User.Identity?.Name ?? "User")</b>, how can I help you?</div>
+            </div>
+        </div>
+
+        <div id="typingIndicator" class="typing-indicator" style="display:none;">
+            <span class="msg-avatar">🤖</span>
+            <div class="typing-dots"><span></span><span></span><span></span></div>
+        </div>
+
+        <!-- ✅ NEW: Char counter + error message ABOVE input -->
+        <div id="chatValidationArea">
+            <div id="chatInputError" class="chat-error-msg" style="display:none;"></div>
+            <div id="charCounter" class="char-counter" style="display:none;"></div>
+        </div>
+
+        <div class="chat-input-area">
+            <input type="text" id="chatInput" placeholder="Ask anything..." autocomplete="off" maxlength="500" />
+            <button onclick="sendMessage()" id="sendBtn" title="Send">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="edit-modal" style="display:none;">
+        <div class="edit-modal-box">
+            <div class="edit-modal-title">✏️ Edit Message</div>
+            <textarea id="editInput" rows="3" maxlength="500"></textarea>
+            <div id="editError" class="chat-error-msg" style="display:none;"></div>
+            <div class="edit-modal-actions">
+                <button onclick="cancelEdit()" class="btn-cancel">Cancel</button>
+                <button onclick="confirmEdit()" class="btn-confirm">Send Edited</button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        /* ── TOGGLE BUTTON ───────────────────────────────── */
+        #chatToggleBtn {
+        position: fixed;
+        bottom: 28px;
+        right: 28px;
+        width: 58px;
+        height: 58px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #4f46e5, #7c3aed);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 9998;
+        box-shadow: 0 4px 20px rgba(79,70,229,0.45);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        #chatToggleBtn:hover {
+        transform: scale(1.1);
+        box-shadow: 0 6px 28px rgba(79,70,229,0.55);
+        }
+
+        .chat-btn-icon {
+        font-size: 26px;
+        }
+
+        .chat-btn-pulse {
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #22c55e;
+        border: 2px solid white;
+        }
+
+        /* ── CHAT BOX ────────────────────────────────────── */
+        .chatbot-box {
+        position: fixed;
+        bottom: 100px;
+        right: 28px;
+        width: 360px;
+        max-height: 580px;
+        background: #ffffff;
+        border-radius: 18px;
+        box-shadow: 0 12px 48px rgba(0,0,0,0.18);
+        display: flex;
+        flex-direction: column;
+        z-index: 9999;
+        overflow: hidden;
+        transform: scale(0.85) translateY(20px);
+        opacity: 0;
+        pointer-events: none;
+        transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+        }
+
+        .chatbot-box.open {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+        pointer-events: all;
+        }
+
+        [data-theme="dark"] .chatbot-box {
+        background: #1e1e2e;
+        box-shadow: 0 12px 48px rgba(0,0,0,0.45);
+        }
+
+        /* ── HEADER ─────────────────────────────────────── */
+        .chat-header {
+        background: linear-gradient(135deg,#4f46e5,#7c3aed);
+        padding: 14px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-shrink: 0;
+        }
+
+        .chat-header-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        }
+
+        .chat-avatar {
+        font-size: 28px;
+        }
+
+        .chat-title {
+        color: white;
+        font-weight: 700;
+        font-size: 15px;
+        }
+
+        .chat-status {
+        color: rgba(255,255,255,0.8);
+        font-size: 11px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        }
+
+        .status-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #4ade80;
+        display: inline-block;
+        }
+
+        .chat-header-actions {
+        display: flex;
+        gap: 6px;
+        }
+
+        .chat-action-btn {
+        background: rgba(255,255,255,0.15);
+        border: none;
+        color: white;
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: background 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        }
+
+        .chat-action-btn:hover {
+        background: rgba(255,255,255,0.28);
+        }
+
+        /* ── BODY ────────────────────────────────────────── */
+        .chat-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 14px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        background: #f8f9ff;
+        scrollbar-width: thin;
+        scrollbar-color: #d1d5db transparent;
+        }
+
+        [data-theme="dark"] .chat-body {
+        background: #181825;
+        }
+
+        .chat-body::-webkit-scrollbar {
+        width: 4px;
+        }
+
+        .chat-body::-webkit-scrollbar-thumb {
+        background: #d1d5db;
+        border-radius: 4px;
+        }
+
+        /* ── MESSAGES ────────────────────────────────────── */
+        .bot-msg-wrap, .user-msg-wrap {
+        display: flex;
+        align-items: flex-end;
+        gap: 7px;
+        animation: msgIn 0.25s ease;
+        }
+
+        .user-msg-wrap {
+        flex-direction: row-reverse;
+        }
+
+        @@keyframes msgIn {
+        from {
+        opacity: 0;
+        transform: translateY(8px);
+        }
+
+        to {
+        opacity: 1;
+        transform: translateY(0);
+        }
+        }
+
+        .msg-avatar {
+        font-size: 20px;
+        flex-shrink: 0;
+        margin-bottom: 2px;
+        }
+
+        .bot-msg {
+        background: #fff;
+        color: #1e1e2e;
+        border-radius: 16px 16px 16px 4px;
+        padding: 10px 13px;
+        font-size: 13.5px;
+        line-height: 1.55;
+        max-width: 260px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        white-space: pre-line;
+        word-break: break-word;
+        position: relative;
+        }
+
+        [data-theme="dark"] .bot-msg {
+        background: #2a2a3e;
+        color: #e2e8f0;
+        }
+
+        .user-msg {
+        background: linear-gradient(135deg,#4f46e5,#7c3aed);
+        color: white;
+        border-radius: 16px 16px 4px 16px;
+        padding: 10px 13px;
+        font-size: 13.5px;
+        line-height: 1.55;
+        max-width: 240px;
+        box-shadow: 0 2px 8px rgba(79,70,229,0.3);
+        white-space: pre-line;
+        word-break: break-word;
+        position: relative;
+        }
+
+        /* Message hover actions */
+        .msg-actions {
+        display: none;
+        position: absolute;
+        bottom: -24px;
+        right: 0;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+        padding: 3px 6px;
+        gap: 4px;
+        z-index: 10;
+        white-space: nowrap;
+        }
+
+        .user-msg-wrap:hover .msg-actions, .bot-msg-wrap:hover .msg-actions {
+        display: flex;
+        }
+
+        .msg-action-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 12px;
+        color: #6b7280;
+        padding: 2px 4px;
+        border-radius: 4px;
+        transition: all 0.15s;
+        }
+
+        .msg-action-btn:hover {
+        background: #f3f4f6;
+        color: #374151;
+        }
+
+        [data-theme="dark"] .msg-actions {
+        background: #2a2a3e;
+        }
+
+        [data-theme="dark"] .msg-action-btn {
+        color: #9ca3af;
+        }
+
+        [data-theme="dark"] .msg-action-btn:hover {
+        background: #374151;
+        color: #e5e7eb;
+        }
+
+        /* Feedback */
+        .feedback-wrap {
+        display: flex;
+        gap: 5px;
+        margin-top: 6px;
+        }
+
+        .feedback-btn {
+        background: #f1f5f9;
+        border: 1px solid #e2e8f0;
+        border-radius: 20px;
+        padding: 3px 10px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+        color: #475569;
+        }
+
+        .feedback-btn:hover {
+        background: #e0e7ff;
+        border-color: #818cf8;
+        color: #4f46e5;
+        }
+
+        .feedback-btn.active {
+        background: #4f46e5;
+        color: white;
+        border-color: #4f46e5;
+        }
+
+        [data-theme="dark"] .feedback-btn {
+        background: #2a2a3e;
+        border-color: #374151;
+        color: #94a3b8;
+        }
+
+        /* Validation message in chat */
+        .validation-bot-msg {
+        background: #fef2f2 !important;
+        color: #dc2626 !important;
+        border: 1px solid #fecaca;
+        }
+
+        [data-theme="dark"] .validation-bot-msg {
+        background: #2a1515 !important;
+        color: #fca5a5 !important;
+        border-color: #7f1d1d;
+        }
+
+        /* ── TYPING ──────────────────────────────────────── */
+        .typing-indicator {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 6px 12px;
+        flex-shrink: 0;
+        background: #f8f9ff;
+        }
+
+        [data-theme="dark"] .typing-indicator {
+        background: #181825;
+        }
+
+        .typing-dots {
+        background: white;
+        border-radius: 12px;
+        padding: 8px 14px;
+        display: flex;
+        gap: 5px;
+        align-items: center;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+
+        [data-theme="dark"] .typing-dots {
+        background: #2a2a3e;
+        }
+
+        .typing-dots span {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #7c3aed;
+        animation: bounce 1.2s infinite;
+        }
+
+        .typing-dots span:nth-child(2) {
+        animation-delay: 0.2s;
+        }
+
+        .typing-dots span:nth-child(3) {
+        animation-delay: 0.4s;
+        }
+
+        @@keyframes bounce {
+        0%, 60%, 100% {
+        transform: translateY(0);
+        opacity: 0.5;
+        }
+
+        30% {
+        transform: translateY(-6px);
+        opacity: 1;
+        }
+        }
+
+        /* ── VALIDATION AREA ─────────────────────────────── */
+        #chatValidationArea {
+        flex-shrink: 0;
+        background: white;
+        }
+
+        [data-theme="dark"] #chatValidationArea {
+        background: #1e1e2e;
+        }
+
+        /* ✅ Error message */
+        .chat-error-msg {
+        color: #dc2626;
+        font-size: 12px;
+        font-weight: 500;
+        padding: 5px 16px 0;
+        animation: msgIn 0.2s ease;
+        }
+
+        [data-theme="dark"] .chat-error-msg {
+        color: #fca5a5;
+        }
+
+        /* ✅ Char counter */
+        .char-counter {
+        font-size: 11px;
+        color: #9ca3af;
+        text-align: right;
+        padding: 2px 16px 4px;
+        }
+
+        /* ── INPUT AREA ──────────────────────────────────── */
+        .chat-input-area {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px 12px;
+        border-top: 1px solid #e5e7eb;
+        background: white;
+        flex-shrink: 0;
+        }
+
+        [data-theme="dark"] .chat-input-area {
+        background: #1e1e2e;
+        border-color: #2a2a3e;
+        }
+
+        .chat-input-area input {
+        flex: 1;
+        border: 1.5px solid #e5e7eb;
+        border-radius: 24px;
+        padding: 9px 16px;
+        font-size: 13.5px;
+        outline: none;
+        background: #f9fafb;
+        color: #1e1e2e;
+        transition: border-color 0.2s, background 0.2s;
+        }
+
+        .chat-input-area input:focus {
+        border-color: #7c3aed;
+        background: white;
+        }
+
+        .chat-input-area input.input-error {
+        border-color: #ef4444 !important;
+        background: #fef2f2 !important;
+        }
+
+        [data-theme="dark"] .chat-input-area input {
+        background: #2a2a3e;
+        border-color: #374151;
+        color: #e2e8f0;
+        }
+
+        [data-theme="dark"] .chat-input-area input:focus {
+        border-color: #7c3aed;
+        }
+
+        [data-theme="dark"] .chat-input-area input.input-error {
+        background: #2a1515 !important;
+        }
+
+        #sendBtn {
+        width: 38px;
+        height: 38px;
+        background: linear-gradient(135deg,#4f46e5,#7c3aed);
+        border: none;
+        border-radius: 50%;
+        color: white;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.2s, box-shadow 0.2s;
+        flex-shrink: 0;
+        }
+
+        #sendBtn:hover {
+        transform: scale(1.1);
+        box-shadow: 0 3px 12px rgba(79,70,229,0.4);
+        }
+
+        #sendBtn:active {
+        transform: scale(0.95);
+        }
+
+        /* ── EDIT MODAL ──────────────────────────────────── */
+        .edit-modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.4);
+        z-index: 99999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        }
+
+        @@keyframes fadeIn {
+        from {
+        opacity: 0;
+        }
+
+        to {
+        opacity: 1;
+        }
+        }
+
+        .edit-modal-box {
+        background: white;
+        border-radius: 16px;
+        padding: 22px;
+        width: 320px;
+        box-shadow: 0 12px 40px rgba(0,0,0,0.2);
+        }
+
+        [data-theme="dark"] .edit-modal-box {
+        background: #1e1e2e;
+        }
+
+        .edit-modal-title {
+        font-weight: 700;
+        font-size: 15px;
+        margin-bottom: 12px;
+        color: #1e1e2e;
+        }
+
+        [data-theme="dark"] .edit-modal-title {
+        color: #e2e8f0;
+        }
+
+        .edit-modal-box textarea {
+        width: 100%;
+        border: 1.5px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 10px;
+        font-size: 13.5px;
+        resize: none;
+        outline: none;
+        box-sizing: border-box;
+        background: #f9fafb;
+        color: #1e1e2e;
+        }
+
+        [data-theme="dark"] .edit-modal-box textarea {
+        background: #2a2a3e;
+        border-color: #374151;
+        color: #e2e8f0;
+        }
+
+        .edit-modal-box textarea:focus {
+        border-color: #7c3aed;
+        }
+
+        .edit-modal-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+        justify-content: flex-end;
+        }
+
+        .btn-cancel {
+        padding: 8px 16px;
+        border-radius: 8px;
+        border: 1.5px solid #e5e7eb;
+        background: white;
+        cursor: pointer;
+        font-size: 13px;
+        color: #6b7280;
+        transition: all 0.2s;
+        }
+
+        .btn-cancel:hover {
+        background: #f3f4f6;
+        }
+
+        .btn-confirm {
+        padding: 8px 16px;
+        border-radius: 8px;
+        border: none;
+        background: linear-gradient(135deg,#4f46e5,#7c3aed);
+        color: white;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 600;
+        transition: all 0.2s;
+        }
+
+        .btn-confirm:hover {
+        opacity: 0.9;
+        }
+
+        [data-theme="dark"] .btn-cancel {
+        background: #2a2a3e;
+        border-color: #374151;
+        color: #94a3b8;
+        }
+
+        /* ── CLEAR CONFIRM ───────────────────────────────── */
+        .clear-confirm {
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-size: 12.5px;
+        color: #dc2626;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin: 6px 12px;
+        flex-shrink: 0;
+        }
+
+        [data-theme="dark"] .clear-confirm {
+        background: #2a1515;
+        border-color: #7f1d1d;
+        color: #fca5a5;
+        }
+
+        .clear-confirm-btns {
+        display: flex;
+        gap: 6px;
+        }
+
+        .btn-yes {
+        background: #dc2626;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 4px 10px;
+        font-size: 12px;
+        cursor: pointer;
+        }
+
+        .btn-no {
+        background: #f3f4f6;
+        color: #374151;
+        border: none;
+        border-radius: 6px;
+        padding: 4px 10px;
+        font-size: 12px;
+        cursor: pointer;
+        }
+
+        /* ── SHAKE ANIMATION ─────────────────────────────── */
+        @@keyframes shakeInput {
+        0%, 100% {
+        transform: translateX(0);
+        }
+
+        20% {
+        transform: translateX(-6px);
+        }
+
+        40% {
+        transform: translateX(6px);
+        }
+
+        60% {
+        transform: translateX(-4px);
+        }
+
+        80% {
+        transform: translateX(4px);
+        }
+        }
+        /* ── NAV SUBMENU ─────────────────────────────── */
+        .nav-link-toggle {
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        user-select: none;
+        }
+
+        .nav-badge {
+        margin-left: 6px;
+        background: #4f46e5;
+        color: white;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 1px 7px;
+        border-radius: 99px;
+        min-width: 20px;
+        text-align: center;
+        }
+
+        .nav-chevron {
+        margin-left: auto;
+        font-size: 12px;
+        color: var(--nav-text-muted, #90a8c4);
+        transition: transform 0.2s ease;
+        }
+
+        .nav-chevron.open {
+        transform: rotate(180deg);
+        }
+
+        .nav-submenu {
+        list-style: none;
+        padding: 4px 0 4px 44px;
+        margin: 0;
+        overflow: hidden;
+        animation: submenuIn 0.2s ease;
+        }
+
+        @@keyframes submenuIn {
+        from {
+        opacity: 0;
+        transform: translateY(-4px);
+        }
+
+        to {
+        opacity: 1;
+        transform: translateY(0);
+        }
+        }
+
+        .nav-sublink {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px;
+        font-size: 13px;
+        color: var(--nav-text-muted, #90a8c4);
+        text-decoration: none;
+        border-radius: 6px;
+        transition: all 0.15s;
+        }
+
+        .nav-sublink:hover,
+        .nav-sublink.active {
+        background: rgba(79, 70, 229, 0.12);
+        color: #4f46e5;
+        }
+
+        .nav-sub-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+        flex-shrink: 0;
+        opacity: 0.6;
+        }
+
+        .preview-toggle-group {
+        display: flex;
+        gap: 2px;
+        background: rgba(255,255,255,0.08);
+        border-radius: 6px;
+        padding: 3px;
+        }
+
+        .prev-btn {
+        background: transparent;
+        border: none;
+        color: rgba(255,255,255,0.6);
+        padding: 5px 9px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 15px;
+        line-height: 1;
+        }
+
+        .prev-btn:hover {
+        background: rgba(255,255,255,0.1);
+        color: #fff;
+        }
+
+        .prev-btn.active {
+        background: #7F77DD;
+        color: #fff;
+        }
+
+        body.preview-tablet .main {
+        margin-left: 0 !important;
+        max-width: 768px !important;
+        margin-right: auto !important;
+        }
+
+        body.preview-tablet .sidebar {
+        display: none !important;
+        }
+
+        body.preview-tablet .header {
+        max-width: 768px !important;
+        margin: 0 auto !important;
+        left: 0 !important;
+        right: auto !important;
+        }
+
+        body.preview-mobile .main {
+        margin-left: 0 !important;
+        max-width: 480px !important;
+        margin-right: auto !important;
+        }
+
+        body.preview-mobile .sidebar {
+        display: none !important;
+        }
+
+        body.preview-mobile .header {
+        max-width: 480px !important;
+        margin: 0 auto !important;
+        left: 0 !important;
+        right: auto !important;
+        }
+
+        body.preview-tablet .main *,
+        body.preview-mobile .main * {
+        word-break: normal !important;
+        overflow-wrap: normal !important;
+        }
+
+        body.preview-tablet .main,
+        body.preview-mobile .main {
+        overflow-x: hidden !important;
+        }
+
+        #previewOverlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: #13131a;
+        z-index: 99990;
+        flex-direction: column;
+        align-items: center;
+        }
+
+        #previewOverlay.active {
+        display: flex;
+        }
+
+        #previewTopbar {
+        width: 100%;
+        background: #1a1a2d;
+        padding: 10px 20px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+        flex-shrink: 0;
+        }
+
+        #previewTopbar span {
+        color: rgba(255,255,255,0.5);
+        font-size: 13px;
+        }
+
+        #previewClose {
+        margin-left: auto;
+        background: rgba(255,255,255,0.1);
+        border: none;
+        color: #fff;
+        padding: 6px 14px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 13px;
+        }
+
+        #previewClose:hover {
+        background: rgba(255,255,255,0.2);
+        }
+
+        #previewFrame {
+        border: none;
+        background: #fff;
+        transition: width 0.3s ease;
+        flex: 1;
+        box-shadow: 0 0 60px rgba(0,0,0,0.5);
+        }
+    </style>
+
     <script>
-        const toggleButton = document.getElementById('sidebarToggle');
-        const wrapper = document.getElementById('wrapper');
+        // ── Global Chat Variables ──────────────────────────────────────────────
+        const VALIDATION = { maxLength: 500, rateLimitCount: 5, rateLimitMs: 5000 };
+        let editingMsgEl = null;
+        let isChatOpen = false;
+        let frontendMsgTimes = [];
+        let connection = null;
 
-        toggleButton.addEventListener('click', () => {
-            wrapper.classList.toggle('sidebar-collapsed');
+        // ── SignalR Connection ─────────────────────────────────────────────────
+        // Check if signalR is available before using it
+        if (typeof signalR !== 'undefined') {
+        connection = new signalR.HubConnectionBuilder()
+        .withUrl("/chatHub")
+        .withAutomaticReconnect()
+        .build();
+
+        // ── SignalR Events ─────────────────────────────────────────────────────
+        connection.on("BotTyping", function (isTyping) {
+        document.getElementById("typingIndicator").style.display = isTyping ? "flex" : "none";
+        scrollToBottom();
+        });
+
+        connection.on("ReceiveMessage", function (response) {
+        // If server sends structured object, handle fields
+        if (typeof response === 'object') {
+            if (response.text) appendBotMessage(response.text, false);
+            if (response.table) appendBotMessage(renderTableFromArray(response.table), false);
+            if (response.list) appendBotMessage(renderListFromArray(response.list), false);
+        } else {
+            appendBotMessage(response, false);
+        }
+        });
+
+        // ✅ Server validation error → show in chat as red message
+        connection.on("ValidationError", function (errorMsg) {
+        appendBotMessage(errorMsg, true);
+        showInputError(errorMsg);
+        });
+
+        connection.start().catch(err => console.error("SignalR Error:", err));
+        }
+
+        if (window.location.search.includes('preview=true')) {
+        document.querySelector('.prev-btn[data-width="100%"]').click = null;
+        document.querySelectorAll('.prev-btn').forEach(b => b.style.display = 'none');
+        }
+
+        var currentWidth = '100%';
+
+        document.querySelectorAll('.prev-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+        document.querySelectorAll('.prev-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        var width = btn.getAttribute('data-width');
+        currentWidth = width;
+
+        if (width === '100%') {
+        closePreview();
+        return;
+        }
+
+        var overlay = document.getElementById('previewOverlay');
+        var frame = document.getElementById('previewFrame');
+        var label = document.getElementById('previewLabel');
+
+        frame.src = window.location.href + '?preview=true';
+        frame.style.width = width;
+        frame.style.maxWidth = width;
+        label.textContent = (width === '768px' ? 'Tablet' : 'Mobile') + ' Preview — ' + width;
+        overlay.classList.add('active');
+        });
+        });
+
+        function closePreview() {
+        document.getElementById('previewOverlay').classList.remove('active');
+        document.querySelectorAll('.prev-btn').forEach(b => b.classList.remove('active'));
+        document.querySelector('.prev-btn[data-width="100%"]').classList.add('active');
+        }
+        function closePreview() {
+        document.getElementById('previewOverlay').classList.remove('active');
+        document.querySelectorAll('.prev-btn').forEach(b => b.classList.remove('active'));
+        document.querySelector('.prev-btn[data-width="100%"]').classList.add('active');
+        }
+
+        function switchPreview(width) {
+        var frame = document.getElementById('previewFrame');
+        var label = document.getElementById('previewLabel');
+        var tabletBtn = document.getElementById('previewTabletBtn');
+        var mobileBtn = document.getElementById('previewMobileBtn');
+        frame.style.width = width;
+        frame.style.maxWidth = width;
+        label.textContent = (width === '768px' ? 'Tablet' : 'Mobile') + ' Preview — ' + width;
+        if (width === '768px') {
+        tabletBtn.style.background = '#7F77DD';
+        tabletBtn.style.color = '#fff';
+        mobileBtn.style.background = 'transparent';
+        mobileBtn.style.color = 'rgba(255,255,255,0.6)';
+        } else {
+        mobileBtn.style.background = '#7F77DD';
+        mobileBtn.style.color = '#fff';
+        tabletBtn.style.background = 'transparent';
+        tabletBtn.style.color = 'rgba(255,255,255,0.6)';
+        }
+        document.querySelectorAll('.prev-btn').forEach(b => b.classList.remove('active'));
+        var headerBtn = document.querySelector('.prev-btn[data-width="' + width + '"]');
+        if (headerBtn) headerBtn.classList.add('active');
+        }
+
+ 
+        // ── Toggle Chat ────────────────────────────────────────────────────────
+        function toggleChat() {
+        const box = document.getElementById("chatBox");
+        isChatOpen = !isChatOpen;
+        box.classList.toggle("open", isChatOpen);
+        if (isChatOpen) {
+        setTimeout(() => document.getElementById("chatInput").focus(), 300);
+        scrollToBottom();
+        }
+        }
+
+        // ── FRONTEND VALIDATION ────────────────────────────────────────────────
+        function validateMessage(msg) {
+        // 1. Empty
+        if (!msg || msg.trim().length === 0) {
+        showInputError("⚠️ Please type a message before sending!");
+        shakeInput();
+        return false;
+        }
+
+        // 2. Max length
+        if (msg.length > VALIDATION.maxLength) {
+        showInputError(`⚠️ Too long! Maximum ${VALIDATION.maxLength} characters. (${msg.length}/${VALIDATION.maxLength})`);
+        shakeInput();
+        return false;
+        }
+
+        // 3. XSS check
+        if (/<script|javascript:|onclick|onerror|<iframe|<img/i.test(msg)) {
+        showInputError("⚠️ Invalid input detected!");
+        shakeInput();
+        return false;
+        }
+
+        // 4. Only symbols/spaces
+        if (/^[^a-zA-Z0-9\u0900-\u097F]+$/.test(msg.trim())) {
+        showInputError("⚠️ Please type a valid message!");
+        shakeInput();
+        return false;
+        }
+
+        // 5. Repeated chars (aaaa, zzzz)
+        if (/(.)\1{4,}/.test(msg)) {
+        showInputError("🤔 Please type a meaningful message!");
+        shakeInput();
+        return false;
+        }
+
+        // 6. Rate limit
+        const now = Date.now();
+        frontendMsgTimes = frontendMsgTimes.filter(t => now - t < VALIDATION.rateLimitMs);
+        if (frontendMsgTimes.length >= VALIDATION.rateLimitCount) {
+        showInputError("⏳ Slow down! Too many messages at once.");
+        shakeInput();
+        return false;
+        }
+        frontendMsgTimes.push(now);
+
+        clearInputError();
+        return true;
+        }
+
+        // ── Send Message (fallback to REST if SignalR not available)
+        async function sendMessage(customMsg) {
+        const input = document.getElementById("chatInput");
+        const msg = customMsg !== undefined ? customMsg : input.value.trim();
+
+        if (!validateMessage(msg)) return;
+
+        appendUserMessage(msg);
+        input.value = "";
+        updateCharCount(0);
+
+        // Show typing indicator
+        document.getElementById('typingIndicator').style.display = 'flex';
+
+        // First try SignalR
+        if (connection) {
+            try {
+                await connection.invoke("SendMessage", msg);
+                return;
+            } catch (e) {
+                console.warn('SignalR send failed, falling back to HTTP', e);
+            }
+        }
+
+        // Fallback to HTTP POST /api/chat
+        try {
+            const res = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: msg })
+            });
+            document.getElementById('typingIndicator').style.display = 'none';
+            if (!res.ok) {
+                const err = await res.json().catch(() => null);
+                appendBotMessage(err && err.error ? err.error : 'Server error', true);
+                return;
+            }
+            const data = await res.json();
+            // Render response: prefer text, then table/list
+            if (data.text) appendBotMessage(data.text, false);
+            if (data.table) {
+                const html = renderTableFromArray(data.table);
+                appendBotMessage(html, false);
+            }
+            if (data.list) {
+                const html = renderListFromArray(data.list);
+                appendBotMessage(html, false);
+            }
+        } catch (ex) {
+            document.getElementById('typingIndicator').style.display = 'none';
+            appendBotMessage('❌ Connection error. Please try again.', true);
+        }
+        }
+
+        // ── Append User Message ────────────────────────────────────────────────
+        function appendUserMessage(text) {
+        const body = document.getElementById("chatBody");
+        const wrap = document.createElement("div");
+        wrap.className = "user-msg-wrap";
+        wrap.innerHTML = `
+        <div style="position:relative;">
+        <div class="user-msg">${escapeHtml(text)}</div>
+        <div class="msg-actions">
+        <button class="msg-action-btn" onclick="editMessage(this,'${escapeForAttr(text)}')">✏️ Edit</button>
+        <button class="msg-action-btn" onclick="copyMessage('${escapeForAttr(text)}')">📋 Copy</button>
+        </div>
+        </div>`;
+        body.appendChild(wrap);
+        scrollToBottom();
+        }
+
+        // ── Append Bot Message ─────────────────────────────────────────────────
+        function appendBotMessage(text, isError) {
+        const body = document.getElementById("chatBody");
+        const formatted = text && typeof text === 'string' ? text.split('\n').join('<br>') : text;
+        const wrap = document.createElement("div");
+        wrap.className = "bot-msg-wrap";
+        const msgClass = isError ? "bot-msg validation-bot-msg" : "bot-msg";
+        wrap.innerHTML = `
+        <span class="msg-avatar">${isError ? '⚠️' : '🤖'}</span>
+        <div style="position:relative;">
+        <div class="${msgClass}">${formatted}</div>
+        ${!isError ? `
+        <div class="msg-actions">
+        <button class="msg-action-btn" onclick="copyMessage('${escapeForAttr(text)}')">📋 Copy</button>
+        </div>
+        <div class="feedback-wrap">
+        <button class="feedback-btn" onclick="giveFeedback(this,'👍')">👍 Helpful</button>
+        <button class="feedback-btn" onclick="giveFeedback(this,'👎')">👎 Not helpful</button>
+        </div>` : ''}
+        </div>`;
+        body.appendChild(wrap);
+        scrollToBottom();
+        }
+
+        function renderTableFromArray(arr) {
+            try {
+                if (!Array.isArray(arr) || arr.length === 0) return 'No data.';
+                const keys = Object.keys(arr[0]);
+                let html = '<div style="overflow:auto;max-width:320px;">';
+                html += '<table style="width:100%;border-collapse:collapse;font-size:13px;">';
+                html += '<thead><tr>' + keys.map(k => `<th style="text-align:left;padding:6px;border-bottom:1px solid #eee;">${k}</th>`).join('') + '</tr></thead>';
+                html += '<tbody>' + arr.map(r => '<tr>' + keys.map(k => `<td style="padding:6px;border-bottom:1px solid #f3f4f6;">${escapeHtml(String(r[k] ?? ''))}</td>`).join('') + '</tr>').join('') + '</tbody>';
+                html += '</table></div>';
+                return html;
+            } catch (e) { return 'Unable to render table'; }
+        }
+
+        function renderListFromArray(arr) {
+            try {
+                if (!Array.isArray(arr) || arr.length === 0) return 'No items.';
+                return arr.map(i => '- ' + Object.values(i).map(v => escapeHtml(String(v))).join(' | ')).join('\n');
+            } catch (e) { return 'Unable to render list'; }
+        }
+
+        // ── Show / Clear Input Error ───────────────────────────────────────────
+        function showInputError(msg) {
+        const input = document.getElementById("chatInput");
+        const errEl = document.getElementById("chatInputError");
+        input.classList.add("input-error");
+        errEl.textContent = msg;
+        errEl.style.display = "block";
+        setTimeout(clearInputError, 3500);
+        }
+
+        function clearInputError() {
+        const input = document.getElementById("chatInput");
+        const errEl = document.getElementById("chatInputError");
+        input.classList.remove("input-error");
+        errEl.style.display = "none";
+        errEl.textContent = "";
+        }
+
+        // ── Shake Input ────────────────────────────────────────────────────────
+        function shakeInput() {
+        const input = document.getElementById("chatInput");
+        input.style.animation = "none";
+        input.offsetHeight;
+        input.style.animation = "shakeInput 0.4s ease";
+        setTimeout(() => input.style.animation = "", 400);
+        }
+
+        // ── Char Counter ───────────────────────────────────────────────────────
+        function updateCharCount(count) {
+        const counter = document.getElementById("charCounter");
+        if (count === 0) { counter.style.display = "none"; return; }
+        counter.style.display = "block";
+        counter.textContent = `${count}/${VALIDATION.maxLength}`;
+        counter.style.color = count > 450 ? "#ef4444" : count > 350 ? "#f59e0b" : "#9ca3af";
+        }
+
+        // ── Edit Message ───────────────────────────────────────────────────────
+        function editMessage(btn, originalText) {
+        editingMsgEl = btn.closest('.user-msg-wrap');
+        document.getElementById("editInput").value = originalText;
+        document.getElementById("editError").style.display = "none";
+        document.getElementById("editModal").style.display = "flex";
+        }
+
+        function cancelEdit() {
+        document.getElementById("editModal").style.display = "none";
+        editingMsgEl = null;
+        }
+
+        async function confirmEdit() {
+        const newText = document.getElementById("editInput").value.trim();
+        const errEl = document.getElementById("editError");
+
+        if (!newText) {
+        errEl.textContent = "⚠️ Message cannot be empty!";
+        errEl.style.display = "block";
+        return;
+        }
+        if (newText.length > VALIDATION.maxLength) {
+        errEl.textContent = `⚠️ Too long! Max ${VALIDATION.maxLength} chars.`;
+        errEl.style.display = "block";
+        return;
+        }
+
+        if (editingMsgEl) editingMsgEl.remove();
+        document.getElementById("editModal").style.display = "none";
+        editingMsgEl = null;
+        await sendMessage(newText);
+        }
+
+        // ── Clear Chat ─────────────────────────────────────────────────────────
+        function clearChat() {
+        const existing = document.querySelector('.clear-confirm');
+        if (existing) { existing.remove(); return; }
+        const box = document.getElementById("chatBox");
+        const confirmDiv = document.createElement("div");
+        confirmDiv.className = "clear-confirm";
+        confirmDiv.innerHTML = `
+        <span>🗑️ Clear all messages?</span>
+        <div class="clear-confirm-btns">
+        <button class="btn-yes" onclick="confirmClear()">Yes</button>
+        <button class="btn-no" onclick="this.closest('.clear-confirm').remove()">No</button>
+        </div>`;
+        box.insertBefore(confirmDiv, box.querySelector('.chat-input-area'));
+        }
+
+        function confirmClear() {
+        document.getElementById("chatBody").innerHTML = `
+        <div class="bot-msg-wrap">
+        <span class="msg-avatar">🤖</span>
+        <div class="bot-msg">Chat cleared! 🧹 How can I help you?</div>
+        </div>`;
+        document.querySelector('.clear-confirm')?.remove();
+        frontendMsgTimes = [];
+        clearInputError();
+        }
+
+        // ── Feedback ───────────────────────────────────────────────────────────
+        function giveFeedback(btn, type) {
+        btn.closest('.feedback-wrap').querySelectorAll('.feedback-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        btn.textContent = type === '👍' ? '👍 Thanks!' : '👎 Noted!';
+        setTimeout(() => btn.closest('.feedback-wrap').style.opacity = '0.6', 1000);
+        }
+
+        // ── Copy ───────────────────────────────────────────────────────────────
+        function copyMessage(text) {
+        navigator.clipboard.writeText(text).then(() => showToast('📋 Copied!'));
+        }
+
+        // ── Toast ──────────────────────────────────────────────────────────────
+        function showToast(msg) {
+        const t = document.createElement('div');
+        t.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#1e1e2e;color:white;padding:8px 18px;border-radius:20px;font-size:13px;z-index:99999;opacity:0;transition:opacity 0.2s;';
+        t.textContent = msg;
+        document.body.appendChild(t);
+        setTimeout(() => t.style.opacity = '1', 10);
+        setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 200); }, 1500);
+        }
+
+        // ── Helpers ────────────────────────────────────────────────────────────
+        function scrollToBottom() { setTimeout(() => document.getElementById("chatBody").scrollTop = document.getElementById("chatBody").scrollHeight, 50); }
+        function escapeHtml(t) { return t.replace(/&/g,'&').replace(/</g,'<').replace(/>/g,'>').replace(/"/g,'"'); }
+        function escapeForAttr(t) { return t.replace(/'/g,"\\'").replace(/"/g,'"').replace(/\n/g,'\\n'); }
+
+        // ── DOMContentLoaded ───────────────────────────────────────────────────
+        document.addEventListener("DOMContentLoaded", function () {
+        const input = document.getElementById("chatInput");
+        if (input) {
+        // Enter to send
+        input.addEventListener("keypress", e => { if (e.key === "Enter") sendMessage(); });
+
+        // Char counter
+        input.addEventListener("input", function () {
+        updateCharCount(this.value.length);
+        if (this.value.length > 0) clearInputError();
+        });
+
+        // Paste - trim if too long
+        input.addEventListener("paste", function () {
+        setTimeout(() => {
+        if (this.value.length > VALIDATION.maxLength) {
+        this.value = this.value.substring(0, VALIDATION.maxLength);
+        showInputError(`⚠️ Pasted text trimmed to ${VALIDATION.maxLength} characters!`);
+        }
+        updateCharCount(this.value.length);
+        }, 0);
+        });
+        }
+
+        // Edit modal - click outside to close
+        document.getElementById("editModal").addEventListener("click", function (e) {
+        if (e.target === this) cancelEdit();
+        });
+        });
+        document.addEventListener('DOMContentLoaded', function () {
+        var path = window.location.pathname.toLowerCase();
+        if (path.includes('/onboarding/dashboard')) {
+        if (path.includes('/performance/dashboard')) {
+        var s = document.getElementById('dashboardsSubmenu');
+        var c = document.getElementById('dashboardsChevron');
+        if (s) s.style.display = 'block';
+        if (c) c.classList.add('open');
+        document.querySelectorAll('.nav-sublink').forEach(function(link) {
+        if ((link.getAttribute('href') || '').toLowerCase() === path) {
+        link.classList.add('active');
+        }
+        });
+        }
+        var s = document.getElementById('dashboardsSubmenu');
+        var c = document.getElementById('dashboardsChevron');
+        if (s) s.style.display = 'block';
+        if (c) c.classList.add('open');
+        document.querySelectorAll('.nav-sublink').forEach(function(link) {
+        if ((link.getAttribute('href') || '').toLowerCase() === path) {
+        link.classList.add('active');
+        }
+        });
+        }
         });
     </script>
+    @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

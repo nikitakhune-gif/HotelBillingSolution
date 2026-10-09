@@ -1,0 +1,1020 @@
+﻿@model HotelBilling.Application.DTOs.Booking.BookingIndexViewModel
+@{
+    ViewData["Title"] = "Booking Management";
+    ViewBag.ActiveMenu = "Bookings";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+
+
+<style>
+    .booking-page {
+        --bp-radius: 18px;
+        --bp-radius-sm: 12px;
+        --bp-shadow: var(--shadow-sm);
+        --bp-shadow-hover: var(--shadow-md);
+        --bp-border: var(--border-color);
+        --bp-card-bg: var(--card-color);
+        --bp-surface: var(--card-color-2);
+        color: var(--text-color);
+        background: var(--bg-color);
+    }
+
+        .booking-page * {
+            box-sizing: border-box;
+        }
+
+    /* ---------- Success / error banner ---------- */
+    .bp-alert {
+        display: flex;
+        align-items: center;
+        gap: .6rem;
+        border-radius: 12px;
+        padding: .85rem 1.1rem;
+        margin-bottom: 1.25rem;
+        font-size: .88rem;
+        font-weight: 500;
+        border: 1px solid transparent;
+    }
+
+        .bp-alert.success {
+            background: var(--success-soft);
+            color: var(--success-color);
+            border-color: color-mix(in srgb, var(--success-color) 30%, transparent);
+        }
+
+        .bp-alert.error {
+            background: var(--danger-soft);
+            color: var(--danger-color);
+            border-color: color-mix(in srgb, var(--danger-color) 30%, transparent);
+        }
+
+        .bp-alert .bp-alert-close {
+            margin-left: auto;
+            background: none;
+            border: none;
+            color: inherit;
+            opacity: .7;
+            font-size: 1rem;
+            line-height: 1;
+            cursor: pointer;
+        }
+
+            .bp-alert .bp-alert-close:hover {
+                opacity: 1;
+            }
+
+    /* ---------- Page header ---------- */
+    .bp-header {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        align-items: flex-start;
+        justify-content: space-between;
+        margin-bottom: 1.5rem;
+    }
+
+        .bp-header h1 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            letter-spacing: -.02em;
+            margin-bottom: .15rem;
+            color: var(--heading-color);
+        }
+
+        .bp-header p {
+            color: var(--text-muted);
+            margin-bottom: 0;
+            font-size: .92rem;
+        }
+
+    .bp-header-actions .btn {
+        border-radius: 10px;
+        font-weight: 500;
+        font-size: .875rem;
+    }
+
+        .bp-header-actions .btn i {
+            margin-right: .4rem;
+        }
+
+    /* ---------- Summary cards ---------- */
+    .bp-summary-card {
+        height: 110px;
+        border-radius: var(--bp-radius);
+        border: 1px solid var(--bp-border);
+        background: var(--bp-card-bg);
+        box-shadow: var(--bp-shadow);
+        padding: 1rem 1.15rem;
+        display: flex;
+        align-items: center;
+        gap: .9rem;
+        transition: transform .2s ease, box-shadow .2s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+        .bp-summary-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--bp-shadow-hover);
+        }
+
+    .bp-summary-icon {
+        width: 52px;
+        height: 52px;
+        min-width: 52px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        color: var(--on-primary, #fff);
+        box-shadow: 0 6px 16px -4px rgba(0, 0, 0, .35);
+    }
+
+    .bp-summary-card .grad-blue {
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-color-2));
+    }
+
+    .bp-summary-card .grad-green {
+        background: linear-gradient(135deg, var(--success-color), color-mix(in srgb, var(--success-color) 70%, black 10%));
+    }
+
+    .bp-summary-card .grad-orange {
+        background: linear-gradient(135deg, #fbbf24, #d97706);
+    }
+
+    .bp-summary-card .grad-purple {
+        background: linear-gradient(135deg, #a78bfa, #7c3aed);
+    }
+
+    .bp-summary-value {
+        font-size: 1.35rem;
+        font-weight: 700;
+        line-height: 1.1;
+        color: var(--heading-color);
+    }
+
+    .bp-summary-label {
+        font-size: .78rem;
+        color: var(--text-muted);
+        font-weight: 500;
+    }
+
+    .bp-summary-trend {
+        font-size: .72rem;
+        font-weight: 600;
+    }
+
+    /* ---------- Filter card ---------- */
+    .bp-filter-card {
+        border-radius: var(--bp-radius);
+        border: 1px solid var(--bp-border);
+        background: var(--bp-card-bg);
+        box-shadow: var(--bp-shadow);
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+
+        .bp-filter-card .form-label {
+            font-size: .76rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .03em;
+            color: var(--text-muted);
+            margin-bottom: .35rem;
+        }
+
+        .bp-filter-card .form-control,
+        .bp-filter-card .form-select {
+            border-radius: 10px;
+            font-size: .875rem;
+            background-color: var(--input-color);
+            border-color: var(--bp-border);
+            color: var(--text-color);
+        }
+
+            .bp-filter-card .form-control::placeholder {
+                color: var(--text-faint);
+            }
+
+            .bp-filter-card .form-control:focus,
+            .bp-filter-card .form-select:focus {
+                box-shadow: 0 0 0 .2rem var(--primary-soft);
+                border-color: var(--primary-color);
+            }
+
+    /* ---------- Table card ---------- */
+    .bp-table-card {
+        border-radius: var(--bp-radius);
+        border: 1px solid var(--bp-border);
+        background: var(--bp-card-bg);
+        box-shadow: var(--bp-shadow);
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+
+    .bp-table-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .75rem;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--bp-border);
+    }
+
+        .bp-table-toolbar .fw-semibold {
+            color: var(--heading-color);
+        }
+
+        .bp-table-toolbar .form-select-sm,
+        .bp-table-toolbar .form-control-sm {
+            border-radius: 8px;
+            background-color: var(--input-color);
+            border-color: var(--bp-border);
+            color: var(--text-color);
+        }
+
+            .bp-table-toolbar .form-control-sm::placeholder {
+                color: var(--text-faint);
+            }
+
+    .bp-table-wrap {
+        overflow-x: auto;
+        max-height: 560px;
+    }
+
+    table.bp-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: .86rem;
+        min-width: 1200px;
+    }
+
+        table.bp-table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            background: var(--bp-surface);
+            color: var(--text-muted);
+            font-size: .72rem;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            font-weight: 700;
+            padding: .85rem 1rem;
+            white-space: nowrap;
+            border-bottom: 1px solid var(--bp-border);
+            cursor: pointer;
+            user-select: none;
+        }
+
+            table.bp-table thead th i {
+                margin-left: .3rem;
+                opacity: .5;
+                font-size: .68rem;
+            }
+
+        table.bp-table tbody td {
+            padding: .8rem 1rem;
+            vertical-align: middle;
+            border-bottom: 1px solid var(--bp-border);
+            white-space: nowrap;
+            color: var(--text-color);
+        }
+
+        table.bp-table tbody tr {
+            transition: background-color .15s ease;
+        }
+
+            table.bp-table tbody tr:hover {
+                background-color: var(--bp-surface);
+            }
+
+            table.bp-table tbody tr:last-child td {
+                border-bottom: none;
+            }
+
+    .bp-guest {
+        display: flex;
+        align-items: center;
+        gap: .6rem;
+    }
+
+    .bp-avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: .75rem;
+        font-weight: 700;
+        color: #fff;
+        background: linear-gradient(135deg, #4f7bff, #7c3aed);
+        flex-shrink: 0;
+    }
+
+    .bp-guest-name {
+        font-weight: 600;
+        font-size: .85rem;
+        color: var(--heading-color);
+    }
+
+    .bp-guest-sub {
+        font-size: .72rem;
+        color: var(--text-muted);
+    }
+
+    /* ---------- Badges (mapped to theme status tokens) ---------- */
+    .bp-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        padding: .3rem .65rem;
+        border-radius: 999px;
+        font-size: .72rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+        .bp-badge::before {
+            content: "";
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .bp-badge.status-confirmed {
+            color: var(--primary-color);
+            background: var(--primary-soft);
+        }
+
+        .bp-badge.status-checkedin {
+            color: var(--success-color);
+            background: var(--success-soft);
+        }
+
+        .bp-badge.status-checkedout {
+            color: var(--text-muted);
+            background: var(--border-soft);
+        }
+
+        .bp-badge.status-cancelled {
+            color: var(--danger-color);
+            background: var(--danger-soft);
+        }
+
+        .bp-badge.status-reserved {
+            color: var(--warning-color);
+            background: var(--warning-soft);
+        }
+
+        .bp-badge.pay-paid {
+            color: var(--success-color);
+            background: var(--success-soft);
+        }
+
+        .bp-badge.pay-pending {
+            color: var(--warning-color);
+            background: var(--warning-soft);
+        }
+
+        .bp-badge.pay-partial {
+            color: var(--primary-color);
+            background: var(--primary-soft);
+        }
+
+        .bp-badge.pay-refunded {
+            color: var(--danger-color);
+            background: var(--danger-soft);
+        }
+
+    /* ---------- Action buttons ---------- */
+    .bp-actions {
+        display: flex;
+        align-items: center;
+        gap: .3rem;
+    }
+
+    .bp-action-btn {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--bp-border);
+        background: var(--bp-card-bg);
+        color: var(--text-muted);
+        font-size: .78rem;
+        transition: all .15s ease;
+    }
+
+        .bp-action-btn:hover {
+            transform: translateY(-2px);
+            color: #fff;
+        }
+
+        .bp-action-btn.view:hover {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .bp-action-btn.edit:hover {
+            background: var(--warning-color);
+            border-color: var(--warning-color);
+        }
+
+        .bp-action-btn.invoice:hover {
+            background: #7c3aed;
+            border-color: #7c3aed;
+        }
+
+        .bp-action-btn.print:hover {
+            background: var(--success-color);
+            border-color: var(--success-color);
+        }
+
+        .bp-action-btn.delete:hover {
+            background: var(--danger-color);
+            border-color: var(--danger-color);
+        }
+
+    /* ---------- Footer / pagination ---------- */
+    .bp-table-footer {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: .75rem;
+        padding: 1rem 1.25rem;
+        font-size: .8rem;
+        color: var(--text-muted);
+    }
+
+    .bp-pagination .page-link {
+        border-radius: 8px;
+        margin: 0 .15rem;
+        border: 1px solid var(--bp-border);
+        background: var(--bp-card-bg);
+        color: var(--text-color);
+        font-size: .8rem;
+    }
+
+    .bp-pagination .page-item.disabled .page-link {
+        color: var(--text-faint);
+        background: var(--bp-surface);
+    }
+
+    .bp-pagination .page-item.active .page-link {
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-color-2));
+        border-color: transparent;
+        color: #fff;
+    }
+
+    /* ---------- Right side panel ---------- */
+    .bp-side-card {
+        border-radius: var(--bp-radius);
+        border: 1px solid var(--bp-border);
+        background: var(--bp-card-bg);
+        box-shadow: var(--bp-shadow);
+        padding: 1.1rem;
+        margin-bottom: 1.25rem;
+    }
+
+        .bp-side-card h6 {
+            font-size: .82rem;
+            font-weight: 700;
+            margin-bottom: .9rem;
+            display: flex;
+            align-items: center;
+            gap: .45rem;
+            color: var(--heading-color);
+        }
+
+            .bp-side-card h6 i {
+                color: var(--primary-color);
+            }
+
+    .bp-mini-item {
+        display: flex;
+        align-items: center;
+        gap: .65rem;
+        padding: .55rem 0;
+        border-bottom: 1px solid var(--bp-border);
+    }
+
+        .bp-mini-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .bp-mini-item:first-child {
+            padding-top: 0;
+        }
+
+    .bp-mini-icon {
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: .8rem;
+        color: #fff;
+    }
+
+    .bp-mini-title {
+        font-size: .8rem;
+        font-weight: 600;
+        margin-bottom: 0;
+        color: var(--heading-color);
+    }
+
+    .bp-mini-sub {
+        font-size: .71rem;
+        color: var(--text-muted);
+        margin-bottom: 0;
+    }
+
+    .bp-mini-value {
+        font-size: .78rem;
+        font-weight: 700;
+        margin-left: auto;
+        white-space: nowrap;
+        color: var(--text-color);
+    }
+
+    /* ---------- Animations ---------- */
+    @@keyframes bpFadeUp {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .bp-animate {
+        animation: bpFadeUp .35s ease both;
+    }
+
+        .bp-animate:nth-child(1) {
+            animation-delay: .02s;
+        }
+
+        .bp-animate:nth-child(2) {
+            animation-delay: .06s;
+        }
+
+        .bp-animate:nth-child(3) {
+            animation-delay: .10s;
+        }
+
+        .bp-animate:nth-child(4) {
+            animation-delay: .14s;
+        }
+
+    @@media (prefers-reduced-motion: reduce) {
+        .bp-animate, .bp-summary-card, .bp-action-btn {
+            animation: none !important;
+            transition: none !important;
+        }
+    }
+
+    @@media (max-width: 991.98px) {
+        table.bp-table {
+            min-width: 1050px;
+        }
+    }
+</style>
+
+<div class="booking-page">
+
+    @* ===================== SUCCESS / ERROR BANNER ===================== *@
+    @if (TempData["Success"] != null)
+    {
+        <div class="bp-alert success" id="bpBanner">
+            <i class="fa-solid fa-circle-check"></i>
+            <span>@TempData["Success"]</span>
+            <button type="button" class="bp-alert-close" onclick="this.closest('.bp-alert').remove()">&times;</button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="bp-alert error" id="bpBanner">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span>@TempData["Error"]</span>
+            <button type="button" class="bp-alert-close" onclick="this.closest('.bp-alert').remove()">&times;</button>
+        </div>
+    }
+
+    @* ===================== PAGE HEADER ===================== *@
+    <div class="bp-header">
+        <div>
+            <h1>Booking Management</h1>
+            <p>Create and manage hotel room bookings.</p>
+        </div>
+        <div class="bp-header-actions d-flex flex-wrap gap-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="btnExport">
+                <i class="fa-solid fa-file-export"></i>Export
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="btnPrint">
+                <i class="fa-solid fa-print"></i>Print
+            </button>
+            <button type="button" class="btn btn-primary btn-sm" id="btnNewBooking"
+                    style="background: linear-gradient(135deg,#4f7bff,#2451e0); border:none;">
+                <i class="fa-solid fa-plus"></i>New Booking
+            </button>
+        </div>
+    </div>
+
+    @* ===================== SUMMARY CARDS (from Model.Summary) ===================== *@
+    <div class="row g-3 mb-3">
+        <div class="col-6 col-xl-3 bp-animate">
+            <div class="bp-summary-card">
+                <div class="bp-summary-icon grad-blue"><i class="fa-solid fa-calendar-check"></i></div>
+                <div>
+                    <div class="bp-summary-value">@Model.Summary.TodaysBookings</div>
+                    <div class="bp-summary-label">Today's Bookings</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-xl-3 bp-animate">
+            <div class="bp-summary-card">
+                <div class="bp-summary-icon grad-green"><i class="fa-solid fa-door-open"></i></div>
+                <div>
+                    <div class="bp-summary-value">@Model.Summary.CheckInsToday</div>
+                    <div class="bp-summary-label">Check-In Today</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-xl-3 bp-animate">
+            <div class="bp-summary-card">
+                <div class="bp-summary-icon grad-orange"><i class="fa-solid fa-door-closed"></i></div>
+                <div>
+                    <div class="bp-summary-value">@Model.Summary.CheckOutsToday</div>
+                    <div class="bp-summary-label">Check-Out Today</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-xl-3 bp-animate">
+            <div class="bp-summary-card">
+                <div class="bp-summary-icon grad-purple"><i class="fa-solid fa-hourglass-half"></i></div>
+                <div>
+                    <div class="bp-summary-value">@Model.Summary.PendingBookings</div>
+                    <div class="bp-summary-label">Pending Bookings</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* ===================== FILTER SECTION ===================== *@
+    <div class="bp-filter-card">
+        <form id="bookingFilterForm"
+              class="d-flex align-items-end gap-2 flex-nowrap"
+              method="get"
+              asp-action="Index"
+              asp-controller="Booking">
+
+            <!-- Booking ID -->
+            <div class="flex-fill">
+                <label class="form-label">Booking ID</label>
+                <input type="text"
+                       class="form-control form-control-sm"
+                       name="BookingNumber"
+                       id="fBookingId"
+                       placeholder="e.g. BK-1042"
+                       value="@Model.Filter.BookingNumber">
+            </div>
+
+            <!-- Guest Name -->
+            <div class="flex-fill">
+                <label class="form-label">Guest Name</label>
+                <input type="text"
+                       class="form-control form-control-sm"
+                       name="GuestName"
+                       id="fGuestName"
+                       placeholder="Search guest"
+                       value="@Model.Filter.GuestName">
+            </div>
+
+            <!-- Room Number -->
+            <div class="flex-fill">
+                <label class="form-label">Room Number</label>
+                <input type="text"
+                       class="form-control form-control-sm"
+                       name="RoomNumber"
+                       id="fRoomNumber"
+                       placeholder="e.g. 204"
+                       value="@Model.Filter.RoomNumber">
+            </div>
+
+            <!-- Booking Status -->
+            <div class="flex-fill">
+                <label class="form-label">Booking Status</label>
+                <select class="form-select form-select-sm"
+                        name="BookingStatus"
+                        id="fBookingStatus">
+
+                    <option value="">All</option>
+
+                    @foreach (var status in Enum.GetValues(typeof(HotelBilling.Domain.Enums.BookingStatus)))
+                    {
+                        <option value="@status"
+                                selected="@(Model.Filter.BookingStatus?.ToString() == status.ToString())">
+                            @status
+                        </option>
+                    }
+                </select>
+            </div>
+
+            <!-- Reset -->
+            <div class="flex-shrink-0">
+                <a asp-action="Index"
+                   asp-controller="Booking"
+                   class="btn btn-outline-secondary btn-sm"
+                   id="btnResetFilter">
+                    <i class="fa-solid fa-rotate-left me-1"></i>
+                    Reset
+                </a>
+            </div>
+
+            <!-- Search -->
+            <div class="flex-shrink-0">
+                <button type="submit"
+                        class="btn btn-primary btn-sm"
+                        id="btnSearchFilter"
+                        style="background:linear-gradient(135deg,#4f7bff,#2451e0);border:none;">
+                    <i class="fa-solid fa-magnifying-glass me-1"></i>
+                    Search
+                </button>
+            </div>
+
+        </form>
+    </div>
+
+    <div class="row g-3">
+        @* ===================== BOOKING TABLE (Model.Bookings) ===================== *@
+        <div class="col-12 col-xl-9">
+            <div class="bp-table-card">
+                <div class="bp-table-toolbar">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="fw-semibold" style="font-size:.9rem;">All Bookings</span>
+                        <span class="badge rounded-pill" style="background:var(--bp-surface); color:var(--text-muted);">@Model.TotalCount</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <input type="text" class="form-control form-control-sm" id="tableQuickSearch"
+                               style="width:180px;" placeholder="Quick search...">
+                    </div>
+                </div>
+
+                <div class="bp-table-wrap">
+                    <table class="bp-table">
+                        <thead>
+                            <tr>
+                                <th data-sort="id">Booking ID <i class="fa-solid fa-sort"></i></th>
+                                <th data-sort="guest">Guest <i class="fa-solid fa-sort"></i></th>
+                                <th data-sort="room">Room <i class="fa-solid fa-sort"></i></th>
+                                <th data-sort="checkin">Check-In <i class="fa-solid fa-sort"></i></th>
+                                <th data-sort="checkout">Check-Out <i class="fa-solid fa-sort"></i></th>
+                                <th data-sort="guests">Guests <i class="fa-solid fa-sort"></i></th>
+                                <th data-sort="amount">Amount <i class="fa-solid fa-sort"></i></th>
+                                <th data-sort="payment">Payment <i class="fa-solid fa-sort"></i></th>
+                                <th data-sort="status">Booking Status <i class="fa-solid fa-sort"></i></th>
+                                <th data-sort="created">Created Date <i class="fa-solid fa-sort"></i></th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bookingTableBody">
+                            @if (!Model.Bookings.Any())
+                            {
+                                <tr>
+                                    <td colspan="11" class="text-center py-4" style="color:var(--text-faint);">
+                                        No bookings match your filters.
+                                    </td>
+                                </tr>
+                            }
+                            else
+                            {
+                                foreach (var b in Model.Bookings)
+                                {
+                                    var statusClass = "status-" + b.BookingStatus.Replace("-", "").ToLower();
+                                    var payClass = "pay-" + b.PaymentStatus.ToLower();
+                                    var initials = string.Concat(b.GuestName.Split(' ').Where(p => p.Length > 0).Take(2).Select(p => char.ToUpper(p[0])));
+                                    <tr>
+                                        <td class="fw-semibold">@b.BookingNumber</td>
+                                        <td>
+                                            <div class="bp-guest">
+                                                <div class="bp-avatar">@initials</div>
+                                                <div>
+                                                    <div class="bp-guest-name">@b.GuestName</div>
+                                                    <div class="bp-guest-sub">@b.Adults guest@(b.Adults + b.Children > 1 ? "s" : "")</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>@b.RoomNumber</td>
+                                        <td>@b.CheckInDate.ToString("dd MMM yyyy")</td>
+                                        <td>@b.CheckOutDate.ToString("dd MMM yyyy")</td>
+                                        <td>@(b.Adults + b.Children)</td>
+                                        <td class="fw-semibold">₹@b.TotalAmount.ToString("N0")</td>
+                                        <td><span class="bp-badge @payClass">@b.PaymentStatus</span></td>
+                                        <td><span class="bp-badge @statusClass">@b.BookingStatus</span></td>
+                                        <td>@b.CreatedDate.ToString("dd MMM yyyy")</td>
+                                        <td>
+                                            <div class="bp-actions">
+                                                <a class="bp-action-btn view" title="View" asp-action="Details" asp-controller="Booking" asp-route-id="@b.Id"><i class="fa-solid fa-eye"></i></a>
+                                                <a class="bp-action-btn edit" title="Edit" asp-action="Edit" asp-controller="Booking" asp-route-id="@b.Id"><i class="fa-solid fa-pen"></i></a>
+                                                <a class="bp-action-btn invoice" title="Invoice" asp-action="Invoice" asp-controller="Billing" asp-route-bookingId="@b.Id"><i class="fa-solid fa-file-invoice"></i></a>
+                                                <button type="button" class="bp-action-btn print js-print-booking" title="Print" data-id="@b.Id"><i class="fa-solid fa-print"></i></button>
+                                                <button type="button" class="bp-action-btn delete js-delete-booking" title="Delete" data-id="@b.Id"><i class="fa-solid fa-trash"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="bp-table-footer">
+                    <div id="bpShowingText">
+                        Showing @(((Model.Filter.Page - 1) * Model.Filter.PageSize) + 1)
+                        to @(Math.Min(Model.Filter.Page * Model.Filter.PageSize, Model.TotalCount))
+                        of @Model.TotalCount Bookings
+                    </div>
+                    <nav>
+                        <ul class="pagination pagination-sm bp-pagination mb-0" id="bpPagination">
+                            @{
+                                var totalPages = (int)Math.Ceiling(Model.TotalCount / (double)Model.Filter.PageSize);
+                                if (totalPages < 1) { totalPages = 1; }
+                            }
+                            @{
+                                // FIX: these links previously only carried ?page=N, which
+                                // dropped BookingNumber/GuestName/RoomNumber/BookingStatus/PageSize
+                                // as soon as you clicked a page number. Passing the current
+                                // Model.Filter values as route values keeps the active filter
+                                // applied while paging (works together with Index() now
+                                // binding [FromQuery] BookingFilterDto in the controller).
+                            }
+                            <li class="page-item @(Model.Filter.Page <= 1 ? "disabled" : "")">
+                                <a class="page-link" asp-action="Index"
+                                   asp-route-page="@(Model.Filter.Page - 1)"
+                                   asp-route-PageSize="@Model.Filter.PageSize"
+                                   asp-route-BookingNumber="@Model.Filter.BookingNumber"
+                                   asp-route-GuestName="@Model.Filter.GuestName"
+                                   asp-route-RoomNumber="@Model.Filter.RoomNumber"
+                                   asp-route-BookingStatus="@Model.Filter.BookingStatus">&laquo;</a>
+                            </li>
+                            @for (int p = 1; p <= totalPages; p++)
+                            {
+                                <li class="page-item @(p == Model.Filter.Page ? "active" : "")">
+                                    <a class="page-link" asp-action="Index"
+                                       asp-route-page="@p"
+                                       asp-route-PageSize="@Model.Filter.PageSize"
+                                       asp-route-BookingNumber="@Model.Filter.BookingNumber"
+                                       asp-route-GuestName="@Model.Filter.GuestName"
+                                       asp-route-RoomNumber="@Model.Filter.RoomNumber"
+                                       asp-route-BookingStatus="@Model.Filter.BookingStatus">@p</a>
+                                </li>
+                            }
+                            <li class="page-item @(Model.Filter.Page >= totalPages ? "disabled" : "")">
+                                <a class="page-link" asp-action="Index"
+                                   asp-route-page="@(Model.Filter.Page + 1)"
+                                   asp-route-PageSize="@Model.Filter.PageSize"
+                                   asp-route-BookingNumber="@Model.Filter.BookingNumber"
+                                   asp-route-GuestName="@Model.Filter.GuestName"
+                                   asp-route-RoomNumber="@Model.Filter.RoomNumber"
+                                   asp-route-BookingStatus="@Model.Filter.BookingStatus">&raquo;</a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+
+        @* ===================== RIGHT SIDE PANEL (Model.Recent*) ===================== *@
+        <div class="col-12 col-xl-3">
+            <div class="bp-side-card">
+                <h6><i class="fa-solid fa-clock-rotate-left"></i>Recent Bookings</h6>
+                <div id="panelRecentBookings">
+                    @foreach (var r in Model.RecentBookings)
+                    {
+                        <div class="bp-mini-item">
+                            <div class="bp-mini-icon" style="background:linear-gradient(135deg,var(--primary-color),var(--primary-color-2));"><i class="fa-solid fa-user"></i></div>
+                            <div><p class="bp-mini-title">@r.GuestName</p><p class="bp-mini-sub">Room @r.RoomNumber</p></div>
+                            <div class="bp-mini-value">@r.BookingNumber</div>
+                        </div>
+                    }
+                </div>
+            </div>
+            <div class="bp-side-card">
+                <h6><i class="fa-solid fa-right-to-bracket"></i>Upcoming Check-Ins</h6>
+                <div id="panelUpcomingCheckins">
+                    @foreach (var c in Model.UpcomingCheckIns)
+                    {
+                        <div class="bp-mini-item">
+                            <div class="bp-mini-icon" style="background:linear-gradient(135deg,var(--success-color),#059669);"><i class="fa-solid fa-right-to-bracket"></i></div>
+                            <div><p class="bp-mini-title">@c.GuestName</p><p class="bp-mini-sub">Room @c.RoomNumber · @c.CheckInDate.ToString("dd MMM")</p></div>
+                            <div class="bp-mini-value">@(c.Adults + c.Children) guests</div>
+                        </div>
+                    }
+                </div>
+            </div>
+            <div class="bp-side-card">
+                <h6><i class="fa-solid fa-right-from-bracket"></i>Upcoming Check-Outs</h6>
+                <div id="panelUpcomingCheckouts">
+                    @foreach (var c in Model.UpcomingCheckOuts)
+                    {
+                        <div class="bp-mini-item">
+                            <div class="bp-mini-icon" style="background:linear-gradient(135deg,var(--warning-color),#d97706);"><i class="fa-solid fa-right-from-bracket"></i></div>
+                            <div><p class="bp-mini-title">@c.GuestName</p><p class="bp-mini-sub">Room @c.RoomNumber · @c.CheckOutDate.ToString("dd MMM")</p></div>
+                            <div class="bp-mini-value">@(c.Adults + c.Children) guests</div>
+                        </div>
+                    }
+                </div>
+            </div>
+            <div class="bp-side-card mb-0">
+                <h6><i class="fa-solid fa-credit-card"></i>Recent Payments</h6>
+                <div id="panelRecentPayments">
+                    @foreach (var p in Model.RecentPayments)
+                    {
+                        <div class="bp-mini-item">
+                            <div class="bp-mini-icon" style="background:linear-gradient(135deg,var(--primary-color),var(--primary-color-2));"><i class="fa-solid fa-indian-rupee-sign"></i></div>
+                            <div><p class="bp-mini-title">@p.BookingNumber</p><p class="bp-mini-sub">@p.GuestName</p></div>
+                            <div class="bp-mini-value">₹@p.Amount.ToString("N0")</div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        "use strict";
+
+        // NOTE: all data now renders server-side via Razor from Model.*.
+        // Remaining JS only handles UX affordances (quick client-side
+        // filter of already-rendered rows, print, export, delete confirm).
+        // Sorting/paging/status-filter go through real GET requests
+        // (see the <form> above) so results always reflect the database.
+
+        document.getElementById("tableQuickSearch").addEventListener("input", function (e) {
+            var q = e.target.value.trim().toLowerCase();
+            document.querySelectorAll("#bookingTableBody tr").forEach(function (row) {
+                var text = row.textContent.toLowerCase();
+                row.style.display = !q || text.indexOf(q) !== -1 ? "" : "none";
+            });
+        });
+
+        document.getElementById("btnPrint").addEventListener("click", function () { window.print(); });
+
+        document.getElementById("btnExport").addEventListener("click", function () {
+            window.location.href = '@Url.Action("Export", "Booking")' + window.location.search;
+        });
+
+        document.getElementById("btnNewBooking").addEventListener("click", function () {
+            window.location.href = '@Url.Action("AddBooking", "Booking")';
+        });
+
+        document.querySelectorAll(".js-delete-booking").forEach(function (btn) {
+            btn.addEventListener("click", function () {
+                var id = btn.getAttribute("data-id");
+                if (!confirm("Cancel/delete this booking?")) return;
+
+                fetch('@Url.Action("Delete", "Booking")/' + id, {
+                    method: "POST",
+                    headers: { "RequestVerificationToken": document.querySelector('input[name="__RequestVerificationToken"]')?.value || "" }
+                }).then(function (res) {
+                    if (res.ok) { window.location.reload(); }
+                    else { alert("Could not delete booking."); }
+                });
+            });
+        });
+
+        document.querySelectorAll(".js-print-booking").forEach(function (btn) {
+            btn.addEventListener("click", function () {
+                window.open('@Url.Action("PrintBooking", "Booking")/' + btn.getAttribute("data-id"), "_blank");
+            });
+        });
+
+        // Auto-dismiss the success/error banner after a few seconds.
+        var banner = document.getElementById("bpBanner");
+        if (banner) {
+            setTimeout(function () {
+                banner.style.transition = "opacity .4s ease";
+                banner.style.opacity = "0";
+                setTimeout(function () { banner.remove(); }, 400);
+            }, 5000);
+        }
+    })();
+</script>

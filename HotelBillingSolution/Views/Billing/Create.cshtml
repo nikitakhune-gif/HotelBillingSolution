@@ -1,31 +1,1105 @@
-@model HotelBilling.Application.DTOs.Request.CreateBillRequest
-
 @{
-    ViewData["Title"] = "Generate Bill";
+    ViewData["Title"] = "New Bill";
+    Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h2>Generate Bill</h2>
+<style>
+    /* =====================================================================
+               New Bill — scoped, theme-aware styles
+               Every color/shadow/radius token below reads from the site's CSS
+               variables (defined in site.css) with a safe fallback, so the page
+               renders correctly in both the light and dark theme.
+            ===================================================================== */
 
-<form asp-action="Create" method="post">
-    <div class="mb-3">
-        <label class="form-label">Customer Id</label>
-        <input asp-for="CustomerId" class="form-control" />
-    </div>
-    <div class="mb-3">
-        <label class="form-label">Room Id</label>
-        <input asp-for="RoomId" class="form-control" />
-    </div>
-    <div class="mb-3">
-        <label class="form-label">Room Charge</label>
-        <input asp-for="RoomCharge" class="form-control" />
-    </div>
-    <div class="mb-3">
-        <label class="form-label">Food Charge</label>
-        <input asp-for="FoodCharge" class="form-control" />
-    </div>
-    <div class="mb-3">
-        <label class="form-label">Other Charges</label>
-        <input asp-for="OtherCharges" class="form-control" />
-    </div>
-    <button class="btn btn-primary">Generate</button>
-</form>
+    .billing-create-page {
+        --bcp-radius: 16px;
+        --bcp-radius-sm: 10px;
+        background: var(--bg-color);
+        color: var(--text-color);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        padding: 28px;
+    }
+
+        .billing-create-page * {
+            box-sizing: border-box;
+        }
+
+    @@media (max-width: 991px) {
+        .billing-create-page {
+            padding: 16px;
+        }
+    }
+
+    /* ---------- Page header ---------- */
+    .page-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 24px;
+    }
+
+        .page-header h1 {
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: var(--heading-color, var(--text-color));
+            margin: 0 0 4px 0;
+        }
+
+        .page-header p {
+            margin: 0;
+            font-size: 13.5px;
+            color: var(--text-muted, #8a8f98);
+        }
+
+    .header-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .btn-outline-soft,
+    .btn-primary-grad {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        padding: 11px 20px;
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 1;
+        cursor: pointer;
+        transition: transform .15s ease, box-shadow .15s ease, background-color .15s ease, border-color .15s ease;
+        white-space: nowrap;
+    }
+
+    .btn-outline-soft {
+        background: transparent;
+        border: 1.5px solid var(--border-color);
+        color: var(--text-color);
+    }
+
+        .btn-outline-soft:hover {
+            background: var(--card-color-2, var(--card-color));
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+    .btn-primary-grad {
+        background: linear-gradient(135deg, var(--primary-color) 0%, color-mix(in srgb, var(--primary-color) 78%, black 10%) 100%);
+        border: none;
+        color: var(--on-primary, #fff);
+        box-shadow: 0 6px 16px -6px color-mix(in srgb, var(--primary-color) 60%, transparent);
+    }
+
+        .btn-primary-grad:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 22px -6px color-mix(in srgb, var(--primary-color) 65%, transparent);
+        }
+
+        .btn-primary-grad:active {
+            transform: translateY(0);
+        }
+
+    @@media (max-width: 575px) {
+        .header-actions {
+            width: 100%;
+        }
+
+        .btn-outline-soft, .btn-primary-grad {
+            flex: 1;
+        }
+    }
+
+    /* ---------- Panels ---------- */
+    .panel {
+        background: var(--card-color);
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,.06));
+        border-radius: var(--bcp-radius);
+        padding: 24px;
+        margin-bottom: 22px;
+    }
+
+    .panel-header-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+        flex-wrap: wrap;
+    }
+
+    .panel-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 17px;
+        font-weight: 700;
+        color: var(--heading-color, var(--text-color));
+        margin-bottom: 4px;
+    }
+
+    .icon-badge {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background: var(--primary-soft);
+        color: var(--primary-color);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 15px;
+        flex-shrink: 0;
+    }
+
+    .panel-subtitle {
+        font-size: 13px;
+        color: var(--text-muted, #8a8f98);
+        margin: 0 0 18px 42px;
+    }
+
+    .panel-header-row .panel-subtitle {
+        margin-bottom: 0;
+    }
+
+    /* ---------- Form controls ---------- */
+    /* NOTE: --input-color was not resolving to a usable value on this project,
+           which is why selects/inputs were rendering with the browser's default
+           white background. Every rule below now carries a solid dark fallback
+           so the fields always match the page regardless of whether the theme
+           variable is defined. */
+    .billing-create-page .form-floating > label {
+        color: var(--text-muted, #8f97a3);
+    }
+
+    .billing-create-page .form-floating > .form-control,
+    .billing-create-page .form-floating > .form-select,
+    .billing-create-page .form-control,
+    .billing-create-page .form-select,
+    .billing-create-page textarea.form-control {
+        background-color: var(--input-color, #141b26) !important;
+        border: 1.5px solid var(--border-color, #29323e) !important;
+        color: var(--text-color, #e8ebf0) !important;
+        border-radius: 12px;
+        appearance: none;
+        -webkit-appearance: none;
+        color-scheme: dark;
+    }
+
+        .billing-create-page .form-floating > .form-control:focus,
+        .billing-create-page .form-floating > .form-select:focus,
+        .billing-create-page .form-control:focus,
+        .billing-create-page .form-select:focus {
+            box-shadow: 0 0 0 4px var(--primary-soft, rgba(59,130,246,.25));
+            border-color: var(--primary-color, #3b82f6) !important;
+            background-color: var(--input-color, #141b26) !important;
+            color: var(--text-color, #e8ebf0) !important;
+        }
+
+        .billing-create-page .form-floating > .form-control[readonly] {
+            opacity: .7;
+            cursor: not-allowed;
+        }
+
+        .billing-create-page .form-control::placeholder {
+            color: var(--text-muted, #8f97a3) !important;
+            opacity: .8;
+        }
+
+    /* Custom dropdown arrow so native browser chrome doesn't force a light box */
+    .billing-create-page .form-select {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23aab2bf' d='M8 11 3 6h10z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        background-size: 12px 12px;
+        padding-right: 34px;
+    }
+
+        .billing-create-page .form-select option {
+            background: var(--card-color, #141b26);
+            color: var(--text-color, #e8ebf0);
+        }
+
+    /* Native date-picker icon: keep it visible against the dark field background */
+    .billing-create-page input[type="date"]::-webkit-calendar-picker-indicator {
+        filter: invert(1) brightness(1.4);
+        cursor: pointer;
+    }
+
+    /* Bill items table inputs use the same solid fallback */
+    .billing-create-page .item-name,
+    .billing-create-page .item-qty,
+    .billing-create-page .item-rate {
+        background-color: var(--input-color, #141b26) !important;
+        border-color: var(--border-color, #29323e) !important;
+        color: var(--text-color, #e8ebf0) !important;
+    }
+
+    /* ---------- Bill items table ---------- */
+    .table-premium {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: 14px;
+    }
+
+        .table-premium thead th {
+            background: var(--card-color-2, var(--card-color));
+            color: var(--text-muted, #8a8f98);
+            text-align: left;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--border-color);
+            white-space: nowrap;
+        }
+
+            .table-premium thead th:first-child {
+                border-top-left-radius: 10px;
+            }
+
+            .table-premium thead th:last-child {
+                border-top-right-radius: 10px;
+            }
+
+        .table-premium tbody td {
+            padding: 8px 14px;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
+        }
+
+        .table-premium tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .table-premium tbody tr:hover {
+            background: var(--card-color-2, var(--card-color));
+        }
+
+        .table-premium th:nth-child(3),
+        .table-premium th:nth-child(4),
+        .table-premium th:nth-child(5),
+        .table-premium td.item-qty-col,
+        .table-premium td:nth-child(3),
+        .table-premium td:nth-child(4),
+        .table-premium td:nth-child(5) {
+            text-align: right;
+        }
+
+        .table-premium th:first-child,
+        .table-premium td.row-index {
+            text-align: center;
+        }
+
+    .row-index {
+        color: var(--text-muted, #8a8f98);
+        font-weight: 600;
+        font-size: 13px;
+    }
+
+    .row-amount {
+        font-weight: 700;
+        color: var(--heading-color, var(--text-color));
+        font-variant-numeric: tabular-nums;
+    }
+
+    .item-name,
+    .item-qty,
+    .item-rate {
+        width: 100%;
+        border-radius: 8px;
+        padding: 8px 10px;
+        font-size: 13.5px;
+        transition: box-shadow .15s ease, border-color .15s ease;
+    }
+
+    .item-qty,
+    .item-rate {
+        text-align: right;
+    }
+
+        .item-name:focus,
+        .item-qty:focus,
+        .item-rate:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px var(--primary-soft);
+        }
+
+    .btn-del-row {
+        width: 32px;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
+        border: none;
+        border-radius: 8px;
+        color: var(--danger-color);
+        opacity: .65;
+        cursor: pointer;
+        transition: background-color .15s ease, opacity .15s ease;
+    }
+
+        .btn-del-row:hover {
+            opacity: 1;
+            background: color-mix(in srgb, var(--danger-color) 12%, transparent);
+        }
+
+    .btn-add-item {
+        display: inline-flex;
+        align-items: center;
+        border: 1.5px dashed var(--primary-color);
+        background: var(--primary-soft);
+        color: var(--primary-color);
+        border-radius: 10px;
+        padding: 9px 16px;
+        font-size: 13.5px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: background-color .15s ease, color .15s ease;
+        white-space: nowrap;
+    }
+
+        .btn-add-item:hover {
+            background: var(--primary-color);
+            color: var(--on-primary, #fff);
+        }
+
+    .table-footer-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 14px;
+        padding-top: 14px;
+        border-top: 1px dashed var(--border-color);
+    }
+
+    .stat-label {
+        font-size: 13px;
+        color: var(--text-muted, #8a8f98);
+    }
+
+    .stat-value {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--heading-color, var(--text-color));
+        margin-left: 2px;
+    }
+
+    /* ---------- Right column summary cards ---------- */
+    .sticky-col {
+        position: sticky;
+        top: 20px;
+    }
+
+    @@media (max-width: 991px) {
+        .sticky-col {
+            position: static;
+        }
+    }
+
+    .summary-card {
+        background: var(--card-color);
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,.06));
+        color: var(--text-color);
+        padding: 18px;
+        border-radius: var(--bcp-radius);
+        margin-bottom: 18px;
+    }
+
+    .summary-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 7px 0;
+        font-size: 13.5px;
+    }
+
+        .summary-row > span:first-child {
+            color: var(--text-muted, #8a8f98);
+        }
+
+        .summary-row .val {
+            font-weight: 700;
+            color: var(--heading-color, var(--text-color));
+            font-variant-numeric: tabular-nums;
+        }
+
+            .summary-row .val.neg {
+                color: var(--danger-color);
+            }
+
+            .summary-row .val.paid {
+                color: var(--success-color);
+            }
+
+            .summary-row .val.due {
+                color: var(--danger-color);
+            }
+
+    .summary-divider {
+        height: 1px;
+        background: var(--border-color);
+        margin: 10px 0;
+    }
+
+    .total-block {
+        background: linear-gradient(135deg, var(--primary-soft) 0%, color-mix(in srgb, var(--card-color) 94%, var(--primary-color) 6%) 100%);
+        border: 1px solid color-mix(in srgb, var(--primary-color) 25%, transparent);
+        color: var(--heading-color, var(--text-color));
+        padding: 14px 14px;
+        border-radius: 12px;
+        margin: 4px 0 10px;
+    }
+
+        .total-block .label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted, #8a8f98);
+            text-transform: uppercase;
+            letter-spacing: .04em;
+        }
+
+        .total-block .amount {
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: -0.01em;
+            font-variant-numeric: tabular-nums;
+            color: var(--primary-color);
+        }
+
+    .badge-status {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 11.5px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .03em;
+    }
+
+    .badge-pending {
+        background: color-mix(in srgb, var(--danger-color) 14%, transparent);
+        color: var(--danger-color);
+    }
+
+    .badge-paid {
+        background: color-mix(in srgb, var(--success-color) 14%, transparent);
+        color: var(--success-color);
+    }
+
+    .badge-partial {
+        background: var(--primary-soft);
+        color: var(--primary-color);
+    }
+
+    /* ---------- Quick actions ---------- */
+    .quick-action-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 10px;
+        border-radius: 10px;
+        font-size: 13.5px;
+        font-weight: 600;
+        color: var(--text-color);
+        text-decoration: none !important;
+        cursor: pointer;
+        transition: background-color .15s ease, color .15s ease;
+    }
+
+        .quick-action-item:hover,
+        .quick-action-item:focus-visible {
+            background: var(--primary-soft);
+            color: var(--primary-color);
+        }
+
+        .quick-action-item:focus-visible {
+            outline: 2px solid var(--primary-color);
+            outline-offset: 2px;
+        }
+
+        .quick-action-item .qa-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            background: var(--card-color-2, var(--card-color));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            color: var(--primary-color);
+            flex-shrink: 0;
+            transition: background-color .15s ease, color .15s ease;
+        }
+
+        .quick-action-item:hover .qa-icon {
+            background: var(--primary-color);
+            color: var(--on-primary, #fff);
+        }
+
+    /* Fix: ensure hb-nav-link text decoration reset (prevent accidental underlines) */
+    .hb-nav-link, .hb-nav-link * {
+        text-decoration: none !important;
+    }
+
+    @@media (prefers-reduced-motion: reduce) {
+        .btn-primary-grad,
+        .btn-outline-soft,
+        .btn-add-item,
+        .btn-del-row,
+        .quick-action-item,
+        .quick-action-item .qa-icon,
+        .item-name, .item-qty, .item-rate {
+            transition: none !important;
+        }
+    }
+</style>
+
+<div class="billing-create-page">
+
+    <form id="newBillForm">
+        <!-- ===================== PAGE HEADER ===================== -->
+        <div class="page-header">
+            <div>
+                <h1>New Bill</h1>
+                <p>Create a new bill / invoice for the guest.</p>
+            </div>
+            <div class="header-actions">
+                <button type="button"
+                        class="btn btn-outline-soft"
+                        id="btnBackToList">
+                    <i class="fa-solid fa-arrow-left me-2"></i>
+                    Back to List
+                </button>
+                <button type="button" class="btn btn-primary-grad" id="btnSaveBill">
+                    <i class="fa-solid fa-floppy-disk me-2"></i>Save &amp; Generate Bill
+                </button>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <!-- ===================== LEFT COLUMN (75%) ===================== -->
+            <div class="col-lg-9">
+
+                <!-- SECTION 1: Guest & Booking Details -->
+                <div class="panel">
+                    <div class="panel-title">
+                        <span class="icon-badge"><i class="fa-solid fa-user"></i></span>
+                        Guest &amp; Booking Details
+                    </div>
+                    <div class="panel-subtitle">Basic information about the guest and their stay.</div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <select class="form-select" id="guestName">
+                                    <option selected>Select guest</option>
+                                    <option>Rohan Mehta</option>
+                                    <option>Ananya Sharma</option>
+                                    <option>Vikram Singh</option>
+                                </select>
+                                <label for="guestName"><i class="fa-solid fa-id-badge me-1"></i> Guest</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <select class="form-select" id="roomNumber">
+                                    <option selected>Select room</option>
+                                    <option>101 - Deluxe</option>
+                                    <option>204 - Suite</option>
+                                    <option>310 - Executive</option>
+                                </select>
+                                <label for="roomNumber"><i class="fa-solid fa-door-closed me-1"></i> Room Number</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-floating">
+                                <input type="date" class="form-control" id="checkIn" value="2026-08-05" />
+                                <label for="checkIn">Check In</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-floating">
+                                <input type="date" class="form-control" id="checkOut" value="2026-08-08" />
+                                <label for="checkOut">Check Out</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-floating">
+                                <input type="number" class="form-control" id="nights" value="3" readonly />
+                                <label for="nights">Number Of Nights</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION 2: Billing Details -->
+                <div class="panel">
+                    <div class="panel-title">
+                        <span class="icon-badge"><i class="fa-solid fa-file-invoice"></i></span>
+                        Billing Details
+                    </div>
+                    <div class="panel-subtitle">Invoice metadata and tax configuration.</div>
+
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <div class="form-floating">
+                                <input type="date" class="form-control" id="billDate" value="2026-08-05" />
+                                <label for="billDate">Bill Date</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-floating">
+                                <input type="text" class="form-control" id="billNumber" value="INV-2026-0842" />
+                                <label for="billNumber">Bill Number</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-floating">
+                                <input type="number" class="form-control" id="taxPercent" value="12" />
+                                <label for="taxPercent">Tax %</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-floating">
+                                <input type="number" class="form-control" id="discountPercent" value="5" />
+                                <label for="discountPercent">Discount %</label>
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="form-floating">
+                                <textarea class="form-control" id="notes" style="height: 90px" placeholder="Notes"></textarea>
+                                <label for="notes">Notes</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION 3: Bill Items -->
+                <div class="panel">
+                    <div class="panel-header-row">
+                        <div>
+                            <div class="panel-title">
+                                <span class="icon-badge"><i class="fa-solid fa-list-check"></i></span>
+                                Bill Items
+                            </div>
+                            <div class="panel-subtitle mb-0">Products and services charged to the guest.</div>
+                        </div>
+                        <button type="button" class="btn-add-item" id="btnAddItem">
+                            <i class="fa-solid fa-plus me-1"></i> Add Item
+                        </button>
+                    </div>
+
+                    <div class="table-responsive mt-3">
+                        <table class="table-premium" id="itemsTable">
+                            <thead>
+                                <tr>
+                                    <th style="width:40px;">#</th>
+                                    <th>Item Name</th>
+                                    <th style="width:100px;">Quantity</th>
+                                    <th style="width:120px;">Rate</th>
+                                    <th style="width:130px;">Amount</th>
+                                    <th style="width:60px;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="row-index">1</td>
+                                    <td><input type="text" class="item-name" value="Room Tariff" /></td>
+                                    <td><input type="number" class="item-qty" value="3" /></td>
+                                    <td><input type="number" class="item-rate" value="4500" /></td>
+                                    <td class="row-amount">₹13,500.00</td>
+                                    <td><button type="button" class="btn-del-row"><i class="fa-solid fa-trash"></i></button></td>
+                                </tr>
+                                <tr>
+                                    <td class="row-index">2</td>
+                                    <td><input type="text" class="item-name" value="Breakfast" /></td>
+                                    <td><input type="number" class="item-qty" value="6" /></td>
+                                    <td><input type="number" class="item-rate" value="350" /></td>
+                                    <td class="row-amount">₹2,100.00</td>
+                                    <td><button type="button" class="btn-del-row"><i class="fa-solid fa-trash"></i></button></td>
+                                </tr>
+                                <tr>
+                                    <td class="row-index">3</td>
+                                    <td><input type="text" class="item-name" value="Laundry" /></td>
+                                    <td><input type="number" class="item-qty" value="1" /></td>
+                                    <td><input type="number" class="item-rate" value="600" /></td>
+                                    <td class="row-amount">₹600.00</td>
+                                    <td><button type="button" class="btn-del-row"><i class="fa-solid fa-trash"></i></button></td>
+                                </tr>
+                                <tr>
+                                    <td class="row-index">4</td>
+                                    <td><input type="text" class="item-name" value="Airport Pickup" /></td>
+                                    <td><input type="number" class="item-qty" value="1" /></td>
+                                    <td><input type="number" class="item-rate" value="1200" /></td>
+                                    <td class="row-amount">₹1,200.00</td>
+                                    <td><button type="button" class="btn-del-row"><i class="fa-solid fa-trash"></i></button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="table-footer-row">
+                        <div>
+                            <span class="stat-label">Total Items: </span>
+                            <span class="stat-value" id="totalItemsCount">4</span>
+                        </div>
+                        <div>
+                            <span class="stat-label">Total Amount: </span>
+                            <span class="stat-value" id="totalItemsAmount">₹17,400.00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION 4: Payment Details -->
+                <div class="panel">
+                    <div class="panel-title">
+                        <span class="icon-badge"><i class="fa-solid fa-credit-card"></i></span>
+                        Payment Details
+                    </div>
+                    <div class="panel-subtitle">Record any advance or partial payment received.</div>
+
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="form-floating">
+                                <select class="form-select" id="paymentMethod">
+                                    <option selected>Cash</option>
+                                    <option>Credit Card</option>
+                                    <option>UPI</option>
+                                    <option>Bank Transfer</option>
+                                </select>
+                                <label for="paymentMethod">Payment Method</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-floating">
+                                <input type="number" class="form-control" id="advanceReceived" value="5000" />
+                                <label for="advanceReceived">Advance Received</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-floating">
+                                <select class="form-select" id="paymentStatus">
+                                    <option>Paid</option>
+                                    <option selected>Pending</option>
+                                    <option>Partially Paid</option>
+                                </select>
+                                <label for="paymentStatus">Payment Status</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <input type="text" class="form-control" id="transactionNumber" placeholder="Transaction Number" value="TXN-88213456" />
+                                <label for="transactionNumber">Transaction Number</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <input type="date" class="form-control" id="paymentDate" value="2026-08-05" />
+                                <label for="paymentDate">Payment Date</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ===================== RIGHT COLUMN (25%) ===================== -->
+            <div class="col-lg-3">
+                <div class="sticky-col">
+
+                    <!-- CARD 1: Bill Summary -->
+                    <div class="summary-card">
+                        <div class="panel-title mb-3" style="font-size:15.5px;">
+                            <span class="icon-badge" style="width:30px;height:30px;font-size:13px;"><i class="fa-solid fa-receipt"></i></span>
+                            Bill Summary
+                        </div>
+
+                        <div class="summary-row">
+                            <span>Subtotal</span>
+                            <span class="val" id="sumSubtotal">₹17,400.00</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Discount (5%)</span>
+                            <span class="val neg" id="sumDiscount">- ₹870.00</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Tax (12%)</span>
+                            <span class="val" id="sumTax">+ ₹1,983.60</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Service Charge</span>
+                            <span class="val" id="sumService">+ ₹250.00</span>
+                        </div>
+
+                        <div class="summary-divider"></div>
+
+                        <div class="total-block">
+                            <div class="label">Total Amount</div>
+                            <div class="amount" id="sumTotal">₹18,763.60</div>
+                        </div>
+
+                        <div class="summary-row">
+                            <span>Paid Amount</span>
+                            <span class="val paid" id="sumPaid">₹5,000.00</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Due Amount</span>
+                            <span class="val due" id="sumDue">₹13,763.60</span>
+                        </div>
+                    </div>
+
+                    <!-- CARD 2: Payment Summary -->
+                    <div class="summary-card">
+                        <div class="panel-title mb-3" style="font-size:15.5px;">
+                            <span class="icon-badge" style="width:30px;height:30px;font-size:13px;"><i class="fa-solid fa-wallet"></i></span>
+                            Payment Summary
+                        </div>
+
+                        <div class="summary-row">
+                            <span>Payment Method</span>
+                            <span class="val" id="sumMethod">Cash</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Transaction No.</span>
+                            <span class="val" id="sumTxn">TXN-88213456</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Payment Date</span>
+                            <span class="val" id="sumPayDate">05 Aug 2026</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Paid Amount</span>
+                            <span class="val" id="sumPaid2">₹5,000.00</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Status</span>
+                            <span class="badge-status badge-pending" id="sumStatusBadge">Pending</span>
+                        </div>
+                    </div>
+
+                    <!-- CARD 3: Quick Actions -->
+                    <div class="summary-card">
+                        <div class="panel-title mb-2" style="font-size:15.5px;">
+                            <span class="icon-badge" style="width:30px;height:30px;font-size:13px;"><i class="fa-solid fa-bolt"></i></span>
+                            Quick Actions
+                        </div>
+
+                        <div class="d-flex flex-column gap-1">
+                            <a class="quick-action-item" tabindex="0">
+                                <span class="qa-icon"><i class="fa-solid fa-tag"></i></span>
+                                Apply Coupon
+                            </a>
+                            <a class="quick-action-item" id="qaAddItem" tabindex="0">
+                                <span class="qa-icon"><i class="fa-solid fa-plus"></i></span>
+                                Add More Items
+                            </a>
+                            <a class="quick-action-item" tabindex="0">
+                                <span class="qa-icon"><i class="fa-solid fa-eye"></i></span>
+                                Preview Bill
+                            </a>
+                            <a class="quick-action-item" tabindex="0">
+                                <span class="qa-icon"><i class="fa-solid fa-print"></i></span>
+                                Print Invoice
+                            </a>
+                            <a class="quick-action-item" tabindex="0">
+                                <span class="qa-icon"><i class="fa-solid fa-file-pdf"></i></span>
+                                Download PDF
+                            </a>
+                            <a class="quick-action-item" tabindex="0">
+                                <span class="qa-icon"><i class="fa-solid fa-envelope"></i></span>
+                                Email Invoice
+                            </a>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </form>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<!-- trailing script placeholder: keep this line to ensure build tools preserve trailing scripts -->
+<script>
+    (function () {
+    const itemsTableBody = document.querySelector('#itemsTable tbody');
+    const btnAddItem = document.getElementById('btnAddItem');
+    const qaAddItem = document.getElementById('qaAddItem');
+    const totalItemsCountEl = document.getElementById('totalItemsCount');
+    const totalItemsAmountEl = document.getElementById('totalItemsAmount');
+
+    const taxPercentInput = document.getElementById('taxPercent');
+    const discountPercentInput = document.getElementById('discountPercent');
+    const advanceReceivedInput = document.getElementById('advanceReceived');
+    const checkInInput = document.getElementById('checkIn');
+    const checkOutInput = document.getElementById('checkOut');
+    const nightsInput = document.getElementById('nights');
+
+    const paymentMethodInput = document.getElementById('paymentMethod');
+    const transactionNumberInput = document.getElementById('transactionNumber');
+    const paymentDateInput = document.getElementById('paymentDate');
+    const paymentStatusInput = document.getElementById('paymentStatus');
+
+    const serviceCharge = 250.00;
+
+    function formatCurrency(value) {
+    return '₹' + value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function formatDisplayDate(value) {
+    if (!value) return '—';
+    const d = new Date(value);
+    if (isNaN(d)) return '—';
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+
+    function reindexRows() {
+    const rows = itemsTableBody.querySelectorAll('tr');
+    rows.forEach((row, idx) => {
+    row.querySelector('.row-index').textContent = idx + 1;
+    });
+    }
+
+    function calculateNights() {
+    const inDate = new Date(checkInInput.value);
+    const outDate = new Date(checkOutInput.value);
+    if (!isNaN(inDate) && !isNaN(outDate) && outDate > inDate) {
+    const diffTime = outDate - inDate;
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+    nightsInput.value = diffDays;
+    }
+    }
+
+    function statusBadgeClass(status) {
+    switch (status) {
+    case 'Paid': return 'badge-paid';
+    case 'Partially Paid': return 'badge-partial';
+    default: return 'badge-pending';
+    }
+    }
+
+    function recalculateAll() {
+    let subtotal = 0;
+    let itemCount = 0;
+
+    itemsTableBody.querySelectorAll('tr').forEach(row => {
+    const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+    const rate = parseFloat(row.querySelector('.item-rate').value) || 0;
+    const amount = qty * rate;
+    row.querySelector('.row-amount').textContent = formatCurrency(amount);
+    subtotal += amount;
+    itemCount++;
+    });
+
+    const discountPct = parseFloat(discountPercentInput.value) || 0;
+    const taxPct = parseFloat(taxPercentInput.value) || 0;
+    const advance = parseFloat(advanceReceivedInput.value) || 0;
+
+    const discountAmt = subtotal * (discountPct / 100);
+    const taxableAmt = subtotal - discountAmt;
+    const taxAmt = taxableAmt * (taxPct / 100);
+    const total = taxableAmt + taxAmt + serviceCharge;
+    const due = total - advance;
+
+    totalItemsCountEl.textContent = itemCount;
+    totalItemsAmountEl.textContent = formatCurrency(subtotal);
+
+    document.getElementById('sumSubtotal').textContent = formatCurrency(subtotal);
+    document.getElementById('sumDiscount').textContent = '- ' + formatCurrency(discountAmt);
+    document.getElementById('sumTax').textContent = '+ ' + formatCurrency(taxAmt);
+    document.getElementById('sumService').textContent = '+ ' + formatCurrency(serviceCharge);
+    document.getElementById('sumTotal').textContent = formatCurrency(total);
+    document.getElementById('sumPaid').textContent = formatCurrency(advance);
+    document.getElementById('sumDue').textContent = formatCurrency(due > 0 ? due : 0);
+
+    document.getElementById('sumPaid2').textContent = formatCurrency(advance);
+    }
+
+    function syncPaymentSummary() {
+    document.getElementById('sumMethod').textContent = paymentMethodInput.value;
+    document.getElementById('sumTxn').textContent = transactionNumberInput.value || '—';
+    document.getElementById('sumPayDate').textContent = formatDisplayDate(paymentDateInput.value);
+
+    const badge = document.getElementById('sumStatusBadge');
+    badge.textContent = paymentStatusInput.value;
+    badge.classList.remove('badge-pending', 'badge-paid', 'badge-partial');
+    badge.classList.add(statusBadgeClass(paymentStatusInput.value));
+    }
+
+    function addItemRow() {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+    <td class="row-index"></td>
+    <td><input type="text" class="item-name" value="New Item" /></td>
+    <td><input type="number" class="item-qty" value="1" /></td>
+    <td><input type="number" class="item-rate" value="0" /></td>
+    <td class="row-amount">₹0.00</td>
+    <td><button type="button" class="btn-del-row"><i class="fa-solid fa-trash"></i></button></td>
+    `;
+    itemsTableBody.appendChild(row);
+    reindexRows();
+    recalculateAll();
+    }
+
+    itemsTableBody.addEventListener('input', function (e) {
+    if (e.target.classList.contains('item-qty') || e.target.classList.contains('item-rate')) {
+    recalculateAll();
+    }
+    });
+
+    itemsTableBody.addEventListener('click', function (e) {
+    const delBtn = e.target.closest('.btn-del-row');
+    if (delBtn) {
+    const row = delBtn.closest('tr');
+    if (itemsTableBody.querySelectorAll('tr').length > 1) {
+    row.remove();
+    reindexRows();
+    recalculateAll();
+    }
+    }
+    });
+
+    btnAddItem.addEventListener('click', addItemRow);
+    qaAddItem.addEventListener('click', addItemRow);
+    qaAddItem.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); addItemRow(); }
+    });
+
+    [taxPercentInput, discountPercentInput, advanceReceivedInput].forEach(el => {
+    el.addEventListener('input', recalculateAll);
+    });
+
+    [checkInInput, checkOutInput].forEach(el => {
+    el.addEventListener('change', calculateNights);
+    });
+
+    [paymentMethodInput, transactionNumberInput, paymentDateInput, paymentStatusInput].forEach(el => {
+    el.addEventListener('input', syncPaymentSummary);
+    el.addEventListener('change', syncPaymentSummary);
+    });
+
+    document.getElementById('btnSaveBill').addEventListener('click', function () {
+    recalculateAll();
+    alert('Bill saved successfully! (Wire this button to your MVC controller action.)');
+    });
+    document.getElementById("btnBackToList").addEventListener("click", function () {
+    window.location.href = "/Billing/Index";
+    });
+
+    // Initial calculation on load
+    recalculateAll();
+    syncPaymentSummary();
+    })();
+</script>

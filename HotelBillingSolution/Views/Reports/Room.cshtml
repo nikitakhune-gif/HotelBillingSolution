@@ -1,0 +1,70 @@
+@{
+    Layout = null; // Keep standalone report content without dashboard chrome
+}
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Room Report</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/css/site.css" />
+    <style>
+        /* Minimal local styles to match overview theme */
+        body{font-family:Inter,Segoe UI,Arial;background:#f6f7fb;color:#131b2e;padding:24px}
+        .card{background:#fff;border:1px solid #eaecf1;border-radius:12px;padding:18px;max-width:1100px;margin:0 auto}
+        .row{display:flex;gap:12px;align-items:center}
+        .title{font-size:20px;font-weight:700;margin-bottom:8px}
+        .controls{margin-top:12px;display:flex;gap:8px}
+        .btn{background:#2f6feb;color:#fff;padding:8px 12px;border-radius:8px;text-decoration:none}
+        table{width:100%;border-collapse:collapse;margin-top:12px}
+        th,td{padding:10px;border-bottom:1px solid #eaecf1;text-align:left}
+        .kpis{display:flex;gap:12px;margin-top:12px}
+        .kpi{background:#eef5ff;padding:12px;border-radius:10px;flex:1}
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="title">Room Report</div>
+        <div class="row">
+            <div>Date Range: <input type="date" id="from" /> - <input type="date" id="to" /></div>
+            <div class="controls">
+                <a id="filterBtn" class="btn">Filter</a>
+                <a id="downloadBtn" class="btn">Download Report</a>
+                <a href="/Reports" class="btn" style="background:#fff;color:#2f6feb;border:1px solid #2f6feb">Back to Reports</a>
+            </div>
+        </div>
+
+        <div class="kpis">
+            <div class="kpi"><div style="font-size:13px;color:#8993a4">Total Rooms</div><div style="font-weight:700">120</div></div>
+            <div class="kpi"><div style="font-size:13px;color:#8993a4">Occupied</div><div style="font-weight:700">94</div></div>
+            <div class="kpi"><div style="font-size:13px;color:#8993a4">Available</div><div style="font-weight:700">20</div></div>
+            <div class="kpi"><div style="font-size:13px;color:#8993a4">Maintenance</div><div style="font-weight:700">6</div></div>
+        </div>
+
+        <table>
+            <thead>
+                <tr><th>Room Number</th><th>Type</th><th>Status</th><th>Guest</th><th>Check-in</th><th>Check-out</th></tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+        </table>
+
+    </div>
+
+    <script>
+        // Load real data via fetch API endpoint if available, otherwise show message
+        async function load(){
+            try{
+                const res = await fetch('/api/reports/rooms');
+                if(!res.ok){ throw new Error('noapi'); }
+                const data = await res.json();
+                if(!data || data.length===0){ document.getElementById('tbody').innerHTML = '<tr><td colspan="6">No data available for the selected date range.</td></tr>'; return; }
+                document.getElementById('tbody').innerHTML = data.map(r=>`<tr><td class="name">${r.roomNumber}</td><td>${r.roomType}</td><td>${r.status}</td><td>${r.guestName||'-'}</td><td>${r.checkIn||'-'}</td><td>${r.checkOut||'-'}</td></tr>`).join('');
+            }catch(e){
+                // API not present: fallback to server-side minimal rendering placeholder
+                document.getElementById('tbody').innerHTML = '<tr><td colspan="6">No data available for the selected date range.</td></tr>';
+            }
+        }
+        load();
+    </script>
+</body>
+</html>

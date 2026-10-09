@@ -1,0 +1,1038 @@
+﻿@model HotelBilling.Application.DTOs.Customer.CustomerDto
+@{
+    ViewData["Title"] = "Add Customer";
+}
+
+<div class="ac-page">
+
+    <!-- ============ PAGE HEADER ============ -->
+    <div class="ac-header">
+        <div class="ac-header__text">
+            <h1 class="ac-header__title">Add Customer</h1>
+            <p class="ac-header__subtitle">Register a new hotel customer</p>
+        </div>
+        <div class="ac-header__actions">
+            <a asp-controller="Customer" asp-action="Index" class="acbtn acbtn-ghost" id="btnBackToCustomers">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span>Back to Customers</span>
+            </a>
+            <button type="submit" form="addCustomerForm" class="acbtn acbtn-primary-glow">
+                <i class="fa-solid fa-floppy-disk"></i>
+                <span>Save Customer</span>
+            </button>
+        </div>
+    </div>
+
+    <form asp-controller="Customer" asp-action="Create" method="post" enctype="multipart/form-data" id="addCustomerForm" class="ac-form" novalidate>
+
+        <!-- ============ SECTION 1 — PERSONAL INFORMATION ============ -->
+        <div class="ac-card">
+            <div class="ac-card__header">
+                <span class="ac-card__icon"><i class="fa-solid fa-user"></i></span>
+                <div>
+                    <h2 class="ac-card__title">Personal Information</h2>
+                    <p class="ac-card__desc">Basic identity and contact details</p>
+                </div>
+            </div>
+
+            <div class="ac-card__body">
+                <div class="ac-grid ac-grid--photo-first">
+
+                    <div class="ac-photo-upload">
+                        <div class="ac-photo-preview" id="photoPreview">
+                            <i class="fa-solid fa-camera"></i>
+                        </div>
+                        <label for="profilePhotoInput" class="acbtn acbtn-ghost ac-photo-btn">
+                            <i class="fa-solid fa-upload"></i>
+                            <span>Upload Photo</span>
+                        </label>
+                        <input type="file" id="profilePhotoInput" name="profilePhoto" accept="image/*" />
+                        <span class="ac-photo-hint">PNG or JPG, up to 2MB</span>
+                    </div>
+
+                    <div class="ac-field-group">
+                        <div class="ac-field">
+                            <input asp-for="FirstName" class="ac-input" placeholder=" " />
+                            <label for="FirstName"><i class="fa-solid fa-signature"></i> First Name <span class="req">*</span></label>
+                            <div class="ac-invalid-feedback">First name is required.</div>
+                        </div>
+
+                        <div class="ac-field">
+                            <input asp-for="LastName" class="ac-input" placeholder=" " />
+                            <label for="LastName"><i class="fa-solid fa-signature"></i> Last Name <span class="req">*</span></label>
+                            <div class="ac-invalid-feedback">Last name is required.</div>
+                        </div>
+
+                        <div class="ac-field">
+                            <input asp-for="Email" class="ac-input" placeholder=" " />
+                            <label for="Email"><i class="fa-solid fa-envelope"></i> Email <span class="req">*</span></label>
+                            <div class="ac-invalid-feedback">Enter a valid email address.</div>
+                        </div>
+
+                        <div class="ac-field">
+                            <input asp-for="MobileNumber" class="ac-input" placeholder=" " />
+                            <label for="MobileNumber"><i class="fa-solid fa-phone"></i> Mobile Number <span class="req">*</span></label>
+                            <div class="ac-invalid-feedback">Enter a valid mobile number.</div>
+                        </div>
+
+                        <div class="ac-field">
+                            <input asp-for="DateOfBirth" type="date" class="ac-input" />
+                            <label for="DateOfBirth"><i class="fa-solid fa-cake-candles"></i> Date of Birth</label>
+                        </div>
+
+                        <div class="ac-field">
+                            <select asp-for="Gender" class="ac-input ac-select" id="Gender">
+                                <option value="" selected disabled hidden></option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                            <label for="Gender"><i class="fa-solid fa-venus-mars"></i> Gender</label>
+                        </div>
+
+                        <div class="ac-field">
+                            <select asp-for="Nationality" class="ac-input ac-select" id="Nationality">
+                                <option value="" selected disabled hidden></option>
+                                <option value="Indian">Indian</option>
+                                <option value="American">American</option>
+                                <option value="British">British</option>
+                                <option value="Emirati">Emirati</option>
+                                <option value="Other">Other</option>
+                            </select>
+                            <label for="Nationality"><i class="fa-solid fa-flag"></i> Nationality</label>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ SECTION 2 — ACCOUNT INFORMATION ============ -->
+        <div class="ac-card">
+            <div class="ac-card__header">
+                <span class="ac-card__icon"><i class="fa-solid fa-id-card-clip"></i></span>
+                <div>
+                    <h2 class="ac-card__title">Account Information</h2>
+                    <p class="ac-card__desc">Membership tier and login credentials</p>
+                </div>
+            </div>
+
+            <div class="ac-card__body">
+                <div class="ac-grid">
+
+                    <div class="ac-field">
+                        <select asp-for="CustomerType" class="ac-input ac-select">
+                            <option value="Regular">Regular</option>
+                            <option value="VIP">VIP</option>
+                            <option value="Corporate">Corporate</option>
+                        </select>
+                        <label for="CustomerType"><i class="fa-solid fa-user-tag"></i> Customer Type</label>
+                    </div>
+
+                    <div class="ac-field">
+                        <select asp-for="Membership" class="ac-input ac-select">
+                            <option value="Silver">Silver</option>
+                            <option value="Gold">Gold</option>
+                            <option value="Platinum">Platinum</option>
+                        </select>
+                        <label for="Membership"><i class="fa-solid fa-award"></i> Membership</label>
+                    </div>
+
+                    <div class="ac-field">
+                        <select asp-for="Status" class="ac-input ac-select">
+                            <option value="Active">Active</option>
+                            <option value="Inactive">Inactive</option>
+                            <option value="Blocked">Blocked</option>
+                        </select>
+                        <label for="Status"><i class="fa-solid fa-toggle-on"></i> Status</label>
+                    </div>
+
+                    <div class="ac-field">
+                        <input asp-for="Username" class="ac-input" placeholder=" " />
+                        <label for="Username"><i class="fa-solid fa-at"></i> Username <span class="req">*</span></label>
+                        <div class="ac-invalid-feedback">Username is required.</div>
+                    </div>
+
+                    <div class="ac-field ac-field--password">
+                        <input asp-for="Password" type="password" class="ac-input" placeholder=" " minlength="6" />
+                        <label for="Password"><i class="fa-solid fa-lock"></i> Password <span class="req">*</span></label>
+                        <button type="button" class="ac-password-toggle" data-target="Password" aria-label="Show password">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
+                        <div class="ac-invalid-feedback">Password must be at least 6 characters.</div>
+                    </div>
+
+                    <div class="ac-field ac-field--password">
+                        <input type="password" class="ac-input" id="confirmPassword" name="ConfirmPassword" placeholder=" " />
+                        <label for="confirmPassword"><i class="fa-solid fa-lock"></i> Confirm Password <span class="req">*</span></label>
+                        <button type="button" class="ac-password-toggle" data-target="confirmPassword" aria-label="Show password">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
+                        <div class="ac-invalid-feedback">Passwords do not match.</div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ SECTION 3 — ADDRESS INFORMATION ============ -->
+        <div class="ac-card">
+            <div class="ac-card__header">
+                <span class="ac-card__icon"><i class="fa-solid fa-location-dot"></i></span>
+                <div>
+                    <h2 class="ac-card__title">Address Information</h2>
+                    <p class="ac-card__desc">Where the customer can be reached</p>
+                </div>
+            </div>
+
+            <div class="ac-card__body">
+                <div class="ac-grid">
+
+                    <div class="ac-field ac-field--full">
+                        <input asp-for="AddressLine1" type="text" class="ac-input" placeholder=" " />
+                        <label for="AddressLine1"><i class="fa-solid fa-road"></i> Address Line 1</label>
+                    </div>
+
+                    <div class="ac-field ac-field--full">
+                        <input asp-for="AddressLine2" type="text" class="ac-input" placeholder=" " />
+                        <label for="AddressLine2"><i class="fa-solid fa-road"></i> Address Line 2</label>
+                    </div>
+
+                    <div class="ac-field">
+                        <input asp-for="City" type="text" class="ac-input" placeholder=" " />
+                        <label for="City"><i class="fa-solid fa-city"></i> City</label>
+                    </div>
+
+                    <div class="ac-field">
+                        <input asp-for="State" type="text" class="ac-input" placeholder=" " />
+                        <label for="State"><i class="fa-solid fa-map"></i> State</label>
+                    </div>
+
+                    <div class="ac-field">
+                        <input asp-for="Country" type="text" class="ac-input" placeholder=" " />
+                        <label for="Country"><i class="fa-solid fa-earth-asia"></i> Country</label>
+                    </div>
+
+                    <div class="ac-field">
+                        <input asp-for="PostalCode" type="text" class="ac-input" placeholder=" " />
+                        <label for="PostalCode"><i class="fa-solid fa-mail-bulk"></i> Postal Code</label>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ SECTION 4 — IDENTITY INFORMATION ============ -->
+        <div class="ac-card">
+            <div class="ac-card__header">
+                <span class="ac-card__icon"><i class="fa-solid fa-fingerprint"></i></span>
+                <div>
+                    <h2 class="ac-card__title">Identity Information</h2>
+                    <p class="ac-card__desc">Verification and professional details</p>
+                </div>
+            </div>
+
+            <div class="ac-card__body">
+                <div class="ac-grid">
+
+                    <div class="ac-field">
+                        <select asp-for="IdProofType" class="ac-input ac-select">
+                            <option value="" selected disabled hidden></option>
+                            <option value="Passport">Passport</option>
+                            <option value="Aadhar">Aadhar</option>
+                            <option value="PAN">PAN</option>
+                            <option value="Driving License">Driving License</option>
+                        </select>
+                        <label for="IdProofType"><i class="fa-solid fa-id-card"></i> ID Proof Type</label>
+                    </div>
+
+                    <div class="ac-field">
+                        <input asp-for="IdNumber" type="text" class="ac-input" placeholder=" " />
+                        <label for="IdNumber"><i class="fa-solid fa-hashtag"></i> ID Number</label>
+                    </div>
+
+                    <div class="ac-field">
+                        <input asp-for="CompanyName" type="text" class="ac-input" placeholder=" " />
+                        <label for="CompanyName"><i class="fa-solid fa-building"></i> Company Name</label>
+                    </div>
+
+                    <div class="ac-field">
+                        <input asp-for="Occupation" type="text" class="ac-input" placeholder=" " />
+                        <label for="Occupation"><i class="fa-solid fa-briefcase"></i> Occupation</label>
+                    </div>
+
+                    <div class="ac-field">
+                        <input asp-for="GstNumber" type="text" class="ac-input" placeholder=" " />
+                        <label for="GstNumber"><i class="fa-solid fa-receipt"></i> GST Number (Optional)</label>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ SECTION 5 — EMERGENCY CONTACT ============ -->
+        <div class="ac-card">
+            <div class="ac-card__header">
+                <span class="ac-card__icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
+                <div>
+                    <h2 class="ac-card__title">Emergency Contact</h2>
+                    <p class="ac-card__desc">Who to reach in case of an emergency</p>
+                </div>
+            </div>
+
+            <div class="ac-card__body">
+                <div class="ac-grid">
+
+                    <div class="ac-field">
+                        <input asp-for="EmergencyContactPerson" type="text" class="ac-input" placeholder=" " />
+                        <label for="EmergencyContactPerson"><i class="fa-solid fa-user-shield"></i> Contact Person</label>
+                    </div>
+
+                    <div class="ac-field">
+                        <input asp-for="EmergencyRelationship" type="text" class="ac-input" placeholder=" " />
+                        <label for="EmergencyRelationship"><i class="fa-solid fa-people-arrows"></i> Relationship</label>
+                    </div>
+
+                    <div class="ac-field">
+                        <input asp-for="EmergencyMobile" type="tel" class="ac-input" placeholder=" " />
+                        <label for="EmergencyMobile"><i class="fa-solid fa-phone"></i> Mobile Number</label>
+                    </div>
+
+                    <div class="ac-field">
+                        <input asp-for="EmergencyAltMobile" type="tel" class="ac-input" placeholder=" " />
+                        <label for="EmergencyAltMobile"><i class="fa-solid fa-phone-volume"></i> Alternative Mobile</label>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ SECTION 6 — ADDITIONAL INFORMATION ============ -->
+        <div class="ac-card">
+            <div class="ac-card__header">
+                <span class="ac-card__icon"><i class="fa-solid fa-note-sticky"></i></span>
+                <div>
+                    <h2 class="ac-card__title">Additional Information</h2>
+                    <p class="ac-card__desc">Preferences and special requirements</p>
+                </div>
+            </div>
+
+            <div class="ac-card__body">
+                <div class="ac-grid">
+
+                    <div class="ac-field ac-field--full">
+                        <textarea asp-for="CustomerNotes" class="ac-input ac-textarea" rows="3"></textarea>
+                        <label for="CustomerNotes"><i class="fa-solid fa-pen"></i> Customer Notes</label>
+                    </div>
+
+                    <div class="ac-field ac-field--full">
+                        <textarea asp-for="SpecialRequirements" class="ac-input ac-textarea" rows="3"></textarea>
+                        <label for="SpecialRequirements"><i class="fa-solid fa-star"></i> Special Requirements</label>
+                    </div>
+
+                    <div class="ac-field">
+                        <select asp-for="PreferredRoomType" class="ac-input ac-select">
+                            <option value="" selected disabled hidden></option>
+                            <option value="Deluxe Room">Deluxe Room</option>
+                            <option value="Superior Room">Superior Room</option>
+                            <option value="Suite Room">Suite Room</option>
+                            <option value="Executive Room">Executive Room</option>
+                            <option value="Presidential Suite">Presidential Suite</option>
+                        </select>
+                        <label for="PreferredRoomType"><i class="fa-solid fa-bed"></i> Preferred Room Type</label>
+                    </div>
+
+                    <div class="ac-field">
+                        <select asp-for="MealPreference" class="ac-input ac-select">
+                            <option value="" selected disabled hidden></option>
+                            <option value="Vegetarian">Vegetarian</option>
+                            <option value="Non-Vegetarian">Non-Vegetarian</option>
+                            <option value="Vegan">Vegan</option>
+                            <option value="Jain">Jain</option>
+                            <option value="No Preference">No Preference</option>
+                        </select>
+                        <label for="MealPreference"><i class="fa-solid fa-utensils"></i> Meal Preference</label>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ BOTTOM ACTION BAR ============ -->
+        <div class="ac-action-bar">
+            <button type="button" class="acbtn acbtn-outline-muted" id="btnResetForm">
+                <i class="fa-solid fa-rotate-left"></i>
+                <span>Reset Form</span>
+            </button>
+            <div class="ac-action-bar__right">
+                <a href="#" class="acbtn acbtn-ghost" id="btnCancel">
+                    <i class="fa-solid fa-xmark"></i>
+                    <span>Cancel</span>
+                </a>
+                <button type="submit" class="acbtn acbtn-primary-glow">
+                    <i class="fa-solid fa-floppy-disk"></i>
+                    <span>Save Customer</span>
+                </button>
+            </div>
+        </div>
+
+    </form>
+
+</div>
+
+<style>
+    /* ==========================================================================
+           ADD CUSTOMER — Premium Dark SaaS Form UI
+           Scoped under .ac-page / ac- prefix so this page cannot leak into or
+           clash with other pages' styles. Background stays transparent.
+           ========================================================================== */
+
+    /* Use shared theme tokens from site.css. Keep page-specific layout but reference global tokens. */
+    .ac-page {
+        --ac-primary: var(--primary-color);
+        --ac-primary-soft: var(--primary-soft);
+        --ac-card: var(--card-color);
+        --ac-surface-border: var(--border-color);
+        --ac-text-primary: var(--text-color);
+        --ac-text-secondary: var(--text-secondary);
+        --ac-text-muted: var(--text-muted);
+        --ac-red: var(--danger-color);
+        --ac-green: var(--success-color);
+        --ac-radius-lg: 18px;
+        --ac-radius-md: 14px;
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: var(--ac-text-primary);
+        background: transparent;
+        animation: acFadeIn 0.45s ease;
+        padding-bottom: 12px;
+    }
+
+    @@keyframes acFadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(6px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .ac-page * {
+        box-sizing: border-box;
+    }
+
+    /* ============ HEADER ============ */
+    .ac-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .ac-header__title {
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        margin: 0;
+        color: #000000;
+    }
+
+    .ac-header__subtitle {
+        margin: 4px 0 0;
+        font-size: 14px;
+        color: var(--ac-text-secondary);
+    }
+
+    .ac-header__actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .acbtn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13.5px;
+        font-weight: 600;
+        padding: 10px 18px;
+        border-radius: var(--ac-radius-sm);
+        border: 1px solid transparent;
+        cursor: pointer;
+        transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+        white-space: nowrap;
+        text-decoration: none;
+    }
+
+        .acbtn:active {
+            transform: translateY(1px) scale(0.98);
+        }
+
+    .acbtn-ghost {
+        background: rgba(255, 255, 255, 0.035);
+        border-color: var(--ac-surface-border);
+        color: var(--ac-text-secondary);
+    }
+
+        .acbtn-ghost:hover {
+            color: var(--ac-text-primary);
+            background: rgba(255, 255, 255, 0.06);
+            transform: translateY(-2px);
+        }
+
+    .acbtn-outline-muted {
+        background: transparent;
+        border-color: var(--ac-surface-border);
+        color: var(--ac-text-secondary);
+    }
+
+        .acbtn-outline-muted:hover {
+            color: var(--ac-red);
+            border-color: var(--ac-red);
+            background: rgba(239, 68, 68, 0.08);
+            transform: translateY(-2px);
+        }
+
+    .acbtn-primary-glow {
+        background: linear-gradient(135deg, #3b82f6 0%, var(--ac-primary) 100%);
+        color: #ffffff;
+        box-shadow: 0 6px 18px rgba(37, 99, 235, 0.35);
+    }
+
+        .acbtn-primary-glow:hover {
+            box-shadow: 0 10px 26px rgba(37, 99, 235, 0.5);
+            transform: translateY(-2px);
+        }
+
+    /* ============ CARDS ============ */
+    .ac-card {
+        background: linear-gradient(160deg, rgba(255,255,255,0.045), rgba(255,255,255,0.02)), var(--ac-card);
+        border: 1px solid var(--ac-surface-border);
+        border-radius: var(--ac-radius-lg);
+        box-shadow: 0 10px 26px rgba(0, 0, 0, 0.28);
+        margin-bottom: 20px;
+        overflow: hidden;
+        backdrop-filter: blur(6px);
+        transition: box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+
+        .ac-card:hover {
+            border-color: rgba(255, 255, 255, 0.12);
+            box-shadow: 0 14px 32px rgba(0, 0, 0, 0.35);
+        }
+
+    .ac-card__header {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 20px 24px;
+        border-bottom: 1px solid var(--ac-surface-border);
+    }
+
+    .ac-card__icon {
+        flex-shrink: 0;
+        width: 44px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        background: var(--ac-primary-soft);
+        color: var(--ac-primary);
+        font-size: 17px;
+    }
+
+    .ac-card__title {
+        font-size: 16px;
+        font-weight: 700;
+        margin: 0;
+        color: #ffffff;
+    }
+
+    .ac-card__desc {
+        font-size: 12.5px;
+        color: var(--ac-text-muted);
+        margin: 2px 0 0;
+    }
+
+    .ac-card__body {
+        padding: 24px;
+    }
+
+    /* ============ FORM GRID ============ */
+    .ac-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 22px 20px;
+    }
+
+    .ac-grid--photo-first {
+        grid-template-columns: 200px 1fr;
+        align-items: start;
+        gap: 28px;
+    }
+
+    .ac-field-group {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 22px 20px;
+    }
+
+    .ac-field--full {
+        grid-column: 1 / -1;
+    }
+
+    /* ============ PHOTO UPLOAD ============ */
+    .ac-photo-upload {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        text-align: center;
+    }
+
+    /* Hide the browser's default file input UI for the photo upload while keeping it accessible
+       Label with for="profilePhotoInput" will still open the file picker. */
+    .ac-photo-upload input[type="file"] {
+        position: absolute;
+        left: -9999px;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+    }
+
+    .ac-photo-preview {
+        width: 128px;
+        height: 128px;
+        border-radius: 50%;
+        background: rgba(37, 99, 235, 0.08);
+        border: 2px dashed rgba(37, 99, 235, 0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 30px;
+        color: var(--ac-primary);
+        overflow: hidden;
+        transition: border-color 0.2s ease, transform 0.2s ease;
+    }
+
+        .ac-photo-preview:hover {
+            transform: scale(1.03);
+            border-color: var(--ac-primary);
+        }
+
+        .ac-photo-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+    .ac-photo-btn {
+        padding: 8px 14px;
+        font-size: 12.5px;
+    }
+
+    .ac-photo-hint {
+        font-size: 11.5px;
+        color: var(--ac-text-muted);
+    }
+
+    /* ============ FLOATING LABEL FIELDS ============ */
+    .ac-field {
+        position: relative;
+    }
+
+    .ac-input {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.035);
+        border: 1px solid var(--ac-surface-border);
+        border-radius: var(--ac-radius-sm);
+        color: var(--ac-text-primary);
+        font-size: 14px;
+        padding: 20px 14px 8px 40px;
+        outline: none;
+        transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+        height: 54px;
+    }
+
+    .ac-textarea {
+        height: auto;
+        min-height: 90px;
+        padding: 22px 14px 10px 40px;
+        resize: vertical;
+    }
+
+    .ac-select {
+        appearance: none;
+        -webkit-appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2394a3b8' stroke-width='1.5' fill='none' fill-rule='evenodd'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 14px center;
+        padding-right: 32px;
+        cursor: pointer;
+    }
+
+    .ac-field--password .ac-input {
+        padding-right: 44px;
+    }
+
+    .ac-field label {
+        position: absolute;
+        left: 40px;
+        top: 17px;
+        font-size: 14px;
+        color: var(--ac-text-muted);
+        pointer-events: none;
+        transition: all 0.16s ease;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+    }
+
+    .ac-textarea ~ label {
+        top: 14px;
+    }
+
+    .ac-field label i {
+        font-size: 12px;
+        color: var(--ac-text-muted);
+        width: 14px;
+        text-align: center;
+        transition: color 0.16s ease;
+    }
+
+    .ac-field label .req {
+        color: var(--ac-red);
+        margin-left: 1px;
+    }
+
+    /* floating state: focus or has value */
+    .ac-input:focus ~ label,
+    .ac-input:not(:placeholder-shown) ~ label,
+    .ac-select:focus ~ label,
+    .ac-select:valid ~ label,
+    .ac-textarea:focus ~ label,
+    .ac-textarea:not(:placeholder-shown) ~ label {
+        top: 6px;
+        font-size: 10.5px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        color: var(--ac-primary);
+    }
+
+        .ac-input:focus ~ label i,
+        .ac-select:focus ~ label i {
+            color: var(--ac-primary);
+        }
+
+    /* icon placed before the label text sits statically at left */
+    .ac-field::before {
+        content: "";
+    }
+
+    .ac-input:focus,
+    .ac-select:focus,
+    .ac-textarea:focus {
+        border-color: var(--ac-primary);
+        background: rgba(37, 99, 235, 0.06);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16);
+    }
+
+    .ac-input::placeholder {
+        color: transparent;
+    }
+
+    /* select always shows floated label since it can't be empty-detected the same way */
+    .ac-select ~ label {
+        top: 6px;
+        font-size: 10.5px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        color: var(--ac-text-secondary);
+    }
+
+    .ac-select:focus ~ label {
+        color: var(--ac-primary);
+    }
+
+    /* ============ PASSWORD TOGGLE ============ */
+    .ac-password-toggle {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: var(--ac-text-muted);
+        cursor: pointer;
+        font-size: 14px;
+        padding: 4px 6px;
+        transition: color 0.16s ease;
+    }
+
+        .ac-password-toggle:hover {
+            color: var(--ac-primary);
+        }
+
+    /* ============ VALIDATION STATES ============ */
+    .ac-invalid-feedback {
+        display: none;
+        font-size: 11.5px;
+        color: var(--ac-red);
+        margin-top: 6px;
+        padding-left: 2px;
+    }
+
+    .ac-field.is-invalid .ac-input,
+    .ac-field.is-invalid .ac-select,
+    .ac-field.is-invalid .ac-textarea {
+        border-color: var(--ac-red);
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.14);
+    }
+
+    .ac-field.is-invalid .ac-invalid-feedback {
+        display: block;
+    }
+
+    .ac-field.is-invalid label {
+        color: var(--ac-red);
+    }
+
+    .ac-field.is-valid .ac-input,
+    .ac-field.is-valid .ac-select {
+        border-color: var(--ac-green);
+    }
+
+    /* ============ ACTION BAR ============ */
+    .ac-action-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 14px;
+        background: rgba(255, 255, 255, 0.035);
+        border: 1px solid var(--ac-surface-border);
+        border-radius: var(--ac-radius-lg);
+        padding: 18px 22px;
+        margin-top: 4px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .ac-action-bar__right {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    /* ============ TOAST (lightweight save confirmation) ============ */
+    .ac-toast {
+        position: fixed;
+        top: 24px;
+        right: 24px;
+        z-index: 1080;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: #111827;
+        border: 1px solid rgba(34, 197, 94, 0.35);
+        color: var(--ac-text-primary);
+        padding: 14px 18px;
+        border-radius: var(--ac-radius-sm);
+        box-shadow: 0 14px 32px rgba(0,0,0,0.45);
+        font-size: 13.5px;
+        transform: translateX(120%);
+        transition: transform 0.3s ease;
+    }
+
+        .ac-toast.show {
+            transform: translateX(0);
+        }
+
+        .ac-toast i {
+            color: var(--ac-green);
+            font-size: 16px;
+        }
+
+    /* ============ RESPONSIVE ============ */
+    @@media (max-width: 992px) {
+        .ac-grid--photo-first {
+            grid-template-columns: 1fr;
+            justify-items: center;
+        }
+
+        .ac-field-group {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @@media (max-width: 576px) {
+        .ac-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .ac-header__actions {
+            justify-content: flex-start;
+        }
+
+        .ac-grid,
+        .ac-field-group {
+            grid-template-columns: 1fr;
+        }
+
+        .ac-card__body {
+            padding: 18px;
+        }
+
+        .ac-card__header {
+            padding: 16px 18px;
+        }
+
+        .ac-action-bar {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .ac-action-bar__right {
+            justify-content: stretch;
+        }
+
+            .ac-action-bar__right .acbtn {
+                flex: 1;
+                justify-content: center;
+            }
+    }
+</style>
+
+<script>
+    (function () {
+        "use strict";
+
+        document.addEventListener("DOMContentLoaded", initAddCustomerForm);
+
+        function initAddCustomerForm() {
+            const form = document.getElementById("addCustomerForm");
+            if (!form) return;
+
+            // ---------- PASSWORD SHOW/HIDE ----------
+            document.querySelectorAll(".ac-password-toggle").forEach((btn) => {
+                btn.addEventListener("click", () => {
+                    const targetId = btn.dataset.target;
+                    const input = document.getElementById(targetId);
+                    if (!input) return;
+                    const icon = btn.querySelector("i");
+                    const isHidden = input.type === "password";
+                    input.type = isHidden ? "text" : "password";
+                    icon.className = isHidden ? "fa-solid fa-eye-slash" : "fa-solid fa-eye";
+                });
+            });
+
+            // ---------- PROFILE PHOTO PREVIEW ----------
+            const photoInput = document.getElementById("profilePhotoInput");
+            const photoPreview = document.getElementById("photoPreview");
+            if (photoInput && photoPreview) {
+                photoInput.addEventListener("change", () => {
+                    const file = photoInput.files && photoInput.files[0];
+                    if (!file) return;
+
+                    if (file.size > 2 * 1024 * 1024) {
+                        alert("Please choose an image under 2MB.");
+                        photoInput.value = "";
+                        return;
+                    }
+
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        photoPreview.innerHTML = `<img src="${e.target.result}" alt="Profile preview" />`;
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            // ---------- CLIENT-SIDE VALIDATION ----------
+            function validateField(field) {
+                const input = field.querySelector(".ac-input, .ac-select, .ac-textarea");
+                if (!input) return true;
+
+                let valid = input.checkValidity();
+
+                // custom rule: confirm password must match password
+                if (input.id === "confirmPassword") {
+                    const pwd = document.getElementById("password");
+                    if (pwd && input.value !== pwd.value) valid = false;
+                }
+
+                field.classList.toggle("is-invalid", !valid);
+                field.classList.toggle("is-valid", valid && input.value.trim() !== "");
+                return valid;
+            }
+
+            form.querySelectorAll(".ac-field").forEach((field) => {
+                const input = field.querySelector(".ac-input, .ac-select, .ac-textarea");
+                if (!input) return;
+                input.addEventListener("blur", () => validateField(field));
+                input.addEventListener("input", () => {
+                    if (field.classList.contains("is-invalid")) validateField(field);
+                });
+            });
+
+            form.addEventListener("submit", (e) => {
+                e.preventDefault();
+
+                let formValid = true;
+                form.querySelectorAll(".ac-field").forEach((field) => {
+                    const input = field.querySelector(".ac-input[required], .ac-select[required], .ac-textarea[required]");
+                    if (input || field.querySelector("#confirmPassword")) {
+                        const ok = validateField(field);
+                        if (!ok) formValid = false;
+                    }
+                });
+
+                if (!formValid) {
+                    const firstInvalid = form.querySelector(".ac-field.is-invalid");
+                    if (firstInvalid) {
+                        firstInvalid.scrollIntoView({ behavior: "smooth", block: "center" });
+                    }
+                    return;
+                }
+
+                // Submit to server so uploaded file is included and server-side Create executes.
+                form.submit();
+            });
+
+            // ---------- RESET FORM ----------
+            const resetBtn = document.getElementById("btnResetForm");
+            if (resetBtn) {
+                resetBtn.addEventListener("click", () => {
+                    if (!confirm("Reset all fields in this form?")) return;
+                    form.reset();
+                    form.querySelectorAll(".ac-field").forEach((field) => {
+                        field.classList.remove("is-invalid", "is-valid");
+                    });
+                    if (photoPreview) photoPreview.innerHTML = '<i class="fa-solid fa-camera"></i>';
+                });
+            }
+
+            // ---------- TOAST ----------
+            function showToast(message) {
+                const toast = document.createElement("div");
+                toast.className = "ac-toast";
+                toast.innerHTML = `<i class="fa-solid fa-circle-check"></i><span>${message}</span>`;
+                document.body.appendChild(toast);
+                requestAnimationFrame(() => toast.classList.add("show"));
+                setTimeout(() => {
+                    toast.classList.remove("show");
+                    setTimeout(() => toast.remove(), 300);
+                }, 2800);
+            }
+        }
+    })();
+</script>

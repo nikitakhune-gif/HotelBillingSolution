@@ -1,0 +1,1116 @@
+﻿@model HotelBillingSolution.Models.HousekeepingTaskDto
+@{
+    ViewData["Title"] = "New Task";
+
+    // ---- These are expected to be populated by the controller (via ViewBag or a
+    // richer view-model) instead of the hardcoded <option> lists that used to be here.
+    // Example in the controller action:
+    //   ViewBag.Rooms      = _roomService.GetAllRooms();          // IEnumerable<RoomOptionDto> { Id, RoomNo }
+    //   ViewBag.StaffList  = _staffService.GetOnDutyStaff();      // IEnumerable<StaffOptionDto> { Id, Name }
+    //   ViewBag.TaskTypes  = _housekeepingService.GetTaskTypes(); // IEnumerable<string>
+    //   ViewBag.Floors     = _roomService.GetFloors();            // IEnumerable<int>
+    //   ViewBag.Summary    = _housekeepingService.GetTaskSummary();     // TaskSummaryDto
+    //   ViewBag.RecentTasks= _housekeepingService.GetRecentTasks(5);    // IEnumerable<RecentTaskDto>
+    var rooms = ViewBag.Rooms as IEnumerable<dynamic>;
+    var staffList = ViewBag.StaffList as IEnumerable<dynamic>;
+    var taskTypes = ViewBag.TaskTypes as IEnumerable<string>;
+    var floors = (ViewBag.Floors as IEnumerable<dynamic>)?.Cast<object>().ToList();
+    var summary = ViewBag.Summary;
+    var recentTasks = ViewBag.RecentTasks as IEnumerable<dynamic>;
+
+    // FIX: Floor dropdown had no data whenever the controller didn't set ViewBag.Floors.
+    // Fall back to a default 1-10 floor range so the dropdown is never empty in the UI.
+    if (floors == null || !floors.Any())
+    {
+        floors = Enumerable.Range(1, 10).Select(f => (object)f).ToList();
+    }
+
+    // Precompute summary values so they are available in markup without a nested code block
+    int totalTasks = 0;
+    int completedTasks = 0;
+    int completionPct = 0;
+    if (summary != null)
+    {
+        totalTasks = (int)summary.TotalTasks;
+        completedTasks = (int)summary.Completed;
+        completionPct = totalTasks > 0 ? (int)Math.Round(completedTasks * 100.0 / totalTasks) : 0;
+    }
+}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+<style>
+    :root {
+        /* Light / white theme */
+        --bg: #ffffff;
+        --card: #ffffff;
+        --primary: #2563EB;
+        --primary-2: #3B82F6;
+        --text: #0f172a; /* dark slate */
+        --muted: #6b7280;
+        --border: #e6e9ef;
+        --input-bg: #ffffff;
+        --input-border: #e5e7eb;
+        --success: #16a34a;
+        --warning: #b45309;
+        --danger: #dc2626;
+        --radius: 12px;
+        --shadow: 0 6px 18px rgba(16,24,40,0.06);
+        --hover-bg: #f3f4f6;
+        --upload-bg: #f8fafc;
+        --upload-bg-hover: #f1f5f9;
+        --chip-bg: #eef2ff;
+        --chip-border: rgba(59,130,246,0.18);
+    }
+
+    /*
+         * FIX: Dark theme.
+         * The page previously only defined light-theme variables, so toggling
+         * dark mode changed the top bar / sidebar (handled elsewhere in the layout)
+         * but left every card, input, and section on this page pure white.
+         * This overrides all the same CSS variables when the app is in dark mode.
+         * Covers both common toggle patterns used by Bootstrap-based admin themes:
+         *   <html data-bs-theme="dark"> ... and a body/html ".dark-mode" class.
+         * Keep whichever selector matches how your theme switcher actually works;
+         * both are safe to leave in.
+         */
+    [data-bs-theme="dark"] .hk-page,
+    html.dark-mode .hk-page,
+    body.dark-mode .hk-page {
+        --bg: #0b1220;
+        --card: #111827;
+        --primary: #3B82F6;
+        --primary-2: #60A5FA;
+        --text: #e5e7eb;
+        --muted: #9ca3af;
+        --border: #1f2937;
+        --input-bg: #0f172a;
+        --input-border: #273449;
+        --success: #22c55e;
+        --warning: #f59e0b;
+        --danger: #f87171;
+        --shadow: 0 6px 18px rgba(0,0,0,0.35);
+        --hover-bg: #1f2937;
+        --upload-bg: #0f172a;
+        --upload-bg-hover: #16213a;
+        --chip-bg: rgba(59,130,246,0.15);
+        --chip-border: rgba(96,165,250,0.35);
+    }
+
+    .hk-page {
+        background: var(--bg);
+        min-height: 100vh;
+        font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+        color: var(--text);
+        padding: 20px 0 40px 0;
+        transition: background .15s ease, color .15s ease;
+    }
+
+    .hk-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 0 20px;
+    }
+
+    /* ---------- Header ---------- */
+    .hk-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 14px;
+        margin-bottom: 20px;
+    }
+
+    .hk-title {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--text);
+        margin: 0;
+    }
+
+    .hk-breadcrumb {
+        font-size: 12.5px;
+        color: var(--muted);
+        margin-top: 4px;
+    }
+
+    .hk-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .btn-hk {
+        height: 40px;
+        padding: 0 16px;
+        border-radius: 8px;
+        font-size: 13.5px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid var(--border);
+        background: var(--card);
+        color: var(--text);
+        transition: all .15s ease;
+    }
+
+        .btn-hk:hover {
+            background: var(--hover-bg);
+            color: var(--text);
+        }
+
+    .btn-hk-primary {
+        background: linear-gradient(135deg, var(--primary), var(--primary-2));
+        color: #fff;
+        border: none;
+    }
+
+        .btn-hk-primary:hover {
+            opacity: 0.92;
+            color: #fff;
+        }
+
+    /* ---------- Grid ---------- */
+    .hk-grid {
+        display: grid;
+        grid-template-columns: 70% 30%;
+        gap: 16px;
+        align-items: start;
+    }
+
+    @@media (max-width: 992px) {
+        .hk-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* ---------- Cards ---------- */
+    .hk-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        margin-bottom: 16px;
+        overflow: hidden;
+    }
+
+    .hk-card-body {
+        padding: 18px 20px;
+    }
+
+    .hk-card-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 14px 20px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .hk-icon-box {
+        width: 32px;
+        height: 32px;
+        min-width: 32px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, var(--primary), var(--primary-2));
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+    }
+
+    .hk-card-title {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text);
+        margin: 0;
+    }
+
+    .hk-card-header .view-all {
+        margin-left: auto;
+        font-size: 12.5px;
+        color: var(--primary-2);
+        font-weight: 600;
+        text-decoration: none;
+    }
+
+    /* ---------- Form ---------- */
+    .hk-form-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+    }
+
+    @@media (max-width: 768px) {
+        .hk-form-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .hk-field label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text);
+        margin-bottom: 6px;
+        display: block;
+    }
+
+        .hk-field label .req {
+            color: var(--danger);
+        }
+
+    .hk-field .form-control,
+    .hk-field .form-select {
+        height: 40px;
+        background: var(--input-bg);
+        border: 1px solid var(--input-border);
+        border-radius: 7px;
+        padding: 10px 12px;
+        font-size: 13px;
+        color: var(--text);
+        transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+    }
+
+    /* FIX: native date-picker icon was invisible on dark backgrounds */
+    [data-bs-theme="dark"] .hk-field input[type="date"]::-webkit-calendar-picker-indicator,
+    html.dark-mode .hk-field input[type="date"]::-webkit-calendar-picker-indicator,
+    body.dark-mode .hk-field input[type="date"]::-webkit-calendar-picker-indicator {
+        filter: invert(1);
+    }
+
+    .hk-field .form-select option {
+        background: var(--card);
+        color: var(--text);
+    }
+
+    .hk-field textarea.form-control {
+        height: auto;
+        min-height: 60px;
+        resize: vertical;
+    }
+
+    .hk-field .form-control::placeholder {
+        color: var(--muted);
+        opacity: 1;
+    }
+
+    .hk-field .form-control:focus,
+    .hk-field .form-select:focus {
+        border-color: var(--primary-2);
+        box-shadow: 0 0 0 3px rgba(59,130,246,0.25);
+        outline: none;
+    }
+
+    .hk-field .invalid-feedback {
+        font-size: 11.5px;
+    }
+
+    .char-counter {
+        font-size: 11px;
+        color: var(--muted);
+        text-align: right;
+        margin-top: 4px;
+    }
+
+    /* ---------- Two column details/attachments ---------- */
+    .hk-two-col {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+
+    @@media (max-width: 992px) {
+        .hk-two-col {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* ---------- Upload area ---------- */
+    .upload-area {
+        border: 2px dashed rgba(59,130,246,0.25);
+        background: var(--upload-bg);
+        border-radius: 10px;
+        padding: 26px 14px;
+        text-align: center;
+        cursor: pointer;
+        transition: background .15s ease, border-color .15s ease;
+    }
+
+        .upload-area:hover,
+        .upload-area.dragover {
+            background: var(--upload-bg-hover);
+            border-color: var(--primary-2);
+        }
+
+        .upload-area i {
+            font-size: 26px;
+            color: var(--primary-2);
+            margin-bottom: 8px;
+        }
+
+    .upload-text {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text);
+    }
+
+    .upload-browse {
+        color: var(--primary-2);
+        font-weight: 700;
+        text-decoration: underline;
+        cursor: pointer;
+    }
+
+    .upload-hint {
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 8px;
+    }
+
+    #fileList {
+        margin-top: 10px;
+        font-size: 12px;
+    }
+
+    .file-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--chip-bg);
+        border: 1px solid var(--chip-border);
+        color: var(--primary-2);
+        border-radius: 6px;
+        padding: 4px 8px;
+        margin: 3px 4px 0 0;
+        font-size: 11.5px;
+        font-weight: 600;
+    }
+
+        .file-chip .remove-file {
+            cursor: pointer;
+            color: var(--danger);
+            margin-left: 4px;
+        }
+
+    /* ---------- Summary card ---------- */
+    .summary-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 13px;
+    }
+
+        .summary-row span:first-child {
+            color: var(--muted);
+            font-weight: 500;
+        }
+
+        .summary-row span:last-child {
+            font-weight: 700;
+            color: var(--text);
+        }
+
+    .summary-divider {
+        border-top: 1px solid var(--border);
+        margin: 14px 0;
+    }
+
+    .summary-empty {
+        font-size: 12.5px;
+        color: var(--muted);
+        text-align: center;
+        padding: 6px 0 2px 0;
+    }
+
+    .progress-wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .progress-circle {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: conic-gradient(var(--primary-2) 0% calc(var(--pct, 0) * 1%), var(--border) calc(var(--pct, 0) * 1%) 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 12px;
+    }
+
+    .progress-circle-inner {
+        width: 92px;
+        height: 92px;
+        background: var(--card);
+        border-radius: 50%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+        .progress-circle-inner .pct {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .progress-circle-inner .lbl {
+            font-size: 10.5px;
+            color: var(--muted);
+        }
+
+    .completion-label {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text);
+    }
+
+    .completion-sub {
+        font-size: 11.5px;
+        color: var(--muted);
+    }
+
+    /* ---------- Recent tasks ---------- */
+    .task-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--border);
+    }
+
+        .task-item:last-child {
+            border-bottom: none;
+        }
+
+    .task-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        margin-top: 5px;
+        min-width: 9px;
+    }
+
+    .dot-completed {
+        background: var(--success);
+    }
+
+    .dot-pending {
+        background: var(--warning);
+    }
+
+    .dot-inprogress {
+        background: var(--primary-2);
+    }
+
+    .dot-overdue {
+        background: var(--danger);
+    }
+
+    .task-item-title {
+        font-size: 12.5px;
+        font-weight: 600;
+        color: var(--text);
+    }
+
+    .task-item-time {
+        font-size: 11px;
+        color: var(--muted);
+    }
+
+    .badge-pill {
+        font-size: 10.5px;
+        font-weight: 700;
+        padding: 3px 9px;
+        border-radius: 999px;
+        margin-left: auto;
+        white-space: nowrap;
+    }
+
+    .badge-completed {
+        background: rgba(34,197,94,0.15);
+        color: var(--success);
+    }
+
+    .badge-pending {
+        background: rgba(245,158,11,0.15);
+        color: var(--warning);
+    }
+
+    .badge-inprogress {
+        background: rgba(59,130,246,0.15);
+        color: var(--primary-2);
+    }
+
+    .badge-overdue {
+        background: rgba(248,113,113,0.15);
+        color: var(--danger);
+    }
+
+    /* ---------- Quick tips ---------- */
+    .tips-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0;
+    }
+
+    @@media (max-width: 992px) {
+        .tips-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+    }
+
+    @@media (max-width: 576px) {
+        .tips-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .tip-item {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+        padding: 6px 18px;
+        border-right: 1px solid var(--border);
+    }
+
+        .tip-item:last-child {
+            border-right: none;
+        }
+
+    @@media (max-width: 992px) {
+        .tip-item {
+            border-right: none;
+        }
+    }
+
+    .tip-icon {
+        width: 34px;
+        height: 34px;
+        min-width: 34px;
+        border-radius: 8px;
+        background: rgba(59,130,246,0.15);
+        color: var(--primary-2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+    }
+
+    .tip-title {
+        font-size: 12.5px;
+        font-weight: 700;
+        color: var(--text);
+        margin-bottom: 2px;
+    }
+
+    .tip-desc {
+        font-size: 11.5px;
+        color: var(--muted);
+        line-height: 1.4;
+    }
+</style>
+
+<div class="hk-page">
+    <div class="hk-container">
+
+        <!-- Page Header -->
+        <div class="hk-header">
+            <div>
+                <h1 class="hk-title">New Task</h1>
+                <div class="hk-breadcrumb">Dashboard / Housekeeping / New Task</div>
+            </div>
+            <div class="hk-actions">
+                <a asp-action="Index" asp-controller="Housekeeping" class="btn-hk">
+                    <i class="fa-solid fa-arrow-left"></i> Back to Tasks
+                </a>
+                <button type="button" id="btnClear" class="btn-hk">
+                    <i class="fa-solid fa-rotate-right"></i> Clear
+                </button>
+                <button type="submit" form="hkCreateForm" class="btn-hk btn-hk-primary">
+                    <i class="fa-solid fa-floppy-disk"></i> Save Task
+                </button>
+            </div>
+        </div>
+
+        <form id="hkCreateForm" asp-action="Create" asp-controller="Housekeeping" method="post" enctype="multipart/form-data" novalidate>
+            @Html.AntiForgeryToken()
+
+            <div class="hk-grid">
+                <!-- LEFT COLUMN -->
+                <div>
+                    <!-- Task Information Card -->
+                    <div class="hk-card">
+                        <div class="hk-card-header">
+                            <div class="hk-icon-box"><i class="fa-solid fa-clipboard-check"></i></div>
+                            <h2 class="hk-card-title">Task Information</h2>
+                        </div>
+                        <div class="hk-card-body">
+                            <div class="hk-form-grid">
+                                <div class="hk-field">
+                                    <label asp-for="RoomId">Room No. <span class="req">*</span></label>
+                                    <select asp-for="RoomId" class="form-select" required>
+                                        <option value="">Select Room</option>
+                                        @if (rooms != null)
+                                        {
+                                            foreach (var room in rooms)
+                                            {
+                                                <option value="@room.Id">@room.RoomNumber</option>
+                                            }
+                                        }
+                                    </select>
+                                    <span asp-validation-for="RoomId" class="invalid-feedback text-danger"></span>
+                                </div>
+                                <div class="hk-field">
+                                    <label asp-for="GuestName">Guest Name</label>
+                                    <input asp-for="GuestName" class="form-control" placeholder="Enter guest name" />
+                                    <span asp-validation-for="GuestName" class="invalid-feedback text-danger"></span>
+                                </div>
+                                <div class="hk-field">
+                                    <label asp-for="TaskDate">Task Date <span class="req">*</span></label>
+                                    <input asp-for="TaskDate" id="taskDate" type="date" class="form-control" required />
+                                    <span asp-validation-for="TaskDate" class="invalid-feedback text-danger"></span>
+                                </div>
+
+                                <div class="hk-field">
+                                    <label asp-for="TaskType">Task Type <span class="req">*</span></label>
+                                    <select asp-for="TaskType" class="form-select" required>
+                                        <option value="">Select Task Type</option>
+                                        @if (taskTypes != null)
+                                        {
+                                            foreach (var type in taskTypes)
+                                            {
+                                                <option value="@type">@type</option>
+                                            }
+                                        }
+                                    </select>
+                                    <span asp-validation-for="TaskType" class="invalid-feedback text-danger"></span>
+                                </div>
+                                <div class="hk-field">
+                                    <label asp-for="AssignedTo">Assigned To</label>
+                                    <select asp-for="AssignedTo" class="form-select">
+                                        <option value="">Select staff</option>
+                                        @if (staffList != null)
+                                        {
+                                            foreach (var staff in staffList)
+                                            {
+                                                <option value="@staff.Id">@staff.Name</option>
+                                            }
+                                        }
+                                    </select>
+                                    <span asp-validation-for="AssignedTo" class="invalid-feedback text-danger"></span>
+                                </div>
+                                <div class="hk-field">
+                                    <label asp-for="DueDate">Due Date <span class="req">*</span></label>
+                                    <input asp-for="DueDate" id="dueDate" type="date" class="form-control" required />
+                                    <span asp-validation-for="DueDate" class="invalid-feedback text-danger"></span>
+                                    <!--
+                                        FIX: this span previously had the "d-block" class, which forces
+                                        display:block regardless of the inline style="display:none" below.
+                                        That made the "Due date cannot be before task date" message show
+                                        on every page load, even before the user touched either date field.
+                                        Visibility is now controlled purely by validateDates() in the script.
+                                    -->
+                                    <span id="dueDateError" class="invalid-feedback text-danger" style="display:none;">Due date cannot be before task date.</span>
+                                </div>
+
+                                <div class="hk-field">
+                                    <label asp-for="Priority">Priority <span class="req">*</span></label>
+                                    <select asp-for="Priority" class="form-select" required>
+                                        <option value="">Select Priority</option>
+                                        <option value="Low">Low</option>
+                                        <option value="Medium">Medium</option>
+                                        <option value="High">High</option>
+                                        <option value="Urgent">Urgent</option>
+                                    </select>
+                                    <span asp-validation-for="Priority" class="invalid-feedback text-danger"></span>
+                                </div>
+                                <div class="hk-field">
+                                    <label asp-for="Status">Status</label>
+                                    <select asp-for="Status" class="form-select">
+                                        <option value="Pending" selected>Pending</option>
+                                        <option value="InProgress">In Progress</option>
+                                        <option value="Completed">Completed</option>
+                                        <option value="Overdue">Overdue</option>
+                                    </select>
+                                    <span asp-validation-for="Status" class="invalid-feedback text-danger"></span>
+                                </div>
+                                <div class="hk-field">
+                                    <label asp-for="Floor">Floor</label>
+                                    <select asp-for="Floor" class="form-select">
+                                        <option value="">Select Floor</option>
+                                        @if (floors != null)
+                                        {
+                                            foreach (var floor in floors)
+                                            {
+                                                <option value="@floor">Floor @floor</option>
+                                            }
+                                        }
+                                    </select>
+                                    <span asp-validation-for="Floor" class="invalid-feedback text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Details + Attachments -->
+                    <div class="hk-two-col">
+                        <!-- Task Details -->
+                        <div class="hk-card mb-0">
+                            <div class="hk-card-header">
+                                <div class="hk-icon-box"><i class="fa-solid fa-clipboard-list"></i></div>
+                                <h2 class="hk-card-title">Task Details</h2>
+                            </div>
+                            <div class="hk-card-body">
+                                <div class="hk-field mb-3">
+                                    <label asp-for="Description">Description <span class="req">*</span></label>
+                                    <textarea asp-for="Description" id="description" class="form-control" rows="3" maxlength="300" placeholder="Enter task description..." required></textarea>
+                                    <div class="char-counter"><span id="descCount">0</span>/300</div>
+                                    <span asp-validation-for="Description" class="invalid-feedback text-danger"></span>
+                                </div>
+                                <div class="hk-field mb-3">
+                                    <label asp-for="Instructions">Instructions</label>
+                                    <textarea asp-for="Instructions" class="form-control" rows="2" placeholder="Enter instructions..."></textarea>
+                                    <span asp-validation-for="Instructions" class="invalid-feedback text-danger"></span>
+                                </div>
+                                <div class="hk-field mb-0">
+                                    <label asp-for="Notes">Notes</label>
+                                    <textarea asp-for="Notes" class="form-control" rows="2" placeholder="Enter notes..."></textarea>
+                                    <span asp-validation-for="Notes" class="invalid-feedback text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Attachments -->
+                        <div class="hk-card mb-0">
+                            <div class="hk-card-header">
+                                <div class="hk-icon-box"><i class="fa-solid fa-paperclip"></i></div>
+                                <h2 class="hk-card-title">Attachments</h2>
+                            </div>
+                            <div class="hk-card-body">
+                                <div class="upload-area" id="uploadArea">
+                                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                                    <div class="upload-text">Drag &amp; drop files here</div>
+                                    <div class="upload-text">or <span class="upload-browse" id="browseBtn">Browse Files</span></div>
+                                    <div class="upload-hint">Supported formats: JPG, PNG, PDF (Max 5MB)</div>
+                                    <input type="file" id="fileInput" name="Attachments" multiple accept=".jpg,.jpeg,.png,.pdf" style="display:none;" />
+                                </div>
+                                <div id="fileList"></div>
+                                <div id="fileError" class="invalid-feedback text-danger mt-2" style="display:none;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RIGHT COLUMN -->
+                <div>
+                    <!-- Task Summary -->
+                    <div class="hk-card">
+                        <div class="hk-card-header">
+                            <div class="hk-icon-box"><i class="fa-solid fa-clipboard"></i></div>
+                            <h2 class="hk-card-title">Task Summary</h2>
+                        </div>
+                        <div class="hk-card-body">
+                            @if (summary != null)
+                            {
+                                <div class="summary-list">
+                                    <div class="summary-row"><span>Total Tasks</span><span>@summary.TotalTasks</span></div>
+                                    <div class="summary-row"><span>Completed</span><span style="color:var(--success)">@summary.Completed</span></div>
+                                    <div class="summary-row"><span>Pending</span><span style="color:var(--warning)">@summary.Pending</span></div>
+                                    <div class="summary-row"><span>In Progress</span><span style="color:var(--primary-2)">@summary.InProgress</span></div>
+                                    <div class="summary-row"><span>Overdue</span><span style="color:var(--danger)">@summary.Overdue</span></div>
+                                </div>
+                                <div class="summary-divider"></div>
+                                <div class="progress-wrap">
+                                    <div class="progress-circle" style="--pct:@completionPct;">
+                                        <div class="progress-circle-inner">
+                                            <span class="pct">@completionPct%</span>
+                                            <span class="lbl">Completion</span>
+                                        </div>
+                                    </div>
+                                    <div class="completion-label">Tasks Completed</div>
+                                    <div class="completion-sub">@completedTasks of @totalTasks</div>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="summary-empty">No task summary data available yet.</div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Recent Tasks -->
+                    <div class="hk-card">
+                        <div class="hk-card-header">
+                            <h2 class="hk-card-title">Recent Tasks</h2>
+                            <a asp-action="Index" asp-controller="Housekeeping" class="view-all">View All</a>
+                        </div>
+                        <div class="hk-card-body">
+                            @if (recentTasks != null && recentTasks.Any())
+                            {
+                                foreach (var task in recentTasks)
+                                {
+                                    var status = (string)task.Status;
+                                    var dotClass = status switch
+                                    {
+                                        "Completed" => "dot-completed",
+                                        "Pending" => "dot-pending",
+                                        "InProgress" => "dot-inprogress",
+                                        "Overdue" => "dot-overdue",
+                                        _ => "dot-pending"
+                                    };
+                                    var badgeClass = status switch
+                                    {
+                                        "Completed" => "badge-completed",
+                                        "Pending" => "badge-pending",
+                                        "InProgress" => "badge-inprogress",
+                                        "Overdue" => "badge-overdue",
+                                        _ => "badge-pending"
+                                    };
+                                    <div class="task-item">
+                                        <span class="task-dot @dotClass"></span>
+                                        <div>
+                                            <div class="task-item-title">@task.Title</div>
+                                            <div class="task-item-time">@task.Timestamp</div>
+                                        </div>
+                                        <span class="badge-pill @badgeClass">@status</span>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="summary-empty">No recent tasks yet.</div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Tips -->
+            <div class="hk-card">
+                <div class="hk-card-body">
+                    <h2 class="hk-card-title mb-3">Quick Tips</h2>
+                    <div class="tips-grid">
+                        <div class="tip-item">
+                            <div class="tip-icon"><i class="fa-solid fa-bed"></i></div>
+                            <div>
+                                <div class="tip-title">Room Selection</div>
+                                <div class="tip-desc">Choose the correct room for task.</div>
+                            </div>
+                        </div>
+                        <div class="tip-item">
+                            <div class="tip-icon"><i class="fa-solid fa-users"></i></div>
+                            <div>
+                                <div class="tip-title">Assign Staff</div>
+                                <div class="tip-desc">Assign task to available staff.</div>
+                            </div>
+                        </div>
+                        <div class="tip-item">
+                            <div class="tip-icon"><i class="fa-solid fa-clock"></i></div>
+                            <div>
+                                <div class="tip-title">Set Due Date</div>
+                                <div class="tip-desc">Keep due date for timely completion.</div>
+                            </div>
+                        </div>
+                        <div class="tip-item">
+                            <div class="tip-icon"><i class="fa-solid fa-circle-check"></i></div>
+                            <div>
+                                <div class="tip-title">Track Status</div>
+                                <div class="tip-desc">Update task status regularly.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
+
+<script>
+    (function () {
+        var form = document.getElementById('hkCreateForm');
+        var taskDate = document.getElementById('taskDate');
+        var dueDate = document.getElementById('dueDate');
+        var dueDateError = document.getElementById('dueDateError');
+        var description = document.getElementById('description');
+        var descCount = document.getElementById('descCount');
+        var btnClear = document.getElementById('btnClear');
+
+        var uploadArea = document.getElementById('uploadArea');
+        var fileInput = document.getElementById('fileInput');
+        var browseBtn = document.getElementById('browseBtn');
+        var fileList = document.getElementById('fileList');
+        var fileError = document.getElementById('fileError');
+
+        var MAX_SIZE = 5 * 1024 * 1024; // 5MB
+        var ALLOWED_EXT = ['jpg', 'jpeg', 'png', 'pdf'];
+        var selectedFiles = [];
+
+        // ---- Character counter ----
+        function updateCharCount() {
+            if (description && descCount) {
+                descCount.textContent = description.value.length;
+            }
+        }
+        if (description) {
+            description.addEventListener('input', updateCharCount);
+            updateCharCount();
+        }
+
+        // ---- Due date validation ----
+        // FIX: only flag an error when BOTH dates are filled in and due < task.
+        // Previously an empty due date (falsy but not compared safely) plus the
+        // "d-block" CSS class on the message span meant the warning could appear
+        // even with no real conflict. Guard clauses below keep it accurate.
+        function validateDates() {
+            if (!dueDateError) return true;
+
+            if (taskDate.value && dueDate.value && dueDate.value < taskDate.value) {
+                dueDate.classList.add('is-invalid');
+                dueDateError.style.display = 'block';
+                return false;
+            }
+
+            dueDate.classList.remove('is-invalid');
+            dueDateError.style.display = 'none';
+            return true;
+        }
+        if (taskDate && dueDate) {
+            taskDate.addEventListener('change', validateDates);
+            dueDate.addEventListener('change', validateDates);
+            // Make sure the message is hidden on initial load, not left to CSS.
+            validateDates();
+        }
+
+        // ---- Clear button ----
+        if (btnClear) {
+            btnClear.addEventListener('click', function () {
+                form.reset();
+                selectedFiles = [];
+                renderFileList();
+                updateCharCount();
+                dueDateError.style.display = 'none';
+                fileError.style.display = 'none';
+                var invalids = form.querySelectorAll('.is-invalid');
+                invalids.forEach(function (el) { el.classList.remove('is-invalid'); });
+            });
+        }
+
+        // ---- Drag & drop / browse ----
+        if (uploadArea) {
+            uploadArea.addEventListener('click', function (e) {
+                if (e.target !== browseBtn) fileInput.click();
+            });
+        }
+        if (browseBtn) {
+            browseBtn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                fileInput.click();
+            });
+        }
+
+        ['dragenter', 'dragover'].forEach(function (evt) {
+            uploadArea.addEventListener(evt, function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                uploadArea.classList.add('dragover');
+            });
+        });
+        ['dragleave', 'drop'].forEach(function (evt) {
+            uploadArea.addEventListener(evt, function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                uploadArea.classList.remove('dragover');
+            });
+        });
+        uploadArea.addEventListener('drop', function (e) {
+            var dt = e.dataTransfer;
+            if (dt && dt.files) handleFiles(dt.files);
+        });
+
+        fileInput.addEventListener('change', function () {
+            handleFiles(fileInput.files);
+        });
+
+        function handleFiles(fileArr) {
+            fileError.style.display = 'none';
+            fileError.textContent = '';
+            for (var i = 0; i < fileArr.length; i++) {
+                var file = fileArr[i];
+                var ext = file.name.split('.').pop().toLowerCase();
+
+                if (ALLOWED_EXT.indexOf(ext) === -1) {
+                    fileError.style.display = 'block';
+                    fileError.textContent = 'Unsupported file type: ' + file.name + '. Only JPG, PNG, PDF allowed.';
+                    continue;
+                }
+                if (file.size > MAX_SIZE) {
+                    fileError.style.display = 'block';
+                    fileError.textContent = file.name + ' exceeds the 5MB size limit.';
+                    continue;
+                }
+                selectedFiles.push(file);
+            }
+            renderFileList();
+        }
+
+        function renderFileList() {
+            fileList.innerHTML = '';
+            selectedFiles.forEach(function (file, idx) {
+                var chip = document.createElement('span');
+                chip.className = 'file-chip';
+                chip.innerHTML = '<i class="fa-solid fa-file"></i> ' + file.name +
+                    ' <i class="fa-solid fa-xmark remove-file" data-idx="' + idx + '"></i>';
+                fileList.appendChild(chip);
+            });
+
+            fileList.querySelectorAll('.remove-file').forEach(function (icon) {
+                icon.addEventListener('click', function () {
+                    var idx = parseInt(icon.getAttribute('data-idx'), 10);
+                    selectedFiles.splice(idx, 1);
+                    renderFileList();
+                });
+            });
+        }
+
+        // ---- Basic bootstrap-style validation on submit ----
+        form.addEventListener('submit', function (e) {
+            var valid = true;
+            var requiredFields = form.querySelectorAll('[required]');
+            requiredFields.forEach(function (field) {
+                if (!field.value) {
+                    field.classList.add('is-invalid');
+                    valid = false;
+                } else {
+                    field.classList.remove('is-invalid');
+                }
+            });
+
+            if (!validateDates()) {
+                valid = false;
+            }
+
+            if (!valid) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        });
+    })();
+</script>

@@ -1,35 +1,1267 @@
-@model IEnumerable<HotelBilling.Application.DTOs.Response.CustomerResponse>
-
+@model HotelBilling.Application.DTOs.Customer.CustomerIndexViewModel
 @{
     ViewData["Title"] = "Customers";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h2>Customers</h2>
-    <a asp-action="Create" class="btn btn-primary">New Customer</a>
+<div class="cust-page">
+
+    <!-- ============ PAGE HEADER ============ -->
+    <div class="cust-header">
+        <div class="cust-header__text">
+            <h1 class="cust-header__title">Customers</h1>
+            <p class="cust-header__subtitle">Manage all hotel customers efficiently</p>
+        </div>
+        <div class="cust-header__actions">
+            <form asp-controller="Customer" asp-action="ImportCustomers" method="post" enctype="multipart/form-data" id="importForm" style="display:inline-block; margin:0;">
+                <input type="file" id="importFileInput" name="csvFile" accept=".csv" style="display:none" />
+                <button type="button" class="cbtn cbtn-ghost" id="btnImport" onclick="document.getElementById('importFileInput').click();">
+                    <i class="fa-solid fa-file-import"></i>
+                    <span>Import</span>
+                </button>
+            </form>
+            <a asp-controller="Customer" asp-action="ExportCustomers" class="cbtn cbtn-ghost" id="btnExport">
+                <i class="fa-solid fa-file-export"></i>
+                <span>Export</span>
+            </a>
+            <a asp-controller="Customer"
+               asp-action="AddCustomer"
+               class="cbtn cbtn-primary-glow">
+                <i class="fa-solid fa-plus"></i>
+                <span>Add Customer</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- ============ SUMMARY CARDS ============ -->
+    <div class="cust-summary-grid">
+
+        <div class="cust-summary-card cust-summary-card--blue">
+            <div class="cust-summary-card__icon">
+                <i class="fa-solid fa-users"></i>
+            </div>
+            <div class="cust-summary-card__body">
+                <span class="cust-summary-card__label">Total Customers</span>
+                <span class="cust-summary-card__value">@Model.Summary.TotalCustomers</span>
+                <span class="cust-summary-card__hint">All registered guests</span>
+            </div>
+        </div>
+
+        <div class="cust-summary-card cust-summary-card--green">
+            <div class="cust-summary-card__icon">
+                <i class="fa-solid fa-user-check"></i>
+            </div>
+            <div class="cust-summary-card__body">
+                <span class="cust-summary-card__label">Active Customers</span>
+                <span class="cust-summary-card__value">@Model.Summary.ActiveCustomers</span>
+                <span class="cust-summary-card__hint">Engaged this quarter</span>
+            </div>
+        </div>
+
+        <div class="cust-summary-card cust-summary-card--orange">
+            <div class="cust-summary-card__icon">
+                <i class="fa-solid fa-user-plus"></i>
+            </div>
+            <div class="cust-summary-card__body">
+                <span class="cust-summary-card__label">New Customers</span>
+                <span class="cust-summary-card__value">@Model.Summary.NewCustomers</span>
+                <span class="cust-summary-card__hint">Joined this month</span>
+            </div>
+        </div>
+
+        <div class="cust-summary-card cust-summary-card--gold">
+            <div class="cust-summary-card__icon">
+                <i class="fa-solid fa-crown"></i>
+            </div>
+            <div class="cust-summary-card__body">
+                <span class="cust-summary-card__label">VIP Customers</span>
+                <span class="cust-summary-card__value">@Model.Summary.VipCustomers</span>
+                <span class="cust-summary-card__hint">Top-tier members</span>
+            </div>
+        </div>
+
+    </div>
+
+   
+
+    <!-- ============ CUSTOMERS TABLE ============ -->
+    <div class="cust-table-card">
+       
+        <!-- ============ FILTER SECTION ============ -->
+        <div class="cust-filter-card">
+            <div class="cust-filter-card__row">
+
+               
+
+                <div class="cust-filter-field">
+                    <select id="filterCustomerType" class="cust-filter-select">
+                        <option value="">Customer Type</option>
+                        <option value="VIP">VIP</option>
+                        <option value="Corporate">Corporate</option>
+                        <option value="Regular">Regular</option>
+                    </select>
+                </div>
+
+                <div class="cust-filter-field">
+                    <select id="filterStatus" class="cust-filter-select">
+                        <option value="">Status</option>
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                        <option value="Blocked">Blocked</option>
+                    </select>
+                </div>
+                <div class="cust-filter-field">
+                    <select id="filterCountry" class="cust-filter-select">
+                        <option value="">Country</option>
+                        <option value="India">India</option>
+                        <option value="UAE">UAE</option>
+                        <option value="USA">USA</option>
+                        <option value="UK">UK</option>
+                    </select>
+                </div>
+                <div class="cust-filter-field">
+                    <select id="filterCity" class="cust-filter-select">
+                        <option value="">City</option>
+                        <option value="Pune">Pune</option>
+                        <option value="Mumbai">Mumbai</option>
+                        <option value="Nashik">Nashik</option>
+                        <option value="Nagpur">Nagpur</option>
+                        <option value="Delhi">Delhi</option>
+                    </select>
+                </div>
+
+                <div class="cust-filter-field cust-filter-field--search">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="custSearch" class="cust-filter-input" placeholder="Search customer name, ID, email, mobile..." />
+                </div>
+
+                <div class="cust-filter-field__actions">
+                    <button type="button" class="cbtn cust-btn-reset" id="btnResetFilter" title="Reset filters">
+                        <i class="fa-solid fa-arrow-rotate-left"></i>
+                    </button>
+                    <button type="button" class="cbtn cust-btn-search" id="btnSearchFilter">
+                        <i class="fa-solid fa-filter"></i>
+                        <span>Search</span>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+        <div class="table-responsive cust-table-scroll">
+            <table class="cust-table" id="customersTable">
+                <thead>
+                    <tr>
+                        <th class="col-image">Profile</th>
+                        <th class="sortable" data-sort="customerId">Customer ID <i class="fa-solid fa-sort"></i></th>
+                        <th class="sortable" data-sort="name">Customer Name <i class="fa-solid fa-sort"></i></th>
+                        <th>Email</th>
+                        <th>Mobile</th>
+                        <th>Gender</th>
+                        <th class="sortable" data-sort="city">City <i class="fa-solid fa-sort"></i></th>
+                        <th class="sortable" data-sort="bookings">Bookings <i class="fa-solid fa-sort"></i></th>
+                        <th class="sortable" data-sort="spending">Total Spending <i class="fa-solid fa-sort"></i></th>
+                        <th>Membership</th>
+                        <th>Status</th>
+                        <th class="sortable" data-sort="registered">Registration Date <i class="fa-solid fa-sort"></i></th>
+                        <th class="col-actions">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="customersTableBody">
+                    @foreach (var c in Model.Customers)
+                    {
+                        <tr data-customer-id="@c.Id" data-name="@c.FullName" data-city="@c.City" data-country="@c.Country" data-type="@c.CustomerType" data-status="@c.Status">
+                            <td class="col-image">
+                                @if (!string.IsNullOrEmpty(c.ProfilePhotoPath))
+                                {
+                                    <img src="@c.ProfilePhotoPath" alt="@c.FullName" class="cust-avatar" style="width:40px;height:40px;border-radius:50%;object-fit:cover;" />
+                                }
+                                else
+                                {
+                                    var initials = ((c.FirstName?.Length > 0 ? c.FirstName[0].ToString() : "") + (c.LastName?.Length > 0 ? c.LastName[0].ToString() : "")).ToUpper();
+                                    // gender-based avatar classes (kept for the neutral / icon fallback): cust-ava--male / cust-ava--female / cust-ava--neutral
+                                    var avaClass = "cust-ava--neutral";
+                                    var iconClass = "fa-solid fa-user";
+                                    if (!string.IsNullOrEmpty(c.Gender))
+                                    {
+                                        var g = c.Gender.Trim().ToLowerInvariant();
+                                        if (g == "male") { avaClass = "cust-ava--male"; iconClass = "fa-solid fa-mars"; }
+                                        else if (g == "female") { avaClass = "cust-ava--female"; iconClass = "fa-solid fa-venus"; }
+                                        else { avaClass = "cust-ava--neutral"; iconClass = "fa-solid fa-user"; }
+                                    }
+
+                                    // choose a local illustrated avatar image only when gender is explicitly male/female
+                                    var avatarImg = string.IsNullOrEmpty(c.Gender)
+                                        ? null
+                                        : (c.Gender.Trim().ToLowerInvariant() == "male" ? "~/img/maleavtar.png"
+                                           : c.Gender.Trim().ToLowerInvariant() == "female" ? "~/img/femaleavtar.png"
+                                           : null);
+
+                                    if (!string.IsNullOrEmpty(avatarImg))
+                                    {
+                                        <img src="@Url.Content(avatarImg)" alt="@c.FullName" class="cust-avatar-img" />
+                                    }
+                                    else
+                                    {
+                                        // fall back to the existing neutral/icon circle when no suitable illustrated image exists
+                                        <span class="cust-avatar @avaClass"><i class="@iconClass" aria-hidden="true"></i></span>
+                                    }
+                                }
+                            </td>
+                            <td class="fw-cell">@($"CUST-{c.Id:D4}")</td>
+                            <td class="fw-cell">@c.FullName</td>
+                            <td class="muted-cell">@c.Email</td>
+                            <td class="muted-cell">@c.MobileNumber</td>
+                            <td class="fw-cell">@(string.IsNullOrEmpty(c.Gender) ? "-" : c.Gender)</td>
+                            <td class="fw-cell">@(string.IsNullOrEmpty(c.City) ? "-" : c.City)</td>
+                            <td class="fw-cell">0</td>
+                            <td class="spend-cell">₹0</td>
+                            <td><span class="badge-membership badge-membership--@( (c.Membership ?? "regular").ToLower() )">@c.Membership</span></td>
+                            <td><span class="badge-cstatus badge-cstatus--@( (c.Status ?? "inactive").ToLower() )">@c.Status</span></td>
+                            <td class="fw-cell">@(c.CreatedDate.ToLocalTime().ToString("dd MMM yyyy"))</td>
+                            <td class="col-actions">
+                                <div class="action-group">
+                                    <a asp-controller="Customer" asp-action="Details" asp-route-id="@c.Id" class="action-btn action-btn--view" title="View"><i class="fa-solid fa-eye"></i></a>
+                                    <a asp-controller="Customer" asp-action="Edit" asp-route-id="@c.Id" class="action-btn action-btn--edit" title="Edit"><i class="fa-solid fa-pen"></i></a>
+                                    <a asp-controller="Customer" asp-action="Delete" asp-route-id="@c.Id" class="action-btn action-btn--delete" title="Delete"><i class="fa-solid fa-trash"></i></a>
+                                    <div class="dropdown">
+                                        <button class="action-btn action-btn--more" data-bs-toggle="dropdown" title="More"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li><a class="dropdown-item" asp-controller="Booking" asp-action="History" asp-route-customerId="@c.Id"><i class="fa-solid fa-clock-rotate-left"></i> Booking History</a></li>
+                                            <li><a class="dropdown-item" asp-controller="Invoice" asp-action="ByCustomer" asp-route-customerId="@c.Id"><i class="fa-solid fa-file-invoice"></i> Invoice</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ============ BOTTOM SECTION ============ -->
+        <div class="cust-table-card__footer">
+            <div class="cust-table-card__count" id="customersCountLabel">
+                Showing 1 to 10 of 520 Customers
+            </div>
+            <nav aria-label="Customers pagination">
+                <ul class="cust-pagination-premium" id="customersPagination">
+                    <li class="page-item disabled"><a class="page-link" href="#" data-page="prev"><i class="fa-solid fa-chevron-left"></i></a></li>
+                    <li class="page-item active"><a class="page-link" href="#" data-page="1">1</a></li>
+                    <li class="page-item"><a class="page-link" href="#" data-page="2">2</a></li>
+                    <li class="page-item"><a class="page-link" href="#" data-page="3">3</a></li>
+                    <li class="page-item"><a class="page-link" href="#" data-page="4">4</a></li>
+                    <li class="page-item page-item--dots"><span>…</span></li>
+                    <li class="page-item"><a class="page-link" href="#" data-page="52">52</a></li>
+                    <li class="page-item"><a class="page-link" href="#" data-page="next"><i class="fa-solid fa-chevron-right"></i></a></li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+
 </div>
 
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Email</th>
-            <th>Phone</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-    @foreach (var c in Model)
-    {
-        <tr>
-            <td>@c.Name</td>
-            <td>@c.Email</td>
-            <td>@c.Phone</td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@c.Id" class="btn btn-sm btn-secondary me-1">Edit</a>
-                <a asp-action="Delete" asp-route-id="@c.Id" class="btn btn-sm btn-danger">Delete</a>
-            </td>
-        </tr>
+<style>
+    /* ==========================================================================
+               CUSTOMERS MANAGEMENT — Premium Dark SaaS UI
+               Background is intentionally transparent; the parent layout supplies it.
+               All selectors are scoped with a `cust-` / `.cust-page` prefix so this
+               page cannot leak into or clash with other pages' styles.
+               ========================================================================== */
+
+    /* Light-mode defaults for customer page — high contrast text and bolder inputs */
+    .cust-page {
+        --c-blue: #3b82f6;
+        --c-blue-soft: rgba(59, 130, 246, 0.14);
+        --c-green: #22c55e;
+        --c-green-soft: rgba(34, 197, 94, 0.14);
+        --c-orange: #f59e0b;
+        --c-orange-soft: rgba(245, 158, 11, 0.14);
+        --c-red: #ef4444;
+        --c-red-soft: rgba(239, 68, 68, 0.14);
+        --c-purple: #a855f7;
+        --c-purple-soft: rgba(168, 85, 247, 0.14);
+        --c-gold: #eab308;
+        --c-gold-soft: rgba(234, 179, 8, 0.14);
+        --c-teal: #14b8a6;
+        --c-surface: rgba(15, 23, 42, 0.02); /* very light surface over white */
+        --c-surface-strong: rgba(15, 23, 42, 0.04);
+        --c-surface-border: rgba(15, 23, 42, 0.06);
+        --c-text-primary: #0f172a; /* near-black for strong contrast on light bg */
+        --c-text-secondary: #475569;
+        --c-text-muted: #64748b;
+        --c-radius-lg: 18px;
+        --c-radius-md: 14px;
+        --c-radius-sm: 10px;
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: var(--c-text-primary);
+        animation: custFadeIn 0.45s ease;
+        background: transparent;
     }
-    </tbody>
-</table>
+
+    /* Dark-mode overrides keep the original dark palette */
+    [data-theme="dark"] .cust-page {
+        --c-blue: #3b82f6;
+        --c-blue-soft: rgba(59, 130, 246, 0.14);
+        --c-green: #22c55e;
+        --c-green-soft: rgba(34, 197, 94, 0.14);
+        --c-orange: #f59e0b;
+        --c-orange-soft: rgba(245, 158, 11, 0.14);
+        --c-red: #ef4444;
+        --c-red-soft: rgba(239, 68, 68, 0.14);
+        --c-purple: #a855f7;
+        --c-purple-soft: rgba(168, 85, 247, 0.14);
+        --c-gold: #eab308;
+        --c-gold-soft: rgba(234, 179, 8, 0.14);
+        --c-teal: #14b8a6;
+        --c-surface: rgba(255, 255, 255, 0.035);
+        --c-surface-strong: rgba(255, 255, 255, 0.055);
+        --c-surface-border: rgba(255, 255, 255, 0.08);
+        --c-text-primary: #eef2f7;
+        --c-text-secondary: #94a3b8;
+        --c-text-muted: #64748b;
+    }
+
+    @@keyframes custFadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(6px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .cust-page * {
+        box-sizing: border-box;
+    }
+
+    /* ============ HEADER ============ */
+    .cust-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .cust-header__title {
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        margin: 0;
+        color: var(--c-text-primary);
+    }
+
+    .cust-header__subtitle {
+        margin: 4px 0 0;
+        font-size: 14px;
+        color: var(--c-text-secondary);
+    }
+
+    .cust-header__actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .cbtn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13.5px;
+        font-weight: 600;
+        padding: 10px 16px;
+        border-radius: var(--c-radius-sm);
+        border: 1px solid transparent;
+        cursor: pointer;
+        transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+        white-space: nowrap;
+    }
+
+        .cbtn:active {
+            transform: translateY(1px) scale(0.98);
+        }
+
+    .cbtn-ghost {
+        background: var(--c-surface);
+        border-color: var(--c-surface-border);
+        color: var(--c-text-secondary);
+    }
+
+        .cbtn-ghost:hover {
+            color: var(--c-text-primary);
+            background: var(--c-surface-strong);
+            transform: translateY(-2px);
+        }
+
+    .cbtn-primary-glow {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: #ffffff;
+        box-shadow: 0 6px 18px rgba(37, 99, 235, 0.35);
+    }
+
+        .cbtn-primary-glow:hover {
+            box-shadow: 0 10px 26px rgba(37, 99, 235, 0.5);
+            transform: translateY(-2px);
+        }
+
+    /* ============ SUMMARY CARDS ============ */
+    .cust-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 18px;
+        margin-bottom: 22px;
+    }
+
+    .cust-summary-card {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        min-height: 118px;
+        padding: 18px 20px;
+        border-radius: var(--c-radius-lg);
+        background: linear-gradient(160deg, var(--c-surface-strong), var(--c-surface));
+        border: 1px solid var(--c-surface-border);
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
+        overflow: hidden;
+        transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+    }
+
+        .cust-summary-card::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(120px 90px at 90% 0%, rgba(255,255,255,0.06), transparent 70%);
+            pointer-events: none;
+        }
+
+        .cust-summary-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 16px 34px rgba(0, 0, 0, 0.35);
+        }
+
+    .cust-summary-card__icon {
+        flex-shrink: 0;
+        width: 54px;
+        height: 54px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 14px;
+        font-size: 21px;
+        color: #fff;
+        transition: transform 0.25s ease;
+    }
+
+    .cust-summary-card:hover .cust-summary-card__icon {
+        transform: scale(1.08) rotate(-3deg);
+    }
+
+    .cust-summary-card--blue .cust-summary-card__icon {
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        box-shadow: 0 8px 18px rgba(59, 130, 246, 0.35);
+    }
+
+    .cust-summary-card--green .cust-summary-card__icon {
+        background: linear-gradient(135deg, #22c55e, #15803d);
+        box-shadow: 0 8px 18px rgba(34, 197, 94, 0.35);
+    }
+
+    .cust-summary-card--orange .cust-summary-card__icon {
+        background: linear-gradient(135deg, #f59e0b, #b45309);
+        box-shadow: 0 8px 18px rgba(245, 158, 11, 0.35);
+    }
+
+    .cust-summary-card--gold .cust-summary-card__icon {
+        background: linear-gradient(135deg, #eab308, #a16207);
+        box-shadow: 0 8px 18px rgba(234, 179, 8, 0.35);
+    }
+
+    .cust-summary-card__body {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+    }
+
+    .cust-summary-card__label {
+        font-size: 12.5px;
+        color: var(--c-text-secondary);
+        font-weight: 500;
+    }
+
+    .cust-summary-card__value {
+        font-size: 26px;
+        font-weight: 700;
+        line-height: 1.1;
+        color: var(--c-text-primary);
+        letter-spacing: -0.01em;
+    }
+
+    .cust-summary-card__hint {
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--c-text-muted);
+    }
+
+    /* ============ FILTER SECTION ============ */
+    .cust-filter-card {
+        background: var(--c-surface);
+        border: 1px solid var(--c-surface-border);
+        border-radius: var(--c-radius-lg);
+        padding: 16px 18px;
+        margin-bottom: 22px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .cust-filter-card__row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .cust-filter-field {
+        position: relative;
+        flex: 1 1 150px;
+        min-width: 140px;
+    }
+
+    .cust-filter-field--search {
+        flex: 2 1 260px;
+        display: flex;
+        align-items: center;
+    }
+
+        .cust-filter-field--search i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 13px;
+            pointer-events: none;
+        }
+
+    .cust-filter-input,
+    .cust-filter-select {
+        width: 100%;
+        background: var(--card-color);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        color: var(--text-color);
+        font-size: 13.5px;
+        font-weight: 600; /* make input values bold for legibility */
+        padding: 10px 14px;
+        outline: none;
+        transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .cust-filter-input {
+        padding-left: 38px;
+    }
+
+    .cust-filter-select {
+        appearance: none;
+        -webkit-appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2394a3b8' stroke-width='1.5' fill='none' fill-rule='evenodd'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 14px center;
+        padding-right: 32px;
+        cursor: pointer;
+        /* Tell the browser which palette to render native chrome (the
+               dropdown popup) with, so the popup doesn't default to a light
+               theme with light text — which is what made the selected value
+               unreadable in dark mode. */
+        color-scheme: light dark;
+    }
+
+        /* Options are native browser UI and do NOT automatically inherit our
+           CSS variables — without this, the currently selected value / the
+           dropdown list can render as light text on a light popup (or the
+           reverse) in dark theme, making it invisible. Force explicit,
+           theme-aware colors on every option so the selected value is
+           always clearly readable. */
+        .cust-filter-select option {
+            background-color: var(--card-color-2, var(--card-color));
+            color: var(--text-color);
+            font-weight: 600;
+        }
+
+    .cust-filter-select--sm {
+        padding: 6px 30px 6px 12px;
+        font-size: 13px;
+    }
+
+    .cust-filter-input:focus,
+    .cust-filter-select:focus {
+        border-color: var(--c-blue);
+        background: rgba(59, 130, 246, 0.06);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.14);
+    }
+
+    .cust-filter-input::placeholder {
+        color: var(--c-text-muted);
+    }
+
+    .cust-filter-field__actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex: 0 0 auto;
+    }
+
+    .cust-btn-reset {
+        width: 40px;
+        height: 40px;
+        padding: 0;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.03);
+        border-color: var(--c-surface-border);
+        color: var(--c-text-secondary);
+    }
+
+        .cust-btn-reset:hover {
+            color: var(--c-text-primary);
+            transform: rotate(-90deg);
+            background: var(--c-surface-strong);
+        }
+
+    .cust-btn-search {
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        color: #fff;
+        box-shadow: 0 6px 16px rgba(37, 99, 235, 0.32);
+    }
+
+        .cust-btn-search:hover {
+            box-shadow: 0 10px 22px rgba(37, 99, 235, 0.45);
+            transform: translateY(-2px);
+        }
+
+    /* ============ TABLE CARD ============ */
+    .cust-table-card {
+        background: var(--c-surface);
+        border: 1px solid var(--c-surface-border);
+        border-radius: var(--c-radius-lg);
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.25);
+        overflow: hidden;
+    }
+
+    .cust-table-card__toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--c-surface-border);
+    }
+
+    .cust-table-card__rows-per-page {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: var(--c-text-secondary);
+    }
+
+    .cust-table-card__quick-search {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+
+        .cust-table-card__quick-search i {
+            position: absolute;
+            left: 12px;
+            color: var(--c-text-muted);
+            font-size: 12.5px;
+        }
+
+        .cust-table-card__quick-search input {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--c-surface-border);
+            border-radius: var(--c-radius-sm);
+            color: var(--c-text-primary);
+            font-size: 13px;
+            padding: 8px 12px 8px 32px;
+            width: 220px;
+            outline: none;
+            transition: border-color 0.18s ease;
+        }
+
+            .cust-table-card__quick-search input:focus {
+                border-color: var(--c-blue);
+            }
+
+    /* ============ TABLE ============ */
+    .cust-table-scroll {
+        max-height: 560px;
+        overflow-y: auto;
+    }
+
+    .cust-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        min-width: 1350px;
+    }
+
+        .cust-table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            background: var(--card-color-2);
+            text-align: left;
+            font-size: 11.5px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text-muted);
+            font-weight: 600;
+            padding: 13px 16px;
+            border-bottom: 1px solid var(--border-color);
+            white-space: nowrap;
+        }
+
+            .cust-table thead th.sortable {
+                cursor: pointer;
+                user-select: none;
+            }
+
+                .cust-table thead th.sortable i {
+                    margin-left: 6px;
+                    font-size: 10px;
+                    opacity: 0.5;
+                }
+
+                .cust-table thead th.sortable:hover {
+                    color: var(--c-text-secondary);
+                }
+
+                    .cust-table thead th.sortable:hover i {
+                        opacity: 1;
+                    }
+
+        /* Table values made bolder + brighter (text-color instead of the
+               dimmer text-secondary) so every cell reads clearly on dark
+               theme, not just the highlighted "fw-cell" columns. */
+        .cust-table tbody td {
+            padding: 12px 16px;
+            font-size: 13.5px;
+            font-weight: 600;
+            color: var(--text-color);
+            border-bottom: 1px solid var(--border-soft);
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
+        .cust-table tbody tr {
+            transition: background 0.16s ease;
+        }
+
+            .cust-table tbody tr:hover {
+                background: rgba(59, 130, 246, 0.05);
+            }
+
+            .cust-table tbody tr:last-child td {
+                border-bottom: none;
+            }
+
+    .fw-cell {
+        color: var(--text-color);
+        font-weight: 700;
+    }
+
+    .muted-cell {
+        color: var(--text-secondary);
+        font-weight: 600;
+    }
+
+    .spend-cell {
+        color: var(--text-color);
+        font-weight: 700;
+    }
+
+    .cust-avatar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-color-2));
+        color: #fff;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        box-shadow: 0 4px 10px rgba(59, 130, 246, 0.35);
+    }
+
+    .cust-avatar--pink {
+        background: linear-gradient(135deg, #ec4899, #be185d);
+        box-shadow: 0 4px 10px rgba(236, 72, 153, 0.35);
+    }
+
+    .cust-avatar--teal {
+        background: linear-gradient(135deg, #14b8a6, #0f766e);
+        box-shadow: 0 4px 10px rgba(20, 184, 166, 0.35);
+    }
+
+    .cust-avatar--purple {
+        background: linear-gradient(135deg, #a855f7, #7e22ce);
+        box-shadow: 0 4px 10px rgba(168, 85, 247, 0.35);
+    }
+
+    .cust-avatar--orange {
+        background: linear-gradient(135deg, #f59e0b, #b45309);
+        box-shadow: 0 4px 10px rgba(245, 158, 11, 0.35);
+    }
+
+    .cust-avatar--blue {
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    }
+
+    .cust-avatar--green {
+        background: linear-gradient(135deg, #22c55e, #15803d);
+        box-shadow: 0 4px 10px rgba(34, 197, 94, 0.35);
+    }
+
+    .cust-avatar--red {
+        background: linear-gradient(135deg, #ef4444, #b91c1c);
+        box-shadow: 0 4px 10px rgba(239, 68, 68, 0.35);
+    }
+
+    /* Illustrated avatar image — match size/shape of .cust-avatar */
+    .cust-avatar-img {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+        flex-shrink: 0;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+        display: inline-block;
+    }
+
+    /* ============ MEMBERSHIP BADGES ============ */
+    .badge-membership {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 12px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+        transition: transform 0.15s ease;
+    }
+
+        .badge-membership:hover {
+            transform: translateY(-1px);
+        }
+
+    .badge-membership--vip {
+        background: var(--c-gold-soft);
+        color: var(--c-gold);
+    }
+
+    .badge-membership--corporate {
+        background: var(--c-blue-soft);
+        color: var(--c-blue);
+    }
+
+    .badge-membership--regular {
+        background: rgba(148, 163, 184, 0.14);
+        color: var(--text-secondary);
+    }
+
+    /* ============ STATUS BADGES ============ */
+    .badge-cstatus {
+        display: inline-flex;
+        align-items: center;
+        padding: 5px 12px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+        transition: transform 0.15s ease;
+    }
+
+        .badge-cstatus:hover {
+            transform: translateY(-1px);
+        }
+
+    .badge-cstatus--active {
+        background: var(--success-soft);
+        color: var(--success-color);
+    }
+
+    .badge-cstatus--inactive {
+        background: var(--warning-soft);
+        color: var(--warning-color);
+    }
+
+    .badge-cstatus--blocked {
+        background: var(--danger-soft);
+        color: var(--danger-color);
+    }
+
+    /* ============ ACTIONS ============ */
+    .col-actions {
+        text-align: right;
+    }
+
+    .action-group {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .action-btn {
+        width: 30px;
+        height: 30px;
+        border-radius: 9px;
+        border: 1px solid var(--border-color);
+        background: var(--card-color);
+        color: var(--text-secondary);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.16s ease;
+    }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+        }
+
+    .action-btn--view:hover {
+        color: var(--c-blue);
+        border-color: var(--c-blue);
+        background: var(--c-blue-soft);
+    }
+
+    .action-btn--edit:hover {
+        color: var(--c-green);
+        border-color: var(--c-green);
+        background: var(--c-green-soft);
+    }
+
+    .action-btn--delete:hover {
+        color: var(--c-red);
+        border-color: var(--c-red);
+        background: var(--c-red-soft);
+    }
+
+    .action-btn--more:hover {
+        color: var(--c-text-primary);
+        background: var(--c-surface-strong);
+    }
+
+    .cust-page .dropdown-menu {
+        background: #101a2e;
+        border: 1px solid var(--c-surface-border);
+        border-radius: var(--c-radius-sm);
+        padding: 6px;
+        box-shadow: 0 14px 30px rgba(0,0,0,0.4);
+    }
+
+    .cust-page .dropdown-item {
+        color: var(--c-text-secondary);
+        font-size: 13px;
+        border-radius: 8px;
+        padding: 8px 10px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+        .cust-page .dropdown-item i {
+            width: 14px;
+            color: var(--c-text-muted);
+        }
+
+        .cust-page .dropdown-item:hover {
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--c-text-primary);
+        }
+
+    /* ============ FOOTER / PAGINATION ============ */
+    .cust-table-card__footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        padding: 16px 20px;
+        border-top: 1px solid var(--c-surface-border);
+    }
+
+    .cust-table-card__count {
+        font-size: 13px;
+        color: var(--c-text-secondary);
+    }
+
+    .cust-pagination-premium {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+        .cust-pagination-premium .page-link {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 32px;
+            height: 32px;
+            padding: 0 8px;
+            border-radius: 9px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--c-surface-border);
+            color: var(--c-text-secondary);
+            font-size: 12.5px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.16s ease;
+        }
+
+            .cust-pagination-premium .page-link:hover {
+                background: var(--c-surface-strong);
+                color: var(--c-text-primary);
+                transform: translateY(-1px);
+            }
+
+        .cust-pagination-premium .page-item.active .page-link {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border-color: transparent;
+            color: #fff;
+            box-shadow: 0 6px 14px rgba(37, 99, 235, 0.4);
+        }
+
+        .cust-pagination-premium .page-item.disabled .page-link {
+            opacity: 0.35;
+            pointer-events: none;
+        }
+
+        .cust-pagination-premium .page-item--dots span {
+            color: var(--c-text-muted);
+            padding: 0 4px;
+            font-size: 13px;
+        }
+
+    /* ============ RESPONSIVE ============ */
+    @@media (max-width: 1200px) {
+        .cust-summary-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .cust-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .cust-header__actions {
+            justify-content: flex-start;
+        }
+
+        .cust-summary-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .cust-filter-card__row {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .cust-filter-field {
+            width: 100%;
+        }
+
+        .cust-table-card__footer {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+    }
+</style>
+
+<script>
+    (function () {
+        "use strict";
+
+        document.addEventListener("DOMContentLoaded", initCustomersPage);
+
+        function initCustomersPage() {
+            const table = document.getElementById("customersTable");
+            if (!table) return;
+
+            const tbody = document.getElementById("customersTableBody");
+            const rows = () => Array.from(tbody.querySelectorAll("tr"));
+
+            const searchInput = document.getElementById("custSearch");
+            const quickSearchInput = document.getElementById("tableQuickSearch");
+            const typeSelect = document.getElementById("filterCustomerType");
+            const statusSelect = document.getElementById("filterStatus");
+            const citySelect = document.getElementById("filterCity");
+            const countrySelect = document.getElementById("filterCountry");
+            const resetBtn = document.getElementById("btnResetFilter");
+            const searchBtn = document.getElementById("btnSearchFilter");
+            const countLabel = document.getElementById("customersCountLabel");
+            const sortableHeaders = table.querySelectorAll("th.sortable");
+
+            let sortState = { key: null, dir: 1 };
+
+            // ---------- FILTERING ----------
+            function applyFilters() {
+                const term = ((searchInput && searchInput.value) || (quickSearchInput && quickSearchInput.value) || "")
+                    .trim()
+                    .toLowerCase();
+                const type = typeSelect ? typeSelect.value : "";
+                const status = statusSelect ? statusSelect.value : "";
+                const city = citySelect ? citySelect.value : "";
+                const country = countrySelect ? countrySelect.value : "";
+
+                let visibleCount = 0;
+
+                rows().forEach((row) => {
+                    const custType = row.dataset.type || "";
+                    const custStatus = row.dataset.status || "";
+                    const custCity = row.dataset.city || "";
+                    const custCountry = row.dataset.country || "";
+                    const rowText = row.textContent.toLowerCase();
+
+                    let visible = true;
+
+                    if (term && !rowText.includes(term)) visible = false;
+                    if (type && custType !== type) visible = false;
+                    if (status && custStatus !== status) visible = false;
+                    if (city && custCity !== city) visible = false;
+                    if (country && custCountry !== country) visible = false;
+
+                    row.style.display = visible ? "" : "none";
+                    if (visible) visibleCount++;
+                });
+
+                updateCountLabel(visibleCount);
+            }
+
+            function updateCountLabel(visibleCount) {
+                if (!countLabel) return;
+                const total = rows().length;
+                const shown = Math.min(visibleCount, total);
+                countLabel.textContent = `Showing ${shown === 0 ? 0 : 1} to ${shown} of 520 Customers`;
+            }
+
+            function resetFilters() {
+                if (searchInput) searchInput.value = "";
+                if (quickSearchInput) quickSearchInput.value = "";
+                if (typeSelect) typeSelect.value = "";
+                if (statusSelect) statusSelect.value = "";
+                if (citySelect) citySelect.value = "";
+                if (countrySelect) countrySelect.value = "";
+                applyFilters();
+            }
+
+            if (searchInput) searchInput.addEventListener("input", debounce(applyFilters, 200));
+            if (quickSearchInput) quickSearchInput.addEventListener("input", debounce(applyFilters, 200));
+            [typeSelect, statusSelect, citySelect, countrySelect].forEach((el) => {
+                if (el) el.addEventListener("change", applyFilters);
+            });
+            if (resetBtn) resetBtn.addEventListener("click", resetFilters);
+            if (searchBtn) searchBtn.addEventListener("click", applyFilters);
+
+            // ---------- SORTING ----------
+            sortableHeaders.forEach((th) => {
+                th.addEventListener("click", () => {
+                    const key = th.dataset.sort;
+                    sortState.dir = sortState.key === key ? sortState.dir * -1 : 1;
+                    sortState.key = key;
+
+                    sortableHeaders.forEach((h) => h.querySelector("i").className = "fa-solid fa-sort");
+                    const icon = th.querySelector("i");
+                    icon.className = sortState.dir === 1 ? "fa-solid fa-sort-up" : "fa-solid fa-sort-down";
+
+                    sortRows(key, sortState.dir);
+                });
+            });
+
+            function sortRows(key, dir) {
+                const map = {
+                    customerId: (r) => r.dataset.customerId,
+                    name: (r) => r.dataset.name.toLowerCase(),
+                    city: (r) => r.dataset.city,
+                    bookings: (r) => Number(r.dataset.bookings),
+                    spending: (r) => Number(r.dataset.spending),
+                    registered: (r) => new Date(r.children[11].textContent.trim())
+                };
+                const getValue = map[key];
+                if (!getValue) return;
+
+                const sorted = rows().sort((a, b) => {
+                    const va = getValue(a);
+                    const vb = getValue(b);
+                    if (va < vb) return -1 * dir;
+                    if (va > vb) return 1 * dir;
+                    return 0;
+                });
+
+                sorted.forEach((row) => tbody.appendChild(row));
+            }
+
+            // ---------- PAGINATION (demo only) ----------
+            const pagination = document.getElementById("customersPagination");
+            if (pagination) {
+                pagination.addEventListener("click", (e) => {
+                    const link = e.target.closest(".page-link");
+                    if (!link) return;
+                    e.preventDefault();
+
+                    const items = Array.from(pagination.querySelectorAll(".page-item"));
+                    items.forEach((li) => li.classList.remove("active"));
+                    const parentLi = link.closest(".page-item");
+                    if (parentLi && link.dataset.page !== "prev" && link.dataset.page !== "next") {
+                        parentLi.classList.add("active");
+                    }
+                    // Real implementation: fetch page data via AJAX from CustomersController
+                    // and re-render tbody + countLabel accordingly.
+                });
+            }
+
+            // ---------- ROWS PER PAGE ----------
+            const rowsPerPage = document.getElementById("rowsPerPage");
+            if (rowsPerPage) {
+                rowsPerPage.addEventListener("change", () => {
+                    applyFilters();
+                });
+            }
+
+            // ---------- UTIL ----------
+            function debounce(fn, delay) {
+                let timer;
+                return function (...args) {
+                    clearTimeout(timer);
+                    timer = setTimeout(() => fn.apply(this, args), delay);
+                };
+            }
+
+            updateCountLabel(rows().length);
+
+            // Import file handling: auto-submit when file selected
+            const importFileInput = document.getElementById('importFileInput');
+            const importForm = document.getElementById('importForm');
+            if (importFileInput && importForm) {
+                importFileInput.addEventListener('change', function () {
+                    if (importFileInput.files && importFileInput.files.length > 0) {
+                        importForm.submit();
+                    }
+                });
+            }
+        }
+    })();
+</script>

@@ -1,26 +1,27 @@
 ﻿using FluentValidation;
-using HotelBilling.Application.DTOs.Request;
+using HotelBilling.Application.DTOs.Customer;
 
 namespace HotelBilling.Application.Validators
 {
-    public class CustomerValidator : AbstractValidator<CreateCustomerRequest>
+    public class CustomerValidator : AbstractValidator<CustomerDto>
     {
         public CustomerValidator()
         {
-            // Name
-            RuleFor(x => x.Name)
-                .NotEmpty().WithMessage("Name is required")
-                .MaximumLength(100).WithMessage("Name cannot exceed 100 characters");
+            RuleFor(x => x.FirstName)
+                .NotEmpty().WithMessage("First name is required")
+                .MaximumLength(50).WithMessage("First name cannot exceed 50 characters");
 
-            // Email
+            RuleFor(x => x.LastName)
+                .NotEmpty().WithMessage("Last name is required")
+                .MaximumLength(50).WithMessage("Last name cannot exceed 50 characters");
+
             RuleFor(x => x.Email)
                 .NotEmpty().WithMessage("Email is required")
                 .EmailAddress().WithMessage("Invalid email format");
 
-            // Phone
-            RuleFor(x => x.Phone)
-                .NotEmpty().WithMessage("Phone is required")
-                .Matches(@"^[0-9]{10}$").WithMessage("Phone must be 10 digits");
+            RuleFor(x => x.MobileNumber)
+                .NotEmpty().WithMessage("Mobile number is required")
+                .Matches(@"^[0-9]{10}$").WithMessage("Mobile number must be 10 digits");
         }
     }
 }

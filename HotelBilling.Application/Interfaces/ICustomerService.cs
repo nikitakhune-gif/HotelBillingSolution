@@ -1,21 +1,18 @@
-﻿using HotelBilling.Application.DTOs.Request;
-using HotelBilling.Application.DTOs.Response;
-
-namespace HotelBilling.Application.Interfaces
+﻿namespace HotelBilling.Application.Interfaces
 {
     public interface ICustomerService
     {
         // Create
-        Task<int> CreateCustomerAsync(CreateCustomerRequest request);
+        Task<int> CreateCustomerAsync(HotelBilling.Application.DTOs.Customer.CustomerDto request);
 
         // Get All
-        Task<IEnumerable<CustomerResponse>> GetAllCustomersAsync();
+        Task<IEnumerable<HotelBilling.Application.DTOs.Customer.CustomerDto>> GetAllCustomersAsync();
 
         // Get By Id
-        Task<CustomerResponse?> GetCustomerByIdAsync(int id);
+        Task<HotelBilling.Application.DTOs.Customer.CustomerDto?> GetCustomerByIdAsync(int id);
 
         // Update
-        Task<bool> UpdateCustomerAsync(int id, CreateCustomerRequest request);
+        Task<bool> UpdateCustomerAsync(int id, HotelBilling.Application.DTOs.Customer.CustomerDto request);
 
         // Delete
         Task<bool> DeleteCustomerAsync(int id);

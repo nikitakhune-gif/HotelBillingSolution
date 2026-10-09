@@ -1,0 +1,721 @@
+@{
+    ViewData["Title"] = "Edit Bill";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@model HotelBilling.Application.DTOs.Bill.BillDto
+
+<!-- Scoped styles below follow the same CSS-variable theme tokens used across
+     the app's site.css (var(--bg-color), var(--card-color), var(--text-color),
+     etc.) so this page renders correctly in BOTH the light and dark theme
+     toggles — no hardcoded colors. -->
+<style>
+    .billing-create-page {
+        background: var(--bg-color);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: var(--text-color);
+        padding: 28px clamp(14px, 3vw, 36px) 60px;
+        min-height: 100vh;
+    }
+
+        .billing-create-page * {
+            box-sizing: border-box;
+        }
+
+    /* ===== Header ===== */
+    .page-header {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        align-items: flex-start;
+        justify-content: space-between;
+        margin-bottom: 24px;
+    }
+
+        .page-header h1 {
+            font-size: 27px;
+            font-weight: 800;
+            margin: 0;
+            letter-spacing: -0.02em;
+            color: var(--heading-color);
+        }
+
+        .page-header p {
+            margin: 4px 0 0;
+            color: var(--text-muted);
+            font-size: 14.5px;
+        }
+
+    .header-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .btn-outline-soft {
+        border-radius: 12px;
+        padding: 10px 18px;
+        font-size: 14px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        border: 1px solid var(--border-color);
+        background: var(--input-color);
+        color: var(--text-color);
+        transition: all .2s ease;
+        white-space: nowrap;
+        text-decoration: none;
+    }
+
+        .btn-outline-soft:hover {
+            box-shadow: var(--shadow-sm);
+            transform: translateY(-1px);
+            color: var(--text-color);
+        }
+
+    .btn-primary-grad {
+        border-radius: 12px;
+        padding: 10px 20px;
+        font-size: 14px;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        border: none;
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-color-2) 100%);
+        color: var(--on-primary, #fff);
+        box-shadow: 0 6px 16px rgba(37, 99, 235, 0.28);
+        transition: all .2s ease;
+        white-space: nowrap;
+    }
+
+        .btn-primary-grad:hover {
+            box-shadow: 0 12px 24px rgba(37, 99, 235, 0.36);
+            transform: translateY(-2px);
+            color: var(--on-primary, #fff);
+        }
+
+    /* ===== Panels ===== */
+    .panel {
+        background: var(--card-color);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+        padding: 22px;
+        margin-bottom: 22px;
+    }
+
+    .panel-header-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .panel-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 16.5px;
+        font-weight: 700;
+        color: var(--heading-color);
+        margin-bottom: 4px;
+    }
+
+        .panel-title .icon-badge {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            background: var(--primary-soft);
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            flex-shrink: 0;
+        }
+
+    .panel-subtitle {
+        font-size: 13px;
+        color: var(--text-muted);
+        margin: 0 0 18px 48px;
+    }
+
+    /* ===== Floating label inputs ===== */
+    .form-floating > .form-control,
+    .form-floating > .form-select,
+    .form-floating > textarea {
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        background: var(--input-color);
+        color: var(--text-color);
+        font-size: 14px;
+    }
+
+    .form-floating > label {
+        color: var(--text-muted);
+        font-size: 13.5px;
+    }
+
+    .form-floating > .form-control:focus,
+    .form-floating > .form-select:focus,
+    .form-floating > textarea:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 4px var(--primary-soft);
+        background: var(--input-color);
+        color: var(--text-color);
+    }
+
+    .form-floating > .form-control[readonly] {
+        opacity: .75;
+    }
+
+    /* ===== Add item button ===== */
+    .btn-add-item {
+        border: 1px solid var(--primary-color);
+        background: var(--primary-soft);
+        color: var(--primary-color);
+        border-radius: 10px;
+        padding: 8px 16px;
+        font-size: 13.5px;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        white-space: nowrap;
+        transition: all .2s ease;
+    }
+
+        .btn-add-item:hover {
+            background: var(--primary-color);
+            color: var(--on-primary, #fff);
+            transform: translateY(-1px);
+        }
+
+    /* ===== Bill items table ===== */
+    .table-premium {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: 13.5px;
+    }
+
+        .table-premium thead th {
+            text-align: left;
+            font-size: 11.5px;
+            font-weight: 700;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            background: var(--input-color);
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+            .table-premium thead th:first-child {
+                border-top-left-radius: 10px;
+                border-bottom-left-radius: 10px;
+            }
+
+            .table-premium thead th:last-child {
+                border-top-right-radius: 10px;
+                border-bottom-right-radius: 10px;
+                text-align: center;
+            }
+
+        .table-premium tbody tr {
+            transition: background .15s ease;
+        }
+
+            .table-premium tbody tr:hover {
+                background: var(--input-color);
+            }
+
+        .table-premium tbody td {
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-color);
+            vertical-align: middle;
+        }
+
+        .table-premium .row-index {
+            color: var(--text-muted);
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .table-premium .row-amount {
+            font-weight: 700;
+            color: var(--heading-color);
+            white-space: nowrap;
+        }
+
+        .table-premium input.item-name,
+        .table-premium input.item-qty,
+        .table-premium input.item-rate {
+            width: 100%;
+            border: 1px solid var(--border-color);
+            background: var(--input-color);
+            color: var(--text-color);
+            border-radius: 8px;
+            padding: 7px 10px;
+            font-size: 13.5px;
+        }
+
+            .table-premium input.item-name:focus,
+            .table-premium input.item-qty:focus,
+            .table-premium input.item-rate:focus {
+                outline: none;
+                border-color: var(--primary-color);
+                box-shadow: 0 0 0 3px var(--primary-soft);
+            }
+
+    .btn-del-row {
+        border: 1px solid var(--border-color);
+        background: var(--input-color);
+        color: var(--danger-color);
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all .2s ease;
+    }
+
+        .btn-del-row:hover {
+            background: var(--danger-color);
+            color: var(--on-primary, #fff);
+            border-color: var(--danger-color);
+        }
+
+    .table-footer-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 16px;
+        padding-top: 14px;
+        border-top: 1px dashed var(--border-color);
+    }
+
+        .table-footer-row .stat-label {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .table-footer-row .stat-value {
+            font-size: 14.5px;
+            font-weight: 700;
+            color: var(--heading-color);
+        }
+
+    /* ===== Sticky summary sidebar ===== */
+    .sticky-col {
+        position: sticky;
+        top: 20px;
+    }
+
+    .summary-card {
+        background: var(--card-color);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+        padding: 22px;
+    }
+
+    .summary-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 9px 0;
+        font-size: 13.5px;
+        color: var(--text-muted);
+    }
+
+        .summary-row .val {
+            font-weight: 700;
+            color: var(--heading-color);
+        }
+
+            .summary-row .val.neg {
+                color: var(--danger-color);
+            }
+
+            .summary-row .val.paid {
+                color: var(--success-color);
+            }
+
+            .summary-row .val.due {
+                color: var(--danger-color);
+            }
+
+    .summary-divider {
+        border-top: 1px dashed var(--border-color);
+        margin: 12px 0;
+    }
+
+    .total-block {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 10px 0 4px;
+    }
+
+        .total-block .label {
+            font-size: 12.5px;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .total-block .amount {
+            font-size: 26px;
+            font-weight: 800;
+            color: var(--heading-color);
+            letter-spacing: -0.02em;
+        }
+
+    @@media (max-width: 991px) {
+        .sticky-col {
+            position: static;
+        }
+    }
+</style>
+
+<div class="billing-create-page">
+    <form asp-action="Edit" asp-controller="Billing" asp-route-id="@Model.Id" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="Id" value="@Model.Id" />
+        <!-- Page header -->
+        <div class="page-header">
+            <div>
+                <h1>Edit Bill</h1>
+                <p>Modify the bill and save changes.</p>
+            </div>
+            <div class="header-actions">
+                <a class="btn-outline-soft" href="@Url.Action("Index", "Billing")"><i class="fa-solid fa-arrow-left me-2"></i>Back to List</a>
+                <button type="submit" class="btn-primary-grad"><i class="fa-solid fa-floppy-disk me-2"></i>Save Changes</button>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-lg-9">
+                <!-- Guest & Booking Details -->
+                <div class="panel">
+                    <div class="panel-title">
+                        <span class="icon-badge"><i class="fa-solid fa-user"></i></span>
+                        Guest &amp; Booking Details
+                    </div>
+                    <div class="panel-subtitle">Basic information about the guest and their stay.</div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <select class="form-select" id="guestName" name="CustomerId">
+                                    @if (ViewBag.Customers != null)
+                                    {
+                                        foreach (var c in (IEnumerable<dynamic>)ViewBag.Customers)
+                                        {
+                                            var id = (int)(c.Id ?? 0);
+                                            var name = (string)(c.FirstName + " " + c.LastName);
+                                            <option value="@id" selected="@(Model.CustomerId == id ? "selected" : null)">@name</option>
+                                        }
+                                    }
+                                </select>
+                                <label for="guestName"><i class="fa-solid fa-id-badge me-1"></i> Guest</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <select class="form-select" id="roomNumber" name="RoomId">
+                                    @if (ViewBag.Rooms != null)
+                                    {
+                                        foreach (var r in (IEnumerable<dynamic>)ViewBag.Rooms)
+                                        {
+                                            var id = (int)(r.Id ?? 0);
+                                            var label = (string)(r.RoomNumber ?? string.Empty);
+                                            <option value="@id" selected="@(Model.RoomId == id ? "selected" : null)">@label</option>
+                                        }
+                                    }
+                                </select>
+                                <label for="roomNumber"><i class="fa-solid fa-door-closed me-1"></i> Room Number</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-floating">
+                                <input type="date" class="form-control" id="checkIn" name="CheckInDate" value="@Model.CheckInDate.ToString("yyyy-MM-dd")" />
+                                <label for="checkIn">Check In</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-floating">
+                                <input type="date" class="form-control" id="checkOut" name="CheckOutDate" value="@Model.CheckOutDate.ToString("yyyy-MM-dd")" />
+                                <label for="checkOut">Check Out</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-floating">
+                                <input type="number" class="form-control" id="nights" name="Nights" value="@Model.Nights" readonly />
+                                <label for="nights">Number Of Nights</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Billing Details -->
+                <div class="panel">
+                    <div class="panel-title">
+                        <span class="icon-badge"><i class="fa-solid fa-file-invoice"></i></span>
+                        Billing Details
+                    </div>
+                    <div class="panel-subtitle">Invoice metadata and tax configuration.</div>
+
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <div class="form-floating">
+                                <input type="date" class="form-control" id="billDate" name="BillDate" value="@Model.BillDate.ToString("yyyy-MM-dd")" />
+                                <label for="billDate">Bill Date</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-floating">
+                                <input type="text" class="form-control" id="billNumber" name="BillNumber" value="@Model.BillNumber" />
+                                <label for="billNumber">Bill Number</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-floating">
+                                <input type="number" class="form-control" id="taxPercent" name="TaxPercent" value="@Model.TaxPercent" />
+                                <label for="taxPercent">Tax %</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-floating">
+                                <input type="number" class="form-control" id="discountPercent" name="DiscountPercent" value="@Model.DiscountPercent" />
+                                <label for="discountPercent">Discount %</label>
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="form-floating">
+                                <textarea class="form-control" id="notes" name="Notes" style="height: 90px">@Model.Notes</textarea>
+                                <label for="notes">Notes</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bill Items -->
+                <div class="panel">
+                    <div class="panel-header-row">
+                        <div>
+                            <div class="panel-title">
+                                <span class="icon-badge"><i class="fa-solid fa-list-check"></i></span>
+                                Bill Items
+                            </div>
+                            <div class="panel-subtitle mb-0">Products and services charged to the guest.</div>
+                        </div>
+                        <button type="button" class="btn-add-item" id="btnAddItem"><i class="fa-solid fa-plus me-1"></i> Add Item</button>
+                    </div>
+
+                    <div class="table-responsive mt-3">
+                        <table class="table-premium" id="itemsTable">
+                            <thead>
+                                <tr>
+                                    <th style="width:40px;">#</th>
+                                    <th>Item Name</th>
+                                    <th style="width:100px;">Quantity</th>
+                                    <th style="width:120px;">Rate</th>
+                                    <th style="width:130px;">Amount</th>
+                                    <th style="width:60px;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model.Items != null && Model.Items.Any())
+                                {
+                                    var idx = 1;
+                                    foreach (var it in Model.Items)
+                                    {
+                                        <tr>
+                                            <td class="row-index">@idx</td>
+                                            <td><input type="text" class="item-name" name="Items[@(idx - 1)].ItemName" value="@it.ItemName" /></td>
+                                            <td><input type="number" class="item-qty" name="Items[@(idx - 1)].Quantity" value="@it.Quantity" /></td>
+                                            <td><input type="number" class="item-rate" name="Items[@(idx - 1)].Rate" value="@it.Rate" /></td>
+                                            <td class="row-amount">₹@String.Format("{0:N2}", it.Amount)</td>
+                                            <td><button type="button" class="btn-del-row"><i class="fa-solid fa-trash"></i></button></td>
+                                        </tr>
+                                        idx++;
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td class="row-index">1</td>
+                                        <td><input type="text" class="item-name" name="Items[0].ItemName" value="" /></td>
+                                        <td><input type="number" class="item-qty" name="Items[0].Quantity" value="1" /></td>
+                                        <td><input type="number" class="item-rate" name="Items[0].Rate" value="0" /></td>
+                                        <td class="row-amount">₹0.00</td>
+                                        <td><button type="button" class="btn-del-row"><i class="fa-solid fa-trash"></i></button></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="table-footer-row">
+                        <div>
+                            <span class="stat-label">Total Items: </span>
+                            <span class="stat-value" id="totalItemsCount">@Model.Items?.Count() ?? 0</span>
+                        </div>
+                        <div>
+                            <span class="stat-label">Total Amount: </span>
+                            <span class="stat-value" id="totalItemsAmount">₹@String.Format("{0:N2}", Model.SubTotal)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment Details -->
+                <div class="panel">
+                    <div class="panel-title">
+                        <span class="icon-badge"><i class="fa-solid fa-credit-card"></i></span>
+                        Payment Details
+                    </div>
+                    <div class="panel-subtitle">Record any advance or partial payment received.</div>
+
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="form-floating">
+                                <select class="form-select" id="paymentMethod" name="PaymentMethod">
+                                    <option value="Cash" selected="@(Model.PaymentMethod == "Cash" ? "selected" : null)">Cash</option>
+                                    <option value="Credit Card" selected="@(Model.PaymentMethod == "Credit Card" ? "selected" : null)">Credit Card</option>
+                                    <option value="UPI" selected="@(Model.PaymentMethod == "UPI" ? "selected" : null)">UPI</option>
+                                    <option value="Bank Transfer" selected="@(Model.PaymentMethod == "Bank Transfer" ? "selected" : null)">Bank Transfer</option>
+                                </select>
+                                <label for="paymentMethod">Payment Method</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-floating">
+                                <input type="number" class="form-control" id="advanceReceived" name="AdvanceReceived" value="@Model.AdvanceReceived" />
+                                <label for="advanceReceived">Advance Received</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-floating">
+                                <select class="form-select" id="paymentStatus" name="PaymentStatus">
+                                    <option value="Paid" selected="@(Model.PaymentStatus == "Paid" ? "selected" : null)">Paid</option>
+                                    <option value="Pending" selected="@(Model.PaymentStatus == "Pending" ? "selected" : null)">Pending</option>
+                                    <option value="Partially Paid" selected="@(Model.PaymentStatus == "Partially Paid" ? "selected" : null)">Partially Paid</option>
+                                </select>
+                                <label for="paymentStatus">Payment Status</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <input type="text" class="form-control" id="transactionNumber" name="TransactionNumber" value="@Model.TransactionNumber" />
+                                <label for="transactionNumber">Transaction Number</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <input type="date" class="form-control" id="paymentDate" name="PaymentDate" value="@(Model.PaymentDate?.ToString("yyyy-MM-dd") ?? string.Empty)" />
+                                <label for="paymentDate">Payment Date</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-3">
+                <div class="sticky-col">
+                    <div class="summary-card">
+                        <div class="panel-title mb-3" style="font-size:15.5px;">
+                            <span class="icon-badge" style="width:30px;height:30px;font-size:13px;"><i class="fa-solid fa-receipt"></i></span>
+                            Bill Summary
+                        </div>
+
+                        <div class="summary-row">
+                            <span>Subtotal</span>
+                            <span class="val" id="sumSubtotal">₹@String.Format("{0:N2}", Model.SubTotal)</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Discount (@Model.DiscountPercent%)</span>
+                            <span class="val neg" id="sumDiscount">- ₹@String.Format("{0:N2}", Model.DiscountAmount)</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Tax (@Model.TaxPercent%)</span>
+                            <span class="val" id="sumTax">+ ₹@String.Format("{0:N2}", Model.TaxAmount)</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Service Charge</span>
+                            <span class="val" id="sumService">+ ₹@String.Format("{0:N2}", Model.ServiceCharge)</span>
+                        </div>
+
+                        <div class="summary-divider"></div>
+
+                        <div class="total-block">
+                            <div class="label">Total Amount</div>
+                            <div class="amount" id="sumTotal">₹@String.Format("{0:N2}", Model.TotalAmount)</div>
+                        </div>
+
+                        <div class="summary-row">
+                            <span>Paid Amount</span>
+                            <span class="val paid" id="sumPaid">₹@String.Format("{0:N2}", Model.PaidAmount)</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Due Amount</span>
+                            <span class="val due" id="sumDue">₹@String.Format("{0:N2}", Model.DueAmount)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Reuse client-side behaviour from Create page but ensure we submit to Edit
+    (function () {
+        // minimal JS: update totals when item values change
+        const itemsTableBody = document.querySelector('#itemsTable tbody');
+        const btnAddItem = document.getElementById('btnAddItem');
+
+        function formatCurrency(value) { return '₹' + Number(value).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+
+        function recalc() {
+            let subtotal = 0;
+            let count = 0;
+            itemsTableBody.querySelectorAll('tr').forEach(row => {
+                const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+                const rate = parseFloat(row.querySelector('.item-rate').value) || 0;
+                const amt = qty * rate;
+                row.querySelector('.row-amount').textContent = formatCurrency(amt);
+                subtotal += amt; count++;
+            });
+            document.getElementById('sumSubtotal').textContent = formatCurrency(subtotal);
+            document.getElementById('totalItemsCount').textContent = count;
+            document.getElementById('totalItemsAmount').textContent = formatCurrency(subtotal);
+        }
+
+        if (itemsTableBody) {
+            itemsTableBody.addEventListener('input', recalc);
+            itemsTableBody.addEventListener('click', function (e) {
+                const del = e.target.closest('.btn-del-row');
+                if (del) {
+                    const row = del.closest('tr');
+                    if (itemsTableBody.querySelectorAll('tr').length > 1) row.remove();
+                    recalc();
+                }
+            });
+        }
+
+        if (btnAddItem) btnAddItem.addEventListener('click', function () {
+            const idx = itemsTableBody.querySelectorAll('tr').length;
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td class="row-index">${idx+1}</td><td><input type="text" class="item-name" name="Items[${idx}].ItemName" value="New Item" /></td><td><input type="number" class="item-qty" name="Items[${idx}].Quantity" value="1" /></td><td><input type="number" class="item-rate" name="Items[${idx}].Rate" value="0" /></td><td class="row-amount">₹0.00</td><td><button type="button" class="btn-del-row"><i class="fa-solid fa-trash"></i></button></td>`;
+            itemsTableBody.appendChild(tr);
+            recalc();
+        });
+
+        recalc();
+    })();
+</script>

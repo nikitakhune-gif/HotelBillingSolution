@@ -1,20 +1,17 @@
-﻿using HotelBilling.Application.DTOs.Request;
-using HotelBilling.Application.DTOs.Response;
-
-namespace HotelBilling.Application.Interfaces
+﻿namespace HotelBilling.Application.Interfaces
 {
     public interface IBillingService
     {
         // Create Bill
-        Task<BillResponse> GenerateBillAsync(CreateBillRequest request);
+        Task<HotelBilling.Application.DTOs.Bill.BillDto> GenerateBillAsync(HotelBilling.Application.DTOs.Bill.BillDto request);
 
         // Get All Bills
-        Task<IEnumerable<BillResponse>> GetAllAsync();
+        Task<IEnumerable<HotelBilling.Application.DTOs.Bill.BillDto>> GetAllAsync();
 
         // Get Bill By Id
-        Task<BillResponse?> GetByIdAsync(int id);
+        Task<HotelBilling.Application.DTOs.Bill.BillDto?> GetByIdAsync(int id);
 
-        // Update Payment Status
+        // Update Payment Status (pass enum int or string handled inside service)
         Task<bool> UpdatePaymentStatusAsync(int billId, int paymentStatus);
 
         // Delete Bill

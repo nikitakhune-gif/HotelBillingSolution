@@ -1,0 +1,1147 @@
+﻿@model HotelBilling.Application.DTOs.Room.RoomDto
+@{
+    ViewData["Title"] = "Edit Room";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    // ---- helpers for pre-selecting dropdown / radio / checkbox values ----
+    string Sel(string? current, string option) =>
+        string.Equals(current?.Trim(), option, StringComparison.OrdinalIgnoreCase) ? "selected" : "";
+
+    string Chk(string? current, string option) =>
+        string.Equals(current?.Trim(), option, StringComparison.OrdinalIgnoreCase) ? "checked" : "";
+
+    string ChkBool(bool? current, bool option) =>
+        (current ?? true) == option ? "checked" : "";
+
+    string DateVal(DateTime? d) => d.HasValue ? d.Value.ToString("yyyy-MM-dd") : "";
+}
+
+<style>
+    /* =====================================================
+                   EDIT ROOM — SCOPED STYLES
+                   Same theme tokens as Add Room / Rooms list, so it
+                   repaints correctly with [data-theme] on <html>.
+                ===================================================== */
+
+    .addroom-wrap {
+        --ar-primary: var(--primary-color);
+        --ar-secondary: var(--text-secondary);
+        --ar-card: var(--card-color);
+        --ar-text: var(--text-color);
+        --ar-border: var(--border-color);
+        --ar-input-bg: var(--input-color);
+        --ar-input-border: var(--border-color);
+        --ar-shadow: var(--shadow-md);
+        color: var(--ar-text);
+        padding-bottom: 2rem;
+    }
+
+        .addroom-wrap * {
+            box-sizing: border-box;
+        }
+
+    /* ---------- Page Header ---------- */
+    .ar-header {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        align-items: flex-start;
+        justify-content: space-between;
+        margin-bottom: 1.75rem;
+    }
+
+        .ar-header h1 {
+            font-size: 1.65rem;
+            font-weight: 700;
+            margin: 0 0 0.25rem 0;
+            letter-spacing: -0.02em;
+            color: var(--ar-text);
+        }
+
+        .ar-header p {
+            margin: 0;
+            font-size: 0.92rem;
+            color: var(--ar-secondary);
+        }
+
+    .ar-header-actions {
+        display: flex;
+        gap: 0.65rem;
+        flex-wrap: wrap;
+    }
+
+    /* ---------- Buttons ---------- */
+    .btn-ar-primary {
+        background: linear-gradient(135deg, var(--ar-primary), var(--primary-color-2));
+        border: none;
+        color: #fff;
+        font-weight: 600;
+        padding: 0.62rem 1.3rem;
+        border-radius: 12px;
+        box-shadow: var(--hover-glow);
+        transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+    }
+
+        .btn-ar-primary:hover, .btn-ar-primary:focus {
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: var(--active-shadow);
+            filter: brightness(1.05);
+        }
+
+    .btn-ar-outline {
+        background: transparent;
+        border: 1px solid var(--ar-input-border);
+        color: var(--ar-text);
+        font-weight: 600;
+        padding: 0.62rem 1.3rem;
+        border-radius: 12px;
+        transition: all 0.18s ease;
+    }
+
+        .btn-ar-outline:hover {
+            background: var(--hover-bg);
+            border-color: var(--ar-primary);
+            color: var(--ar-text);
+            transform: translateY(-2px);
+        }
+
+    .btn-ar-ghost {
+        background: transparent;
+        border: 1px dashed var(--ar-input-border);
+        color: var(--ar-secondary);
+        font-weight: 600;
+        padding: 0.62rem 1.3rem;
+        border-radius: 12px;
+        transition: all 0.18s ease;
+    }
+
+        .btn-ar-ghost:hover {
+            color: var(--ar-text);
+            border-color: var(--ar-secondary);
+        }
+
+    .btn-ar-danger-outline {
+        background: transparent;
+        border: 1px solid var(--danger-color);
+        color: var(--danger-color);
+        font-weight: 600;
+        padding: 0.62rem 1.3rem;
+        border-radius: 12px;
+        transition: all 0.18s ease;
+    }
+
+        .btn-ar-danger-outline:hover {
+            background: var(--danger-soft);
+            color: var(--danger-color);
+            transform: translateY(-2px);
+        }
+
+    /* ---------- Card ---------- */
+    .ar-card {
+        background: var(--ar-card);
+        border: 1px solid var(--ar-border);
+        border-radius: 18px;
+        padding: 1.75rem;
+        box-shadow: var(--ar-shadow);
+        height: 100%;
+    }
+
+        .ar-card + .ar-card {
+            margin-top: 1.5rem;
+        }
+
+    .ar-section-title {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        font-size: 1.02rem;
+        font-weight: 700;
+        margin-bottom: 1.35rem;
+        color: var(--ar-text);
+    }
+
+        .ar-section-title .ar-icon-badge {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--primary-soft);
+            color: var(--ar-primary);
+            font-size: 0.95rem;
+            flex-shrink: 0;
+        }
+
+    .ar-section-sub {
+        font-size: 0.8rem;
+        font-weight: 400;
+        color: var(--ar-secondary);
+        margin-top: 0.1rem;
+    }
+
+    /* ---------- Floating inputs ---------- */
+    .ar-field {
+        position: relative;
+        margin-bottom: 1.1rem;
+    }
+
+        .ar-field .form-control,
+        .ar-field .form-select {
+            background: var(--ar-input-bg);
+            border: 1px solid var(--ar-input-border);
+            color: var(--ar-text);
+            border-radius: 12px;
+            padding: 1rem 0.9rem 0.4rem 2.6rem;
+            height: 54px;
+            font-size: 0.92rem;
+            transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+        }
+
+        .ar-field textarea.form-control {
+            height: auto;
+            min-height: 130px;
+            padding: 1.6rem 0.9rem 0.5rem 2.6rem;
+        }
+
+        .ar-field .form-control:focus,
+        .ar-field .form-select:focus {
+            background: var(--ar-input-bg);
+            border-color: var(--ar-primary);
+            color: var(--ar-text);
+            box-shadow: 0 0 0 4px var(--primary-soft);
+        }
+
+        .ar-field label {
+            position: absolute;
+            top: 0.85rem;
+            left: 2.6rem;
+            font-size: 0.92rem;
+            color: var(--ar-secondary);
+            pointer-events: none;
+            transition: all 0.15s ease;
+            background: transparent;
+        }
+
+        .ar-field .form-control::placeholder {
+            color: transparent;
+        }
+
+        .ar-field .form-control:focus + label,
+        .ar-field .form-control:not(:placeholder-shown) + label,
+        .ar-field .form-select:focus ~ label,
+        .ar-field.filled label,
+        .ar-field .form-select.filled ~ label {
+            top: 0.3rem;
+            font-size: 0.7rem;
+            color: var(--ar-primary);
+        }
+
+        .ar-field .ar-input-icon {
+            position: absolute;
+            left: 0.95rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--ar-secondary);
+            font-size: 0.9rem;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .ar-field textarea ~ .ar-input-icon {
+            top: 1.4rem;
+            transform: none;
+        }
+
+        .ar-field select.form-select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%2364748B' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+        }
+
+    .ar-required {
+        color: var(--danger-color);
+        margin-left: 2px;
+    }
+
+    .invalid-feedback {
+        font-size: 0.76rem;
+    }
+
+    .was-validated .form-control:invalid,
+    .was-validated .form-select:invalid {
+        border-color: var(--danger-color) !important;
+        box-shadow: 0 0 0 4px var(--danger-soft) !important;
+    }
+
+    /* ---------- Pill radio groups (Availability / Status) ---------- */
+    .ar-pill-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+        margin-bottom: 1.1rem;
+    }
+
+        .ar-pill-group input[type="radio"] {
+            display: none;
+        }
+
+        .ar-pill-group label {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.55rem 1rem;
+            border-radius: 999px;
+            border: 1px solid var(--ar-input-border);
+            background: var(--ar-input-bg);
+            color: var(--ar-secondary);
+            font-size: 0.83rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.18s ease;
+        }
+
+        .ar-pill-group input[type="radio"]:checked + label {
+            background: var(--primary-soft);
+            border-color: var(--ar-primary);
+            color: var(--ar-primary);
+        }
+
+        .ar-pill-group label i {
+            font-size: 0.7rem;
+        }
+
+    .ar-group-label {
+        font-size: 0.78rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--ar-secondary);
+        margin-bottom: 0.55rem;
+        display: block;
+    }
+
+    /* ---------- Amenities ---------- */
+    .ar-amenities-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.9rem;
+    }
+
+    @@media (max-width: 991.98px) {
+        .ar-amenities-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    @@media (max-width: 575.98px) {
+        .ar-amenities-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    .ar-amenity {
+        position: relative;
+    }
+
+        .ar-amenity input {
+            display: none;
+        }
+
+        .ar-amenity label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.55rem;
+            text-align: center;
+            padding: 1.1rem 0.6rem;
+            border-radius: 14px;
+            border: 1px solid var(--ar-input-border);
+            background: var(--ar-input-bg);
+            color: var(--ar-secondary);
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            height: 100%;
+        }
+
+            .ar-amenity label i {
+                font-size: 1.35rem;
+                color: var(--ar-secondary);
+                transition: all 0.2s ease;
+            }
+
+            .ar-amenity label:hover {
+                transform: translateY(-3px);
+                border-color: var(--ar-primary);
+                color: var(--ar-text);
+            }
+
+        .ar-amenity input:checked + label {
+            background: var(--primary-soft);
+            border-color: var(--ar-primary);
+            color: var(--ar-primary);
+            box-shadow: var(--hover-glow);
+        }
+
+            .ar-amenity input:checked + label i {
+                color: var(--ar-primary);
+            }
+
+        .ar-amenity .ar-check-dot {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--ar-primary);
+            color: #fff;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.55rem;
+        }
+
+        .ar-amenity input:checked ~ .ar-check-dot {
+            display: flex;
+        }
+
+    /* ---------- Upload area ---------- */
+    .ar-upload-zone {
+        border: 2px dashed var(--ar-input-border);
+        border-radius: 16px;
+        padding: 2.5rem 1.5rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        background: var(--ar-input-bg);
+    }
+
+        .ar-upload-zone:hover, .ar-upload-zone.ar-dragover {
+            border-color: var(--ar-primary);
+            background: var(--hover-bg);
+        }
+
+        .ar-upload-zone .ar-upload-icon {
+            width: 62px;
+            height: 62px;
+            border-radius: 50%;
+            background: var(--primary-soft);
+            color: var(--ar-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin: 0 auto 1rem auto;
+        }
+
+        .ar-upload-zone h6 {
+            color: var(--ar-text);
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .ar-upload-zone p {
+            color: var(--ar-secondary);
+            font-size: 0.82rem;
+            margin-bottom: 0;
+        }
+
+    .ar-upload-formats {
+        display: inline-flex;
+        gap: 0.4rem;
+        margin-top: 0.85rem;
+    }
+
+        .ar-upload-formats span {
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            padding: 0.22rem 0.6rem;
+            border-radius: 999px;
+            border: 1px solid var(--ar-input-border);
+            color: var(--ar-secondary);
+        }
+
+    .ar-preview-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 0.85rem;
+        margin-top: 1.25rem;
+    }
+
+    @@media (max-width: 767.98px) {
+        .ar-preview-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .ar-preview-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    .ar-preview-item {
+        position: relative;
+        border-radius: 12px;
+        overflow: hidden;
+        aspect-ratio: 1 / 1;
+        border: 1px solid var(--ar-border);
+        background: var(--ar-input-bg);
+    }
+
+        .ar-preview-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+    .ar-preview-remove {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        border: none;
+        background: rgba(17, 24, 39, 0.75);
+        color: #fff;
+        font-size: 0.7rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background 0.15s ease;
+    }
+
+        .ar-preview-remove:hover {
+            background: var(--danger-color);
+        }
+
+    /* ---------- Housekeeping grid ---------- */
+    .ar-hk-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem 1.75rem;
+    }
+
+    @@media (max-width: 767.98px) {
+        .ar-hk-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* ---------- Bottom action bar ---------- */
+    .ar-action-bar {
+        position: sticky;
+        bottom: 0;
+        margin-top: 2rem;
+        padding: 1.1rem 1.5rem;
+        border-radius: 18px;
+        border: 1px solid var(--ar-border);
+        background: var(--ar-card);
+        box-shadow: var(--shadow-lg);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.85rem;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+        .ar-action-bar .ar-right-actions {
+            display: flex;
+            gap: 0.65rem;
+            flex-wrap: wrap;
+        }
+
+    /* misc */
+    .ar-fade-in {
+        animation: arFadeIn 0.35s ease both;
+    }
+
+    @@keyframes arFadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(6px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+
+<div class="addroom-wrap">
+
+    <!-- ===================== PAGE HEADER ===================== -->
+    <div class="ar-header">
+        <div>
+            <h1>Edit Room</h1>
+            <p>Update details for room <strong>@Model.RoomNumber</strong>.</p>
+        </div>
+        <div class="ar-header-actions">
+            <a href="@Url.Action("Index", "Rooms")" class="btn btn-ar-outline">
+                <i class="fa-solid fa-arrow-left me-2"></i>Back to Rooms
+            </a>
+            <button type="submit" form="editRoomForm" class="btn btn-ar-primary">
+                <i class="fa-solid fa-floppy-disk me-2"></i>Save Changes
+            </button>
+        </div>
+    </div>
+
+    <form id="editRoomForm" asp-controller="Rooms" asp-action="Edit" method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="Id" value="@Model.Id" />
+
+        <div class="row g-4">
+            <!-- ===================== SECTION 1: ROOM INFORMATION ===================== -->
+            <div class="col-lg-6">
+                <div class="ar-card ar-fade-in">
+                    <div class="ar-section-title">
+                        <span class="ar-icon-badge"><i class="fa-solid fa-bed"></i></span>
+                        <div>
+                            Room Information
+                            <div class="ar-section-sub">Basic identity &amp; layout of the room</div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="ar-field filled">
+                                <i class="fa-solid fa-hashtag ar-input-icon"></i>
+                                <input type="text" name="RoomNumber" value="@Model.RoomNumber" class="form-control" id="roomNumber" placeholder=" " required>
+                                <label for="roomNumber">Room Number <span class="ar-required">*</span></label>
+                                <div class="invalid-feedback">Room number is required.</div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="ar-field filled">
+                                <i class="fa-solid fa-signature ar-input-icon"></i>
+                                <input type="text" name="RoomName" value="@Model.RoomName" class="form-control" id="roomName" placeholder=" " required>
+                                <label for="roomName">Room Name <span class="ar-required">*</span></label>
+                                <div class="invalid-feedback">Room name is required.</div>
+                            </div>
+                        </div>
+
+                        <div class="col-sm-6">
+                            <div class="ar-field filled">
+                                <i class="fa-solid fa-door-open ar-input-icon"></i>
+                                <select name="RoomType" class="form-select filled" id="roomType" required>
+                                    <option value="" disabled>-- Select --</option>
+                                    <option value="Standard" selected="@(Sel(Model.RoomType, "Standard"))">Standard</option>
+                                    <option value="Deluxe" selected="@(Sel(Model.RoomType, "Deluxe"))">Deluxe</option>
+                                    <option value="Suite" selected="@(Sel(Model.RoomType, "Suite"))">Suite</option>
+                                    <option value="Executive" selected="@(Sel(Model.RoomType, "Executive"))">Executive</option>
+                                    <option value="Presidential" selected="@(Sel(Model.RoomType, "Presidential"))">Presidential</option>
+                                </select>
+                                <label for="roomType">Room Type <span class="ar-required">*</span></label>
+                                <div class="invalid-feedback">Please select a room type.</div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="ar-field filled">
+                                <i class="fa-solid fa-building ar-input-icon"></i>
+                                <select name="Floor" class="form-select filled" id="floor" required>
+                                    <option value="" disabled>-- Select --</option>
+                                    <option value="Ground Floor" selected="@(Sel(Model.Floor, "Ground Floor"))">Ground Floor</option>
+                                    <option value="1st Floor" selected="@(Sel(Model.Floor, "1st Floor"))">1st Floor</option>
+                                    <option value="2nd Floor" selected="@(Sel(Model.Floor, "2nd Floor"))">2nd Floor</option>
+                                    <option value="3rd Floor" selected="@(Sel(Model.Floor, "3rd Floor"))">3rd Floor</option>
+                                    <option value="4th Floor" selected="@(Sel(Model.Floor, "4th Floor"))">4th Floor</option>
+                                    <option value="5th Floor" selected="@(Sel(Model.Floor, "5th Floor"))">5th Floor</option>
+                                </select>
+                                <label for="floor">Floor <span class="ar-required">*</span></label>
+                                <div class="invalid-feedback">Please select a floor.</div>
+                            </div>
+                        </div>
+
+                        <div class="col-sm-6">
+                            <div class="ar-field filled">
+                                <i class="fa-solid fa-couch ar-input-icon"></i>
+                                <select name="BedType" class="form-select filled" id="bedType" required>
+                                    <option value="" disabled>-- Select --</option>
+                                    <option value="Single" selected="@(Sel(Model.BedType, "Single"))">Single</option>
+                                    <option value="Twin" selected="@(Sel(Model.BedType, "Twin"))">Twin</option>
+                                    <option value="Double" selected="@(Sel(Model.BedType, "Double"))">Double</option>
+                                    <option value="Queen" selected="@(Sel(Model.BedType, "Queen"))">Queen</option>
+                                    <option value="King" selected="@(Sel(Model.BedType, "King"))">King</option>
+                                </select>
+                                <label for="bedType">Bed Type <span class="ar-required">*</span></label>
+                                <div class="invalid-feedback">Please select a bed type.</div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="ar-field filled">
+                                <i class="fa-solid fa-ruler-combined ar-input-icon"></i>
+                                <input type="number" name="RoomSize" min="0" value="@Model.RoomSize" class="form-control" id="roomSize" placeholder=" ">
+                                <label for="roomSize">Room Size (sq.ft)</label>
+                            </div>
+                        </div>
+
+                        <div class="col-sm-6">
+                            <div class="ar-field filled">
+                                <i class="fa-solid fa-user ar-input-icon"></i>
+                                <input type="number" name="CapacityAdults" min="0" value="@Model.CapacityAdults" class="form-control" id="capacityAdults" placeholder=" ">
+                                <label for="capacityAdults">Capacity (Adults)</label>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="ar-field filled">
+                                <i class="fa-solid fa-child ar-input-icon"></i>
+                                <input type="number" name="CapacityChildren" min="0" value="@Model.CapacityChildren" class="form-control" id="capacityChildren" placeholder=" ">
+                                <label for="capacityChildren">Capacity (Children)</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===================== SECTION 2: PRICING & AVAILABILITY ===================== -->
+            <div class="col-lg-6">
+                <div class="ar-card ar-fade-in">
+                    <div class="ar-section-title">
+                        <span class="ar-icon-badge"><i class="fa-solid fa-tags"></i></span>
+                        <div>
+                            Pricing &amp; Availability
+                            <div class="ar-section-sub">Rates, charges and current status</div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="ar-field filled">
+                                <i class="fa-solid fa-dollar-sign ar-input-icon"></i>
+                                <input type="number" name="PricePerNight" min="0" step="0.01" value="@Model.PricePerNight" class="form-control" id="pricePerNight" placeholder=" ">
+                                <label for="pricePerNight">Price Per Night</label>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="ar-field filled">
+                                <i class="fa-solid fa-calendar-week ar-input-icon"></i>
+                                <input type="number" name="WeekendPrice" min="0" step="0.01" value="@Model.WeekendPrice" class="form-control" id="weekendPrice" placeholder=" ">
+                                <label for="weekendPrice">Weekend Price</label>
+                            </div>
+                        </div>
+
+                        <div class="col-sm-6">
+                            <div class="ar-field filled">
+                                <i class="fa-solid fa-user-plus ar-input-icon"></i>
+                                <input type="number" name="ExtraPersonCharge" min="0" step="0.01" value="@Model.ExtraPersonCharge" class="form-control" id="extraPersonCharge" placeholder=" ">
+                                <label for="extraPersonCharge">Extra Person Charge</label>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="ar-field filled">
+                                <i class="fa-solid fa-percent ar-input-icon"></i>
+                                <input type="number" name="Discount" min="0" max="100" step="0.01" value="@Model.Discount" class="form-control" id="discount" placeholder=" ">
+                                <label for="discount">Discount (%)</label>
+                            </div>
+                        </div>
+
+                        <div class="col-sm-6">
+                            <div class="ar-field filled">
+                                <i class="fa-solid fa-receipt ar-input-icon"></i>
+                                <input type="number" name="Tax" min="0" max="100" step="0.01" value="@Model.Tax" class="form-control" id="tax" placeholder=" ">
+                                <label for="tax">Tax (%)</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <span class="ar-group-label mt-2">Availability</span>
+                    <div class="ar-pill-group">
+                        <input type="radio" name="Availability" id="availAvailable" value="Available" @Chk(Model.Availability, "Available")>
+                        <label for="availAvailable"><i class="fa-solid fa-circle-check"></i>Available</label>
+
+                        <input type="radio" name="Availability" id="availOccupied" value="Occupied" @Chk(Model.Availability, "Occupied")>
+                        <label for="availOccupied"><i class="fa-solid fa-circle-xmark"></i>Occupied</label>
+
+                        <input type="radio" name="Availability" id="availReserved" value="Reserved" @Chk(Model.Availability, "Reserved")>
+                        <label for="availReserved"><i class="fa-solid fa-clock"></i>Reserved</label>
+
+                        <input type="radio" name="Availability" id="availMaintenance" value="Maintenance" @Chk(Model.Availability, "Maintenance")>
+                        <label for="availMaintenance"><i class="fa-solid fa-screwdriver-wrench"></i>Maintenance</label>
+                    </div>
+
+                    <span class="ar-group-label">Room Status</span>
+                    <div class="ar-pill-group">
+                        <input type="radio" name="IsActive" id="statusActive" value="true" @ChkBool(Model.IsActive, true)>
+                        <label for="statusActive"><i class="fa-solid fa-toggle-on"></i>Active</label>
+
+                        <input type="radio" name="IsActive" id="statusInactive" value="false" @ChkBool(Model.IsActive, false)>
+                        <label for="statusInactive"><i class="fa-solid fa-toggle-off"></i>Inactive</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===================== SECTION 3: FEATURES & AMENITIES ===================== -->
+        <div class="ar-card ar-fade-in mt-4">
+            <div class="ar-section-title">
+                <span class="ar-icon-badge"><i class="fa-solid fa-star"></i></span>
+                <div>
+                    Room Features &amp; Amenities
+                    <div class="ar-section-sub">Select everything this room offers</div>
+                </div>
+            </div>
+
+            <div class="ar-amenities-grid">
+                @{
+                    // Use the boolean properties on UpdateRoomDto for amenities so model binding works
+                }
+                <div class="ar-amenity">
+                    <input type="checkbox" id="amWifi" name="HasWifi" value="true" @(Model.HasWifi ? "checked" : "")>
+                    <label for="amWifi"><i class="fa-solid fa-wifi"></i><span>Wi-Fi</span></label>
+                    <span class="ar-check-dot"><i class="fa-solid fa-check"></i></span>
+                </div>
+                <div class="ar-amenity">
+                    <input type="checkbox" id="amAc" name="HasAirConditioning" value="true" @(Model.HasAirConditioning ? "checked" : "")>
+                    <label for="amAc"><i class="fa-solid fa-snowflake"></i><span>Air Conditioning</span></label>
+                    <span class="ar-check-dot"><i class="fa-solid fa-check"></i></span>
+                </div>
+                <div class="ar-amenity">
+                    <input type="checkbox" id="amTv" name="HasTelevision" value="true" @(Model.HasTelevision ? "checked" : "")>
+                    <label for="amTv"><i class="fa-solid fa-tv"></i><span>Television</span></label>
+                    <span class="ar-check-dot"><i class="fa-solid fa-check"></i></span>
+                </div>
+                <div class="ar-amenity">
+                    <input type="checkbox" id="amMinibar" name="HasMiniBar" value="true" @(Model.HasMiniBar ? "checked" : "")>
+                    <label for="amMinibar"><i class="fa-solid fa-martini-glass"></i><span>Mini Bar</span></label>
+                    <span class="ar-check-dot"><i class="fa-solid fa-check"></i></span>
+                </div>
+                <div class="ar-amenity">
+                    <input type="checkbox" id="amPhone" name="HasTelephone" value="true" @(Model.HasTelephone ? "checked" : "")>
+                    <label for="amPhone"><i class="fa-solid fa-phone"></i><span>Telephone</span></label>
+                    <span class="ar-check-dot"><i class="fa-solid fa-check"></i></span>
+                </div>
+                <div class="ar-amenity">
+                    <input type="checkbox" id="amService" name="HasRoomService" value="true" @(Model.HasRoomService ? "checked" : "")>
+                    <label for="amService"><i class="fa-solid fa-bell-concierge"></i><span>Room Service</span></label>
+                    <span class="ar-check-dot"><i class="fa-solid fa-check"></i></span>
+                </div>
+                <div class="ar-amenity">
+                    <input type="checkbox" id="amBalcony" name="HasBalcony" value="true" @(Model.HasBalcony ? "checked" : "")>
+                    <label for="amBalcony"><i class="fa-solid fa-archway"></i><span>Balcony</span></label>
+                    <span class="ar-check-dot"><i class="fa-solid fa-check"></i></span>
+                </div>
+                <div class="ar-amenity">
+                    <input type="checkbox" id="amSafe" name="HasSafeLocker" value="true" @(Model.HasSafeLocker ? "checked" : "")>
+                    <label for="amSafe"><i class="fa-solid fa-lock"></i><span>Safe Locker</span></label>
+                    <span class="ar-check-dot"><i class="fa-solid fa-check"></i></span>
+                </div>
+                <div class="ar-amenity">
+                    <input type="checkbox" id="amCoffee" name="HasCoffeeMachine" value="true" @(Model.HasCoffeeMachine ? "checked" : "")>
+                    <label for="amCoffee"><i class="fa-solid fa-mug-hot"></i><span>Coffee Machine</span></label>
+                    <span class="ar-check-dot"><i class="fa-solid fa-check"></i></span>
+                </div>
+                <div class="ar-amenity">
+                    <input type="checkbox" id="amDesk" name="HasWorkDesk" value="true" @(Model.HasWorkDesk ? "checked" : "")>
+                    <label for="amDesk"><i class="fa-solid fa-briefcase"></i><span>Work Desk</span></label>
+                    <span class="ar-check-dot"><i class="fa-solid fa-check"></i></span>
+                </div>
+                <div class="ar-amenity">
+                    <input type="checkbox" id="amDryer" name="HasHairDryer" value="true" @(Model.HasHairDryer ? "checked" : "")>
+                    <label for="amDryer"><i class="fa-solid fa-wind"></i><span>Hair Dryer</span></label>
+                    <span class="ar-check-dot"><i class="fa-solid fa-check"></i></span>
+                </div>
+                <div class="ar-amenity">
+                    <input type="checkbox" id="amWardrobe" name="HasWardrobe" value="true" @(Model.HasWardrobe ? "checked" : "")>
+                    <label for="amWardrobe"><i class="fa-solid fa-door-closed"></i><span>Wardrobe</span></label>
+                    <span class="ar-check-dot"><i class="fa-solid fa-check"></i></span>
+                </div>
+                <div class="ar-amenity">
+                    <input type="checkbox" id="amIron" name="HasIron" value="true" @(Model.HasIron ? "checked" : "")>
+                    <label for="amIron"><i class="fa-solid fa-shirt"></i><span>Iron</span></label>
+                    <span class="ar-check-dot"><i class="fa-solid fa-check"></i></span>
+                </div>
+                <div class="ar-amenity">
+                    <input type="checkbox" id="amBathtub" name="HasBathtub" value="true" @(Model.HasBathtub ? "checked" : "")>
+                    <label for="amBathtub"><i class="fa-solid fa-bath"></i><span>Bathtub</span></label>
+                    <span class="ar-check-dot"><i class="fa-solid fa-check"></i></span>
+                </div>
+                <div class="ar-amenity">
+                    <input type="checkbox" id="amHeating" name="HasHeating" value="true" @(Model.HasHeating ? "checked" : "")>
+                    <label for="amHeating"><i class="fa-solid fa-fire"></i><span>Heating</span></label>
+                    <span class="ar-check-dot"><i class="fa-solid fa-check"></i></span>
+                </div>
+                <div class="ar-amenity">
+                    <input type="checkbox" id="amSmartTv" name="HasSmartTv" value="true" @(Model.HasSmartTv ? "checked" : "")>
+                    <label for="amSmartTv"><i class="fa-solid fa-tv"></i><span>Smart TV</span></label>
+                    <span class="ar-check-dot"><i class="fa-solid fa-check"></i></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===================== SECTION 4: ROOM IMAGES ===================== -->
+        <div class="ar-card ar-fade-in mt-4">
+            <div class="ar-section-title">
+                <span class="ar-icon-badge"><i class="fa-solid fa-images"></i></span>
+                <div>
+                    Room Images
+                    <div class="ar-section-sub">Upload up to 5 photos of the room (existing images shown below)</div>
+                </div>
+            </div>
+
+            <div class="ar-upload-zone" id="uploadZone">
+                <input type="file" name="images" id="imageInput" accept=".jpg,.jpeg,.png,.webp" multiple hidden>
+                <div class="ar-upload-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+                <h6>Drag &amp; drop images here</h6>
+                <p>or click to browse — upload up to 5 images</p>
+                <div class="ar-upload-formats">
+                    <span>JPG</span><span>PNG</span><span>WEBP</span>
+                </div>
+            </div>
+
+            <div class="ar-preview-grid" id="previewGrid">
+                @if (Model.ImageUrls != null)
+                {
+                    foreach (var imgUrl in Model.ImageUrls)
+                    {
+                        <div class="ar-preview-item ar-fade-in">
+                            <img src="@imgUrl" alt="Room image" />
+                            <button type="button" class="ar-preview-remove existing-remove" data-url="@imgUrl">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+
+        <!-- ===================== SECTION 5: ROOM DESCRIPTION ===================== -->
+        <div class="row g-4 mt-1">
+            <div class="col-lg-6">
+                <div class="ar-card ar-fade-in">
+                    <div class="ar-section-title">
+                        <span class="ar-icon-badge"><i class="fa-solid fa-align-left"></i></span>
+                        <div>
+                            Room Description
+                            <div class="ar-section-sub">Shown to guests on the booking page</div>
+                        </div>
+                    </div>
+                    <div class="ar-field filled mb-0">
+                        <i class="fa-solid fa-pen ar-input-icon"></i>
+                        <textarea class="form-control" name="RoomDescription" id="roomDescription" placeholder=" ">@Model.RoomDescription</textarea>
+                        <label for="roomDescription">Room Description</label>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="ar-card ar-fade-in">
+                    <div class="ar-section-title">
+                        <span class="ar-icon-badge"><i class="fa-solid fa-note-sticky"></i></span>
+                        <div>
+                            Special Notes
+                            <div class="ar-section-sub">Internal notes for staff only</div>
+                        </div>
+                    </div>
+                    <div class="ar-field filled mb-0">
+                        <i class="fa-solid fa-clipboard ar-input-icon"></i>
+                        <textarea class="form-control" name="SpecialNotes" id="specialNotes" placeholder=" ">@Model.SpecialNotes</textarea>
+                        <label for="specialNotes">Special Notes</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===================== SECTION 6: HOUSEKEEPING ===================== -->
+        <div class="ar-card ar-fade-in mt-4">
+            <div class="ar-section-title">
+                <span class="ar-icon-badge"><i class="fa-solid fa-broom"></i></span>
+                <div>
+                    Housekeeping
+                    <div class="ar-section-sub">Cleaning &amp; maintenance tracking</div>
+                </div>
+            </div>
+
+            <div class="ar-hk-grid">
+                <div>
+                    <div class="ar-field filled">
+                        <i class="fa-solid fa-spray-can-sparkles ar-input-icon"></i>
+                        <select class="form-select filled" name="HousekeepingStatus" id="housekeepingStatus">
+                            <option value="" disabled>-- Select --</option>
+                            <option value="Clean" selected="@(Sel(Model.HousekeepingStatus, "Clean"))">Clean</option>
+                            <option value="Dirty" selected="@(Sel(Model.HousekeepingStatus, "Dirty"))">Dirty</option>
+                            <option value="Cleaning In Progress" selected="@(Sel(Model.HousekeepingStatus, "Cleaning In Progress"))">Cleaning In Progress</option>
+                            <option value="Inspection Pending" selected="@(Sel(Model.HousekeepingStatus, "Inspection Pending"))">Inspection Pending</option>
+                        </select>
+                        <label for="housekeepingStatus">Housekeeping Status</label>
+                    </div>
+                    <div class="ar-field filled mb-0">
+                        <i class="fa-regular fa-calendar-check ar-input-icon"></i>
+                        <input type="date" class="form-control" name="LastCleanedDate" value="@DateVal(Model.LastCleanedDate)" id="lastCleanedDate" placeholder=" ">
+                        <label for="lastCleanedDate">Last Cleaned Date</label>
+                    </div>
+                </div>
+                <div>
+                    <div class="ar-field filled">
+                        <i class="fa-solid fa-toolbox ar-input-icon"></i>
+                        <select class="form-select filled" name="MaintenanceStatus" id="maintenanceStatus">
+                            <option value="" disabled>-- Select --</option>
+                            <option value="Good" selected="@(Sel(Model.MaintenanceStatus, "Good"))">Good</option>
+                            <option value="Needs Repair" selected="@(Sel(Model.MaintenanceStatus, "Needs Repair"))">Needs Repair</option>
+                            <option value="Under Maintenance" selected="@(Sel(Model.MaintenanceStatus, "Under Maintenance"))">Under Maintenance</option>
+                        </select>
+                        <label for="maintenanceStatus">Maintenance Status</label>
+                    </div>
+                    <div class="ar-field filled mb-0">
+                        <i class="fa-regular fa-calendar-plus ar-input-icon"></i>
+                        <input type="date" class="form-control" name="NextMaintenanceDate" value="@DateVal(Model.NextMaintenanceDate)" id="nextMaintenanceDate" placeholder=" ">
+                        <label for="nextMaintenanceDate">Next Maintenance Date</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===================== BOTTOM ACTION BAR ===================== -->
+        <div class="ar-action-bar mt-4">
+            <a asp-controller="Rooms" asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-ar-danger-outline"
+               onclick="return confirm('Are you sure you want to delete this room?');">
+                <i class="fa-solid fa-trash me-2"></i>Delete Room
+            </a>
+            <div class="ar-right-actions">
+                <a href="@Url.Action("Index", "Rooms")" class="btn btn-ar-outline">Cancel</a>
+                <button type="submit" class="btn btn-ar-primary">
+                    <i class="fa-solid fa-floppy-disk me-2"></i>Save Changes
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    (function () {
+        "use strict";
+
+        var form = document.getElementById('editRoomForm');
+        var uploadZone = document.getElementById('uploadZone');
+        var imageInput = document.getElementById('imageInput');
+        var previewGrid = document.getElementById('previewGrid');
+        var MAX_IMAGES = 5;
+        var uploadedFiles = [];
+        var removedExistingUrls = [];
+
+        /* ---------- Floating label state for <select> (already filled on load) ---------- */
+        document.querySelectorAll('.ar-field select.form-select').forEach(function (sel) {
+            var sync = function () {
+                if (sel.value) { sel.classList.add('filled'); }
+                else { sel.classList.remove('filled'); }
+            };
+            sel.addEventListener('change', sync);
+            sync();
+        });
+
+        /* ---------- Remove existing (already-uploaded) images ---------- */
+        document.querySelectorAll('.existing-remove').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var url = btn.getAttribute('data-url');
+                if (url) removedExistingUrls.push(url);
+                btn.closest('.ar-preview-item').remove();
+                syncRemovedImagesField();
+            });
+        });
+
+        function syncRemovedImagesField() {
+            var existing = document.getElementById('removedImagesField');
+            if (!existing) {
+                existing = document.createElement('input');
+                existing.type = 'hidden';
+                existing.name = 'RemovedImageUrls';
+                existing.id = 'removedImagesField';
+                form.appendChild(existing);
+            }
+            existing.value = removedExistingUrls.join(',');
+        }
+
+        /* ---------- Image Upload: click to browse ---------- */
+        uploadZone.addEventListener('click', function () {
+            imageInput.click();
+        });
+
+        /* ---------- Drag & drop ---------- */
+        ['dragenter', 'dragover'].forEach(function (evt) {
+            uploadZone.addEventListener(evt, function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                uploadZone.classList.add('ar-dragover');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(function (evt) {
+            uploadZone.addEventListener(evt, function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                uploadZone.classList.remove('ar-dragover');
+            });
+        });
+
+        uploadZone.addEventListener('drop', function (e) {
+            handleFiles(e.dataTransfer.files);
+        });
+
+        imageInput.addEventListener('change', function (e) {
+            handleFiles(e.target.files);
+            imageInput.value = '';
+        });
+
+        function currentImageCount() {
+            return previewGrid.querySelectorAll('.ar-preview-item').length;
+        }
+
+        function handleFiles(fileList) {
+            var files = Array.prototype.slice.call(fileList);
+            var allowed = ['image/jpeg', 'image/png', 'image/webp'];
+
+            files.forEach(function (file) {
+                if (currentImageCount() >= MAX_IMAGES) return;
+                if (allowed.indexOf(file.type) === -1) return;
+
+                uploadedFiles.push(file);
+                renderPreview(file);
+            });
+        }
+
+        function renderPreview(file) {
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                var item = document.createElement('div');
+                item.className = 'ar-preview-item ar-fade-in';
+
+                var img = document.createElement('img');
+                img.src = e.target.result;
+                img.alt = file.name;
+
+                var removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'ar-preview-remove';
+                removeBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+                removeBtn.addEventListener('click', function () {
+                    var idx = uploadedFiles.indexOf(file);
+                    if (idx > -1) uploadedFiles.splice(idx, 1);
+                    item.remove();
+                });
+
+                item.appendChild(img);
+                item.appendChild(removeBtn);
+                previewGrid.appendChild(item);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        /* ---------- Client-side validation ---------- */
+        form.addEventListener('submit', function (e) {
+            if (!form.checkValidity()) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        }, false);
+    })();
+</script>

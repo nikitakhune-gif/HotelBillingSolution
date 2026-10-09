@@ -1,0 +1,1214 @@
+﻿@model HotelBillingSolution.Application.DTOs.Housekeeping.HousekeepingDashboardDto
+@{
+    ViewData["Title"] = "Housekeeping";
+    // This view renders ONLY inside the existing _Layout.cshtml.
+    // No sidebar / navbar / header markup here.
+}
+
+<div class="hk-page">
+
+    @* ============ 1. PAGE HEADER ============ *@
+    <div class="hk-header">
+        <div class="hk-header-left">
+            <h1 class="hk-title">Housekeeping</h1>
+            <nav class="hk-breadcrumb">
+                <a asp-controller="Dashboard" asp-action="Index">Dashboard</a>
+                <span class="hk-breadcrumb-sep">/</span>
+                <span>Housekeeping</span>
+            </nav>
+        </div>
+        <div class="hk-header-right">
+            <div class="hk-search">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="hkHeaderSearch" placeholder="Search here..." />
+            </div>
+            <button type="button" class="hk-btn hk-btn-outline" id="hkDownloadReportBtn">
+                <i class="fa-solid fa-download"></i> Download Report
+            </button>
+            <a asp-controller="Housekeeping" asp-action="Create" class="hk-btn hk-btn-primary">
+                <i class="fa-solid fa-plus"></i> Create Task
+            </a>
+        </div>
+    </div>
+
+    @* ============ 2. SUMMARY CARDS ============ *@
+    <div class="hk-summary-cards">
+        <div class="hk-summary-card">
+            <div class="hk-card-icon hk-icon-total"><i class="fa-solid fa-door-closed"></i></div>
+            <div class="hk-card-body">
+                <span class="hk-card-label">Total Rooms</span>
+                <span class="hk-card-value">@Model.Summary.TotalRooms</span>
+                <span class="hk-card-sub">All Rooms</span>
+            </div>
+        </div>
+        <div class="hk-summary-card">
+            <div class="hk-card-icon hk-icon-clean"><i class="fa-solid fa-check"></i></div>
+            <div class="hk-card-body">
+                <span class="hk-card-label">Clean Rooms</span>
+                <span class="hk-card-value">@Model.Summary.CleanRooms</span>
+                <span class="hk-card-sub hk-text-clean">@Model.Summary.CleanPercent.ToString("0.00")%</span>
+            </div>
+        </div>
+        <div class="hk-summary-card">
+            <div class="hk-card-icon hk-icon-progress"><i class="fa-regular fa-clock"></i></div>
+            <div class="hk-card-body">
+                <span class="hk-card-label">In Progress</span>
+                <span class="hk-card-value">@Model.Summary.InProgressRooms</span>
+                <span class="hk-card-sub hk-text-progress">@Model.Summary.InProgressPercent.ToString("0.00")%</span>
+            </div>
+        </div>
+        <div class="hk-summary-card">
+            <div class="hk-card-icon hk-icon-due"><i class="fa-regular fa-clock"></i></div>
+            <div class="hk-card-body">
+                <span class="hk-card-label">Due for Cleaning</span>
+                <span class="hk-card-value">@Model.Summary.DueForCleaningRooms</span>
+                <span class="hk-card-sub hk-text-due">@Model.Summary.DueForCleaningPercent.ToString("0.00")%</span>
+            </div>
+        </div>
+        <div class="hk-summary-card">
+            <div class="hk-card-icon hk-icon-oo"><i class="fa-solid fa-circle-exclamation"></i></div>
+            <div class="hk-card-body">
+                <span class="hk-card-label">Out of Order</span>
+                <span class="hk-card-value">@Model.Summary.OutOfOrderRooms</span>
+                <span class="hk-card-sub hk-text-oo">@Model.Summary.OutOfOrderPercent.ToString("0.00")%</span>
+            </div>
+        </div>
+    </div>
+
+   
+
+    @* ============ 4. FILTER CARD (full width) ============ *@
+    <form class="hk-filter-card" id="hkFilterForm" method="get" asp-controller="Housekeeping" asp-action="Index">
+        <div class="hk-filter-row">
+            <div class="hk-filter-field">
+                <label>Search Task</label>
+                <input type="text" name="Search" value="@Model.Filters.Search"
+                       placeholder="Search by task, room no or guest..." />
+            </div>
+            <div class="hk-filter-field">
+                <label>Task Status</label>
+                <select name="Status">
+                    <option value="">All Status</option>
+                    <option value="Clean" selected="@(Model.Filters.Status == "Clean")">Clean</option>
+                    <option value="InProgress" selected="@(Model.Filters.Status == "InProgress")">In Progress</option>
+                    <option value="DueForCleaning" selected="@(Model.Filters.Status == "DueForCleaning")">Due for Cleaning</option>
+                    <option value="OutOfOrder" selected="@(Model.Filters.Status == "OutOfOrder")">Out of Order</option>
+                </select>
+            </div>
+            <div class="hk-filter-field">
+                <label>Priority</label>
+                <select name="Priority">
+                    <option value="">All Priority</option>
+                    <option value="Low" selected="@(Model.Filters.Priority == "Low")">Low</option>
+                    <option value="Medium" selected="@(Model.Filters.Priority == "Medium")">Medium</option>
+                    <option value="High" selected="@(Model.Filters.Priority == "High")">High</option>
+                    <option value="Urgent" selected="@(Model.Filters.Priority == "Urgent")">Urgent</option>
+                </select>
+            </div>
+            <div class="hk-filter-field">
+                <label>Assigned To</label>
+                <select name="AssignedTo">
+                    <option value="">All Staff</option>
+                    @foreach (var staff in Model.StaffOnDuty)
+                    {
+                        <option value="@staff.StaffMemberId"
+                                selected="@(Model.Filters.AssignedTo == staff.StaffMemberId)">@staff.Name</option>
+                    }
+                </select>
+            </div>
+        </div>
+        <div class="hk-filter-row">
+            <div class="hk-filter-field">
+                <label>Task Type</label>
+                <select name="TaskType">
+                    <option value="">All Task Types</option>
+                    <option value="RoutineCleaning" selected="@(Model.Filters.TaskType == "RoutineCleaning")">Routine Cleaning</option>
+                    <option value="DeepCleaning" selected="@(Model.Filters.TaskType == "DeepCleaning")">Deep Cleaning</option>
+                    <option value="CheckoutCleaning" selected="@(Model.Filters.TaskType == "CheckoutCleaning")">Checkout Cleaning</option>
+                    <option value="MaintenanceCheck" selected="@(Model.Filters.TaskType == "MaintenanceCheck")">Maintenance Check</option>
+                    <option value="Inspection" selected="@(Model.Filters.TaskType == "Inspection")">Inspection</option>
+                </select>
+            </div>
+            <div class="hk-filter-field">
+                <label>Floor</label>
+                <select name="Floor">
+                    <option value="">All Floors</option>
+                    @for (int f = 0; f <= 10; f++)
+                    {
+                        <option value="@f" selected="@(Model.Filters.Floor == f)">Floor @f</option>
+                    }
+                </select>
+            </div>
+            <div class="hk-filter-field">
+                <label>Date From</label>
+                <input type="date" name="DateFrom"
+                       value="@(Model.Filters.DateFrom?.ToString("yyyy-MM-dd"))" placeholder="dd-mm-yyyy" />
+            </div>
+            <div class="hk-filter-field">
+                <label>Date To</label>
+                <input type="date" name="DateTo"
+                       value="@(Model.Filters.DateTo?.ToString("yyyy-MM-dd"))" placeholder="dd-mm-yyyy" />
+            </div>
+        </div>
+        <div class="hk-filter-actions">
+            <a asp-controller="Housekeeping" asp-action="Index" class="hk-btn hk-btn-outline">Reset</a>
+            <button type="submit" class="hk-btn hk-btn-primary">Filter</button>
+        </div>
+    </form>
+
+    @* ============ 5. ROOM STATUS TABLE (full width) ============ *@
+    <div class="hk-table-card">
+        <div class="hk-table-card-header">
+            <h2>Room Status List</h2>
+        </div>
+        <div class="hk-table-wrap">
+            <table class="hk-table" id="hkRoomStatusTable">
+                <thead>
+                    <tr>
+                        <th>Room No.</th>
+                        <th>Room Type</th>
+                        <th>Floor</th>
+                        <th>Guest / Reservation</th>
+                        <th>Status</th>
+                        <th>Assigned To</th>
+                        <th>Last Cleaned</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.RoomStatusList.Any())
+                    {
+                        <tr>
+                            <td colspan="8" class="hk-empty">No rooms match the selected filters.</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var row in Model.RoomStatusList)
+                        {
+                            <tr>
+                                <td class="hk-room-no">@row.RoomNo</td>
+                                <td>@row.RoomType</td>
+                                <td>@row.Floor</td>
+                                <td>
+                                    <div class="hk-guest-cell">
+                                        <span class="hk-guest-name">@(row.GuestName ?? "-")</span>
+                                        @if (!string.IsNullOrWhiteSpace(row.ReservationStatusText))
+                                        {
+                                            <span class="hk-guest-sub">@row.ReservationStatusText</span>
+                                        }
+                                    </div>
+                                </td>
+                                <td>
+                                    @{
+                                        var badgeClass = row.Status switch
+                                        {
+                                            "Clean" => "hk-badge-clean",
+                                            "InProgress" => "hk-badge-progress",
+                                            "DueForCleaning" => "hk-badge-due",
+                                            "OutOfOrder" => "hk-badge-oo",
+                                            _ => "hk-badge-clean"
+                                        };
+                                        var badgeIcon = row.Status switch
+                                        {
+                                            "Clean" => "fa-solid fa-check",
+                                            "InProgress" => "fa-regular fa-clock",
+                                            "DueForCleaning" => "fa-regular fa-clock",
+                                            "OutOfOrder" => "fa-solid fa-circle-exclamation",
+                                            _ => "fa-solid fa-check"
+                                        };
+                                        var badgeText = row.Status switch
+                                        {
+                                            "Clean" => "Clean",
+                                            "InProgress" => "In Progress",
+                                            "DueForCleaning" => "Due for Cleaning",
+                                            "OutOfOrder" => "Out of Order",
+                                            _ => row.Status
+                                        };
+                                    }
+                                    <span class="hk-badge @badgeClass">
+                                        <i class="@badgeIcon"></i> @badgeText
+                                    </span>
+                                </td>
+                                <td>@(row.AssignedTo ?? "-")</td>
+                                <td>@(row.LastCleaned?.ToString("dd-MM-yyyy hh:mm tt") ?? "-")</td>
+                                <td>
+                                    <div class="hk-row-actions">
+                                        <a class="hk-icon-btn" title="View"
+                                           asp-controller="Housekeeping" asp-action="Details" asp-route-id="@row.HousekeepingTaskId">
+                                            <i class="fa-regular fa-eye"></i>
+                                        </a>
+                                        <a class="hk-icon-btn" title="Edit"
+                                           asp-controller="Housekeeping" asp-action="Edit" asp-route-id="@row.HousekeepingTaskId">
+                                            <i class="fa-regular fa-pen-to-square"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @* ---- PAGINATION ---- *@
+        <div class="hk-pagination">
+            <div class="hk-pagination-info">
+                Showing @(((Model.Pagination.PageNumber - 1) * Model.Pagination.PageSize) + 1)
+                to @(Math.Min(Model.Pagination.PageNumber * Model.Pagination.PageSize, Model.Pagination.TotalRecords))
+                of @Model.Pagination.TotalRecords entries
+            </div>
+            <div class="hk-pagination-controls">
+                <label class="hk-rows-per-page">
+                    Rows per page:
+                    <select id="hkPageSize" onchange="hkChangePageSize(this.value)">
+                        @foreach (var size in new[] { 10, 25, 50 })
+                        {
+                            <option value="@size" selected="@(Model.Pagination.PageSize == size)">@size</option>
+                        }
+                    </select>
+                </label>
+                <nav class="hk-pager">
+                    <a class="hk-page-btn @(Model.Pagination.PageNumber <= 1 ? "hk-disabled" : "")"
+                       href="@Url.Action("Index", "Housekeeping", GetPageRoute(1))">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </a>
+                    @{
+                        var totalPages = Math.Max(Model.Pagination.TotalPages, 1);
+                        var current = Model.Pagination.PageNumber;
+                    }
+                    @for (int p = 1; p <= totalPages; p++)
+                    {
+                        if (p == 1 || p == totalPages || Math.Abs(p - current) <= 1)
+                        {
+                            <a class="hk-page-btn @(p == current ? "hk-active" : "")"
+                               href="@Url.Action("Index", "Housekeeping", GetPageRoute(p))">@p</a>
+                        }
+                        else if (p == current - 2 || p == current + 2)
+                        {
+                            <span class="hk-page-ellipsis">...</span>
+                        }
+                    }
+                    <a class="hk-page-btn @(Model.Pagination.PageNumber >= totalPages ? "hk-disabled" : "")"
+                       href="@Url.Action("Index", "Housekeeping", GetPageRoute(totalPages))">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </a>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    @* ============ 6. QUICK ACTIONS + STAFF ON DUTY — SIDE BY SIDE, BELOW THE TABLE ============ *@
+    <div class="hk-bottom-row">
+
+        @* ---- QUICK ACTIONS ---- *@
+        <div class="hk-side-card hk-bottom-col">
+            <div class="hk-side-card-header">
+                <h3>Quick Actions</h3>
+            </div>
+            <ul class="hk-quick-actions">
+                <li>
+                    <a asp-controller="Housekeeping" asp-action="Create">
+                        <i class="fa-solid fa-plus"></i> Add Housekeeping Task
+                    </a>
+                </li>
+                <li>
+                    <a href="#" title="TODO: wire up when Staff Assignment feature exists">
+                        <i class="fa-solid fa-user-plus"></i> Assign Staff
+                    </a>
+                </li>
+                <li>
+                    <a href="#" title="TODO: wire up when Room Inspection feature exists">
+                        <i class="fa-solid fa-clipboard-check"></i> Room Inspection
+                    </a>
+                </li>
+                <li>
+                    <a href="#" title="TODO: wire up when Housekeeping Report feature exists">
+                        <i class="fa-solid fa-chart-simple"></i> Housekeeping Report
+                    </a>
+                </li>
+                <li>
+                    <a href="#" id="hkQuickDownloadReport">
+                        <i class="fa-solid fa-download"></i> Download Report
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        @* ---- STAFF ON DUTY ---- *@
+        <div class="hk-side-card hk-bottom-col">
+            <div class="hk-side-card-header">
+                <h3>Staff On Duty</h3>
+            </div>
+            <ul class="hk-staff-list">
+                @if (!Model.StaffOnDuty.Any())
+                {
+                    <li class="hk-empty">No staff currently on duty.</li>
+                }
+                else
+                {
+                    @foreach (var staff in Model.StaffOnDuty)
+                    {
+                        <li>
+                            <span class="hk-staff-avatar">@staff.Name.Substring(0, 1)</span>
+                            <span class="hk-staff-name">@staff.Name</span>
+                            <span class="hk-staff-rooms">@staff.RoomsAssigned Rooms</span>
+                        </li>
+                    }
+                }
+            </ul>
+        </div>
+    </div>
+</div>
+
+@functions {
+    // Builds a route-value dictionary carrying the current filters + a target page number,
+    // used by the pagination links above.
+    private object GetPageRoute(int page)
+    {
+        return new
+        {
+            Search = Model.Filters.Search,
+            Status = Model.Filters.Status,
+            Priority = Model.Filters.Priority,
+            AssignedTo = Model.Filters.AssignedTo,
+            TaskType = Model.Filters.TaskType,
+            Floor = Model.Filters.Floor,
+            DateFrom = Model.Filters.DateFrom?.ToString("yyyy-MM-dd"),
+            DateTo = Model.Filters.DateTo?.ToString("yyyy-MM-dd"),
+            PageNumber = page,
+            PageSize = Model.Pagination.PageSize
+        };
+    }
+}
+
+<script>
+    function hkChangePageSize(size) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('PageSize', size);
+        url.searchParams.set('PageNumber', 1);
+        window.location.href = url.toString();
+    }
+
+    // ---- Download Report: exports the currently visible Room Status table to a CSV file ----
+    // If a real server-side export endpoint (e.g. Housekeeping/ExportReport) exists in your
+    // project, you can swap this out for: window.location.href = '@Url.Action("ExportReport", "Housekeeping")' + window.location.search;
+    function hkDownloadReport() {
+        const table = document.getElementById('hkRoomStatusTable');
+        if (!table) return;
+
+        const rows = Array.from(table.querySelectorAll('tr'));
+        const csvLines = [];
+
+        rows.forEach((row, rowIndex) => {
+            // Skip the "no rows match filters" placeholder row
+            if (row.querySelector('.hk-empty')) return;
+
+            const cells = Array.from(row.querySelectorAll(rowIndex === 0 ? 'th' : 'td'));
+            // Drop the last "Action" column (view/edit icons) from the export
+            const usableCells = cells.slice(0, cells.length - 1);
+
+            const line = usableCells
+                .map(cell => {
+                    let text = cell.innerText.trim().replace(/\s+/g, ' ');
+                    text = text.replace(/"/g, '""');
+                    return `"${text}"`;
+                })
+                .join(',');
+
+            csvLines.push(line);
+        });
+
+        if (csvLines.length === 0) {
+            alert('No data available to export.');
+            return;
+        }
+
+        const csvContent = csvLines.join('\r\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+
+        const today = new Date().toISOString().slice(0, 10);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `Housekeeping-Report-${today}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }
+
+    document.getElementById('hkDownloadReportBtn')?.addEventListener('click', hkDownloadReport);
+    document.getElementById('hkQuickDownloadReport')?.addEventListener('click', function (e) {
+        e.preventDefault();
+        hkDownloadReport();
+    });
+
+    // Header search box filters the same list via Search query param
+    document.getElementById('hkHeaderSearch')?.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+            const url = new URL(window.location.href);
+            url.searchParams.set('Search', this.value);
+            url.searchParams.set('PageNumber', 1);
+            window.location.href = url.toString();
+        }
+    });
+</script>
+
+<style>
+    /* ==========================================================
+           HOUSEKEEPING PAGE - scoped styles (prefix: hk-)
+           Layout: everything is a single full-width column.
+           Quick Actions + Staff On Duty sit side by side in one row
+           below the Room Status table (hk-bottom-row).
+           Dark theme hooks: both [data-theme="dark"] and .dark-mode
+           are supported - delete whichever one your project does NOT use.
+           ========================================================== */
+
+    .hk-page {
+        --hk-primary: var(--primary-color, #2f6fed);
+        --hk-bg: var(--bg-color, #f4f6fb);
+        --hk-card-bg: var(--card-bg, #ffffff);
+        --hk-text-primary: var(--text-primary, #1c2333);
+        --hk-text-secondary: var(--text-secondary, #6b7280);
+        --hk-border: var(--border-color, #e6e9f0);
+        --hk-clean: #16a34a;
+        --hk-progress: #f59e0b;
+        --hk-due: #ef4444;
+        --hk-oo: #9333ea;
+        color: var(--hk-text-primary);
+        background: var(--hk-bg);
+        padding: 1.25rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+
+        .hk-page * {
+            box-sizing: border-box;
+        }
+
+    [data-theme="dark"] .hk-page,
+    .dark-mode .hk-page {
+        --hk-bg: var(--bg-color, #10131c);
+        --hk-card-bg: var(--card-bg, #1a1f2e);
+        --hk-text-primary: var(--text-primary, #eef1f7);
+        --hk-text-secondary: var(--text-secondary, #9aa3b5);
+        --hk-border: var(--border-color, #2a3040);
+    }
+
+    /* ---------- Header ---------- */
+    .hk-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: .75rem;
+    }
+
+    .hk-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    .hk-breadcrumb {
+        font-size: .85rem;
+        color: var(--hk-text-secondary);
+        margin-top: .15rem;
+    }
+
+        .hk-breadcrumb a {
+            color: var(--hk-text-secondary);
+            text-decoration: none;
+        }
+
+    .hk-breadcrumb-sep {
+        margin: 0 .35rem;
+    }
+
+    .hk-header-right {
+        display: flex;
+        align-items: center;
+        gap: .6rem;
+        flex-wrap: wrap;
+    }
+
+    .hk-search {
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        background: var(--hk-card-bg);
+        border: 1px solid var(--hk-border);
+        border-radius: .6rem;
+        padding: .5rem .75rem;
+        min-width: 220px;
+    }
+
+        .hk-search input {
+            border: none;
+            outline: none;
+            background: transparent;
+            color: var(--hk-text-primary);
+            width: 100%;
+        }
+
+        .hk-search i {
+            color: var(--hk-text-secondary);
+        }
+
+    .hk-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+        border-radius: .6rem;
+        padding: .55rem .95rem;
+        font-size: .875rem;
+        font-weight: 600;
+        border: 1px solid transparent;
+        cursor: pointer;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+
+    .hk-btn-primary {
+        background: var(--hk-primary);
+        color: #fff;
+    }
+
+        .hk-btn-primary:hover {
+            opacity: .92;
+            color: #fff;
+        }
+
+    .hk-btn-outline {
+        background: var(--hk-card-bg);
+        border-color: var(--hk-border);
+        color: var(--hk-text-primary);
+    }
+
+        .hk-btn-outline:hover {
+            background: var(--hk-bg);
+            color: var(--hk-text-primary);
+        }
+
+    /* ---------- Summary cards ---------- */
+    .hk-summary-cards {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 1rem;
+    }
+
+    .hk-summary-card {
+        background: var(--hk-card-bg);
+        border: 1px solid var(--hk-border);
+        border-radius: .9rem;
+        padding: 1rem;
+        display: flex;
+        gap: .75rem;
+        align-items: flex-start;
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    }
+
+    .hk-card-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: .7rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        flex-shrink: 0;
+    }
+
+    .hk-icon-total {
+        background: rgba(47,111,237,.12);
+        color: var(--hk-primary);
+    }
+
+    .hk-icon-clean {
+        background: rgba(22,163,74,.12);
+        color: var(--hk-clean);
+    }
+
+    .hk-icon-progress {
+        background: rgba(245,158,11,.12);
+        color: var(--hk-progress);
+    }
+
+    .hk-icon-due {
+        background: rgba(239,68,68,.12);
+        color: var(--hk-due);
+    }
+
+    .hk-icon-oo {
+        background: rgba(147,51,234,.12);
+        color: var(--hk-oo);
+    }
+
+    .hk-card-body {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .hk-card-label {
+        font-size: .8rem;
+        color: var(--hk-text-secondary);
+    }
+
+    .hk-card-value {
+        font-size: 1.4rem;
+        font-weight: 700;
+        line-height: 1.3;
+    }
+
+    .hk-card-sub {
+        font-size: .78rem;
+        color: var(--hk-text-secondary);
+    }
+
+    .hk-text-clean {
+        color: var(--hk-clean);
+    }
+
+    .hk-text-progress {
+        color: var(--hk-progress);
+    }
+
+    .hk-text-due {
+        color: var(--hk-due);
+    }
+
+    .hk-text-oo {
+        color: var(--hk-oo);
+    }
+
+    /* ---------- Housekeeping Summary panel (full width row) ---------- */
+    .hk-summary-panel {
+        background: var(--hk-card-bg);
+        border: 1px solid var(--hk-border);
+        border-radius: .9rem;
+        padding: 1rem 1.25rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+    }
+
+    .hk-summary-panel-left {
+        flex: 1 1 320px;
+        min-width: 280px;
+    }
+
+    .hk-summary-panel-right {
+        flex: 0 0 auto;
+    }
+
+    .hk-side-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: .7rem;
+    }
+
+        .hk-side-card-header h3 {
+            font-size: .95rem;
+            font-weight: 700;
+            margin: 0;
+        }
+
+    .hk-link {
+        font-size: .78rem;
+        color: var(--hk-primary);
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    .hk-summary-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: .55rem;
+    }
+
+        .hk-summary-list li {
+            display: flex;
+            justify-content: space-between;
+            font-size: .85rem;
+            gap: 1.5rem;
+        }
+
+            .hk-summary-list li span {
+                color: var(--hk-text-secondary);
+            }
+
+    /* Lay the summary stats out horizontally since the panel is full width */
+    .hk-summary-list-row {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+    }
+
+        .hk-summary-list-row li {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: .2rem;
+        }
+
+    .hk-cleanliness {
+        text-align: center;
+    }
+
+        .hk-cleanliness h4 {
+            font-size: .85rem;
+            font-weight: 700;
+            margin: 0 0 .6rem 0;
+        }
+
+    .hk-score-ring {
+        position: relative;
+        width: 100px;
+        height: 100px;
+        margin: 0 auto;
+    }
+
+        .hk-score-ring svg {
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+        }
+
+    .hk-score-track {
+        fill: none;
+        stroke: var(--hk-border);
+        stroke-width: 8;
+    }
+
+    .hk-score-fill {
+        fill: none;
+        stroke: var(--hk-primary);
+        stroke-width: 8;
+        stroke-linecap: round;
+        transition: stroke-dashoffset .4s ease;
+    }
+
+    .hk-score-value {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.05rem;
+        font-weight: 700;
+    }
+
+    .hk-score-label {
+        display: inline-block;
+        margin-top: .4rem;
+        font-size: .8rem;
+        font-weight: 600;
+        color: var(--hk-clean);
+    }
+
+    /* ---------- Filter card ---------- */
+    .hk-filter-card {
+        background: var(--hk-card-bg);
+        border: 1px solid var(--hk-border);
+        border-radius: .9rem;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: .85rem;
+    }
+
+    .hk-filter-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: .85rem;
+    }
+
+    .hk-filter-field {
+        display: flex;
+        flex-direction: column;
+        gap: .3rem;
+    }
+
+        .hk-filter-field label {
+            font-size: .78rem;
+            color: var(--hk-text-secondary);
+            font-weight: 600;
+        }
+
+        .hk-filter-field input, .hk-filter-field select {
+            border: 1px solid var(--hk-border);
+            background: var(--hk-bg);
+            color: var(--hk-text-primary);
+            border-radius: .55rem;
+            padding: .5rem .65rem;
+            font-size: .85rem;
+            outline: none;
+            width: 100%;
+        }
+
+    .hk-filter-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: .6rem;
+    }
+
+    /* ---------- Table card (full width) ---------- */
+    .hk-table-card {
+        background: var(--hk-card-bg);
+        border: 1px solid var(--hk-border);
+        border-radius: .9rem;
+        overflow: hidden;
+        width: 100%;
+    }
+
+    .hk-table-card-header {
+        padding: 1rem 1rem 0 1rem;
+    }
+
+        .hk-table-card-header h2 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            margin: 0 0 .75rem 0;
+        }
+
+    .hk-table-wrap {
+        overflow-x: auto;
+    }
+
+    .hk-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 760px;
+    }
+
+        .hk-table th {
+            text-align: left;
+            font-size: .75rem;
+            text-transform: uppercase;
+            letter-spacing: .03em;
+            color: var(--hk-text-secondary);
+            padding: .7rem 1rem;
+            border-bottom: 1px solid var(--hk-border);
+        }
+
+        .hk-table td {
+            padding: .75rem 1rem;
+            border-bottom: 1px solid var(--hk-border);
+            font-size: .875rem;
+            vertical-align: middle;
+        }
+
+        .hk-table tbody tr:hover {
+            background: var(--hk-bg);
+        }
+
+    .hk-room-no {
+        font-weight: 700;
+    }
+
+    .hk-empty {
+        text-align: center;
+        color: var(--hk-text-secondary);
+        padding: 1.5rem !important;
+    }
+
+    .hk-guest-cell {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .hk-guest-name {
+        font-weight: 600;
+    }
+
+    .hk-guest-sub {
+        font-size: .75rem;
+        color: var(--hk-text-secondary);
+    }
+
+    .hk-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        padding: .3rem .65rem;
+        border-radius: 999px;
+        font-size: .75rem;
+        font-weight: 700;
+    }
+
+    .hk-badge-clean {
+        background: rgba(22,163,74,.12);
+        color: var(--hk-clean);
+    }
+
+    .hk-badge-progress {
+        background: rgba(245,158,11,.12);
+        color: var(--hk-progress);
+    }
+
+    .hk-badge-due {
+        background: rgba(239,68,68,.12);
+        color: var(--hk-due);
+    }
+
+    .hk-badge-oo {
+        background: rgba(147,51,234,.12);
+        color: var(--hk-oo);
+    }
+
+    .hk-row-actions {
+        display: flex;
+        gap: .4rem;
+    }
+
+    .hk-icon-btn {
+        width: 30px;
+        height: 30px;
+        border-radius: .5rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--hk-border);
+        color: var(--hk-text-secondary);
+        text-decoration: none;
+    }
+
+        .hk-icon-btn:hover {
+            background: var(--hk-bg);
+            color: var(--hk-primary);
+        }
+
+    /* ---------- Pagination ---------- */
+    .hk-pagination {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: .75rem;
+        padding: .9rem 1rem;
+        border-top: 1px solid var(--hk-border);
+    }
+
+    .hk-pagination-info {
+        font-size: .8rem;
+        color: var(--hk-text-secondary);
+    }
+
+    .hk-pagination-controls {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .hk-rows-per-page {
+        font-size: .8rem;
+        color: var(--hk-text-secondary);
+        display: flex;
+        align-items: center;
+        gap: .4rem;
+    }
+
+        .hk-rows-per-page select {
+            border: 1px solid var(--hk-border);
+            background: var(--hk-card-bg);
+            color: var(--hk-text-primary);
+            border-radius: .4rem;
+            padding: .25rem .4rem;
+            font-size: .8rem;
+        }
+
+    .hk-pager {
+        display: flex;
+        align-items: center;
+        gap: .3rem;
+    }
+
+    .hk-page-btn {
+        min-width: 30px;
+        height: 30px;
+        padding: 0 .4rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: .45rem;
+        border: 1px solid var(--hk-border);
+        color: var(--hk-text-primary);
+        text-decoration: none;
+        font-size: .8rem;
+    }
+
+        .hk-page-btn.hk-active {
+            background: var(--hk-primary);
+            border-color: var(--hk-primary);
+            color: #fff;
+        }
+
+        .hk-page-btn.hk-disabled {
+            opacity: .4;
+            pointer-events: none;
+        }
+
+    .hk-page-ellipsis {
+        color: var(--hk-text-secondary);
+        padding: 0 .2rem;
+    }
+
+    /* ---------- Bottom row: Quick Actions + Staff On Duty, side by side ---------- */
+    .hk-bottom-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.25rem;
+        width: 100%;
+        align-items: start;
+    }
+
+    .hk-bottom-col {
+        margin: 0;
+    }
+
+    .hk-side-card {
+        background: var(--hk-card-bg);
+        border: 1px solid var(--hk-border);
+        border-radius: .9rem;
+        padding: 1rem;
+    }
+
+    .hk-quick-actions {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: .3rem;
+    }
+
+        .hk-quick-actions a {
+            display: flex;
+            align-items: center;
+            gap: .6rem;
+            padding: .55rem .5rem;
+            border-radius: .55rem;
+            color: var(--hk-text-primary);
+            text-decoration: none;
+            font-size: .85rem;
+        }
+
+            .hk-quick-actions a:hover {
+                background: var(--hk-bg);
+            }
+
+        .hk-quick-actions i {
+            width: 18px;
+            color: var(--hk-primary);
+        }
+
+    .hk-staff-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: .6rem;
+    }
+
+        .hk-staff-list li {
+            display: flex;
+            align-items: center;
+            gap: .6rem;
+            font-size: .85rem;
+        }
+
+    .hk-staff-avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: var(--hk-primary);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: .8rem;
+        flex-shrink: 0;
+    }
+
+    .hk-staff-name {
+        flex: 1;
+    }
+
+    .hk-staff-rooms {
+        color: var(--hk-text-secondary);
+        font-size: .78rem;
+    }
+
+    /* ---------- Responsive ---------- */
+    @@media (max-width: 1200px) {
+        .hk-summary-cards {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    @@media (max-width: 900px) {
+        .hk-bottom-row {
+            grid-template-columns: 1fr;
+        }
+
+        .hk-summary-panel {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .hk-summary-panel-right {
+            align-self: center;
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .hk-summary-cards {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .hk-filter-row {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .hk-header-right {
+            width: 100%;
+        }
+
+        .hk-search {
+            flex: 1;
+            min-width: 0;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .hk-summary-cards {
+            grid-template-columns: 1fr;
+        }
+
+        .hk-filter-row {
+            grid-template-columns: 1fr;
+        }
+
+        .hk-header-right {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .hk-btn {
+            justify-content: center;
+        }
+    }
+</style>

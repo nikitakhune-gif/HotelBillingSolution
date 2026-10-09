@@ -1,0 +1,2028 @@
+﻿@model HotelBilling.Application.DTOs.Booking.BookingCreateDto
+@{
+    ViewData["Title"] = "New Booking";
+    ViewBag.ActiveMenu = "Bookings";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    // Rooms available to pick from. Populate this in the controller, e.g.:
+    //   ViewBag.AvailableRooms = await _roomService.GetAvailableRoomsAsync();
+    // Type: IEnumerable<HotelBilling.Application.DTOs.Room.RoomDto>
+    var availableRooms = ViewBag.AvailableRooms as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
+}
+
+@functions {
+    // -----------------------------------------------------------------
+    // GetProp: reads a value off a room object no matter what shape it
+    // arrives in (Dictionary<string,object>, ExpandoObject, or a typed
+    // RoomDto). It tries every candidate property/key name, case
+    // insensitively, and returns the first non-null match.
+    // -----------------------------------------------------------------
+    static string GetProp(object obj, params string[] names)
+    {
+        if (obj == null) return null;
+
+        if (obj is System.Collections.IDictionary dict)
+        {
+            foreach (var n in names)
+            {
+                foreach (System.Collections.DictionaryEntry entry in dict)
+                {
+                    if (entry.Key != null && string.Equals(entry.Key.ToString(), n, StringComparison.OrdinalIgnoreCase))
+                    {
+                        var v = entry.Value;
+                        if (v != null && !string.IsNullOrWhiteSpace(v.ToString())) return v.ToString();
+                    }
+                }
+            }
+            return null;
+        }
+
+        var type = obj.GetType();
+        foreach (var n in names)
+        {
+            var prop = type.GetProperty(n,
+                System.Reflection.BindingFlags.IgnoreCase |
+                System.Reflection.BindingFlags.Public |
+                System.Reflection.BindingFlags.Instance);
+            if (prop != null)
+            {
+                var val = prop.GetValue(obj);
+                if (val != null && !string.IsNullOrWhiteSpace(val.ToString())) return val.ToString();
+            }
+        }
+        return null;
+    }
+}
+
+@* =========================================================================
+   AddBooking.cshtml
+
+   FIX ROUND (this revision) — root cause of the two bugs you reported:
+
+   1) "Whole page blinks / shakes when I click Check Availability and
+      after filling everything and clicking Finish, it doesn't go to
+      the Booking Index page and the new booking is not visible."
+
+      -> Check Availability itself is a plain fetch() to
+         /Booking/GetAvailableRooms and can't cause a full page reload
+         by itself (the button is type="button"). The real "blink" is
+         almost certainly the FINISH click: form.submit() does a full
+         browser POST to AddBooking. If ASP.NET ModelState is invalid
+         on the server (a field the client-side didn't validate, a
+         DTO mismatch, etc.) the controller re-renders THIS SAME VIEW
+         instead of redirecting — which the browser shows as a
+         full-page flash/reload, and because nothing on this page
+         displayed the validation errors, it looked like nothing
+         happened and no booking was ever saved.
+
+         FIX: added an asp-validation-summary block right under the
+         antiforgery token so any server-side ModelState errors are
+         now actually visible instead of silently reloading the page.
+         If Finish still doesn't redirect after this, whatever text
+         shows up there (or the Network tab response for the POST)
+         will tell us exactly which field/DTO mismatch is blocking the
+         save — share that and I'll patch it precisely.
+
+   2) All blocking alert() popups (guest details, dates, payment
+      method, room selection) have been replaced with a single
+      non-blocking inline banner (#formBanner). Repeated alert()
+      dialogs are what made the page feel like it was vibrating/
+      shaking on repeated clicks — this removes that entirely.
+
+   3) Check Availability button now shows an inline loading state
+      instead of instantly swapping the table body, so the sudden
+      change in table height doesn't yank the page/scroll position
+      around, and network failures show a banner instead of alert().
+
+   Everything else (theme fix, table-bk fix, GetProp-based room
+   binding) is unchanged from the previous revision.
+   ========================================================================= *@
+
+<style>
+    /* Map local shorthand tokens to global theme tokens so this file
+               always respects [data-theme] values from site.css. Avoid --bs-* */
+    :root {
+        --primary: var(--primary-color);
+        --primary-light: var(--primary-color-2);
+        --border: var(--border-color);
+        --card: var(--card-color);
+        --card-2: var(--card-color-2);
+        --input: var(--input-color);
+        --text: var(--text-color);
+        --text-muted-local: var(--text-muted);
+        --text-faint-local: var(--text-faint);
+        --primary-soft-local: var(--primary-soft);
+        --success-local: var(--success-color);
+        --success-soft-local: var(--success-soft);
+        --warning-local: var(--warning-color);
+        --danger-local: var(--danger-color);
+        --shadow-sm-local: var(--shadow-sm);
+        --shadow-md-local: var(--shadow-md);
+        --shadow-lg-local: var(--shadow-lg);
+        /* text to use on strong primary backgrounds */
+        --on-primary: var(--heading-color);
+    }
+
+    .booking-page {
+        --bk-accent-1: var(--primary-color);
+        --bk-accent-2: var(--primary-color-2);
+        --bk-accent-gradient: linear-gradient(135deg, var(--bk-accent-1) 0%, var(--bk-accent-2) 100%);
+        --bk-success: var(--success-color);
+        --bk-success-soft: var(--success-soft);
+        --bk-warning: var(--warning-color);
+        --bk-danger: var(--danger-color);
+        --bk-radius-lg: 18px;
+        --bk-radius-md: 14px;
+        --bk-radius-sm: 10px;
+        --bk-card-bg: var(--card-color);
+        --bk-border: var(--border-color);
+        --bk-muted: var(--text-muted);
+        --bk-shadow-sm: var(--shadow-sm);
+        --bk-shadow-md: var(--shadow-md);
+        --bk-shadow-lg: var(--shadow-lg);
+        color: var(--text);
+        background: var(--bg-color);
+        padding-bottom: 3rem;
+    }
+
+        .booking-page * {
+            box-sizing: border-box;
+        }
+
+    /* ---------- Glass card base ---------- */
+    .bk-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: var(--bk-radius-lg);
+        box-shadow: var(--shadow-sm-local);
+        transition: box-shadow .25s ease, transform .25s ease, border-color .25s ease;
+    }
+
+        .bk-card:hover {
+            box-shadow: var(--bk-shadow-md);
+        }
+
+    .bk-card-body {
+        padding: 1.75rem;
+    }
+
+    @@media (max-width: 575.98px) {
+        .bk-card-body {
+            padding: 1.25rem;
+        }
+    }
+
+    /* ---------- Page header ---------- */
+    .bk-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin-bottom: 1.75rem;
+    }
+
+    .bk-header-title {
+        font-weight: 700;
+        font-size: 1.65rem;
+        letter-spacing: -0.02em;
+        margin-bottom: .35rem;
+        color: var(--heading-color);
+    }
+
+        .bk-header-title .bk-title-dot {
+            display: inline-block;
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: var(--bk-accent-gradient);
+            margin-inline-end: .55rem;
+            box-shadow: 0 0 0 4px var(--primary-soft);
+        }
+
+    .bk-header-sub {
+        color: var(--bk-muted);
+        font-size: .93rem;
+        margin: 0;
+    }
+
+    .bk-header-actions {
+        display: flex;
+        gap: .6rem;
+        flex-wrap: wrap;
+    }
+
+    .btn-bk-ghost {
+        border-radius: 12px;
+        border: 1px solid var(--bk-border);
+        background: transparent;
+        color: var(--text);
+        font-weight: 500;
+        padding: .55rem 1.1rem;
+        transition: all .2s ease;
+    }
+
+        .btn-bk-ghost:hover {
+            border-color: var(--bk-accent-1);
+            color: var(--bk-accent-1);
+            background: var(--primary-soft);
+        }
+
+    .btn-bk-primary {
+        border-radius: 12px;
+        border: none;
+        background: var(--bk-accent-gradient);
+        color: var(--on-primary);
+        font-weight: 600;
+        padding: .55rem 1.3rem;
+        box-shadow: var(--hover-glow);
+        transition: transform .2s ease, box-shadow .2s ease, opacity .2s ease;
+    }
+
+        .btn-bk-primary:hover {
+            transform: translateY(-1px);
+            color: #fff;
+        }
+
+        .btn-bk-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-bk-primary:disabled {
+            opacity: .65;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+    /* ---------- Stepper ---------- */
+    .bk-stepper {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        list-style: none;
+        margin: 0 0 1.75rem;
+        padding: 1.1rem 1.5rem;
+        border-radius: var(--bk-radius-lg);
+        background: var(--card);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow-sm-local);
+    }
+
+    .bk-step {
+        position: relative;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        min-width: 0;
+    }
+
+        .bk-step:not(:last-child)::after {
+            content: "";
+            position: absolute;
+            top: 21px;
+            left: calc(50% + 30px);
+            right: calc(-50% + 30px);
+            height: 3px;
+            background: var(--bk-border);
+            border-radius: 2px;
+            z-index: 0;
+            transition: background .3s ease;
+        }
+
+        .bk-step.completed:not(:last-child)::after {
+            background: var(--bk-success);
+        }
+
+    .bk-step-circle {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 1.05rem;
+        background: var(--input);
+        border: 2px solid var(--border);
+        color: var(--text-muted-local);
+        position: relative;
+        z-index: 1;
+        transition: all .3s ease;
+    }
+
+    .bk-step.active .bk-step-circle {
+        background: var(--bk-accent-gradient);
+        border-color: transparent;
+        color: var(--on-primary);
+        box-shadow: var(--hover-glow);
+    }
+
+    .bk-step.completed .bk-step-circle {
+        background: var(--success-local);
+        border-color: transparent;
+        color: var(--on-primary);
+    }
+
+    .bk-step-label {
+        margin-top: .55rem;
+        font-size: .82rem;
+        font-weight: 600;
+        color: var(--bk-muted);
+    }
+
+    .bk-step-sub {
+        font-size: .72rem;
+        color: var(--bk-muted);
+        opacity: .8;
+    }
+
+    .bk-step.active .bk-step-label {
+        color: var(--bk-accent-1);
+    }
+
+    .bk-step.completed .bk-step-label {
+        color: var(--bk-success);
+    }
+
+    @@media (max-width: 767.98px) {
+        .bk-step-label {
+            font-size: .72rem;
+        }
+
+        .bk-stepper {
+            padding: 1rem .75rem;
+        }
+
+        .bk-step:not(:last-child)::after {
+            top: 18px;
+        }
+
+        .bk-step-circle {
+            width: 36px;
+            height: 36px;
+            font-size: .9rem;
+        }
+    }
+
+    /* ---------- Section headings ---------- */
+    .bk-section-title {
+        display: flex;
+        align-items: center;
+        gap: .6rem;
+        font-weight: 700;
+        font-size: 1.05rem;
+        margin-bottom: 1.35rem;
+        color: var(--heading-color);
+    }
+
+        .bk-section-title .bk-section-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--primary-soft-local);
+            color: var(--primary);
+            font-size: 1rem;
+        }
+
+    /* ---------- Floating inputs ---------- */
+    .bk-field {
+        position: relative;
+        margin-bottom: 1.15rem;
+    }
+
+        .bk-field > label {
+            position: absolute;
+            top: 50%;
+            left: 2.55rem;
+            transform: translateY(-50%);
+            font-size: .92rem;
+            color: var(--bk-muted);
+            background: transparent;
+            pointer-events: none;
+            transition: all .18s ease;
+        }
+
+        .bk-field .form-control,
+        .bk-field .form-select {
+            border-radius: var(--bk-radius-sm);
+            border: 1.5px solid var(--border);
+            background: var(--input);
+            padding: 1.05rem .9rem .35rem 2.55rem;
+            height: 54px;
+            font-size: .93rem;
+            color: var(--text);
+            transition: border-color .2s ease, box-shadow .2s ease;
+        }
+
+            .bk-field .form-control::placeholder {
+                color: transparent;
+            }
+
+            .bk-field .form-control:focus,
+            .bk-field .form-select:focus {
+                border-color: var(--primary);
+                box-shadow: 0 0 0 4px var(--primary-soft-local);
+            }
+
+                .bk-field .form-control:focus ~ label,
+                .bk-field .form-control:not(:placeholder-shown) ~ label,
+                .bk-field .form-select:focus ~ label,
+                .bk-field select.form-select ~ label {
+                    top: 1rem;
+                    font-size: .68rem;
+                    font-weight: 600;
+                    color: var(--primary);
+                }
+
+        .bk-field.no-icon > label {
+            left: 1rem;
+        }
+
+        .bk-field.no-icon .form-control,
+        .bk-field.no-icon .form-select {
+            padding-left: 1rem;
+        }
+
+    .bk-field-icon {
+        position: absolute;
+        left: .9rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--bk-muted);
+        font-size: .95rem;
+        z-index: 3;
+        pointer-events: none;
+    }
+
+    .bk-field textarea.form-control {
+        height: auto;
+        min-height: 86px;
+        padding-top: 1.35rem;
+        resize: vertical;
+    }
+
+    .bk-required {
+        color: var(--bk-danger);
+        margin-left: 2px;
+    }
+
+    .bk-phone-group {
+        display: flex;
+        gap: .5rem;
+    }
+
+        .bk-phone-group .bk-field.code-field {
+            flex: 0 0 108px;
+        }
+
+        .bk-phone-group .bk-field.number-field {
+            flex: 1;
+        }
+
+    /* ---------- Guest counter ---------- */
+    .bk-counter {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border: 1.5px solid var(--border);
+        border-radius: var(--bk-radius-sm);
+        padding: .55rem .9rem;
+        height: 54px;
+        background: var(--input);
+        margin-bottom: 1.15rem;
+    }
+
+    /* Ensure native select respects theme tokens */
+    select.form-select,
+    select.filter-select,
+    select.filter-select--sm,
+    select.entries-select {
+        background-color: var(--input) !important;
+        color: var(--text) !important;
+        border-color: var(--border) !important;
+    }
+
+    .bk-counter-label {
+        font-size: .85rem;
+        font-weight: 600;
+        color: var(--text-color);
+    }
+
+        .bk-counter-label small {
+            display: block;
+            font-weight: 400;
+            font-size: .72rem;
+            color: var(--bk-muted);
+        }
+
+    .bk-counter-controls {
+        display: flex;
+        align-items: center;
+        gap: .7rem;
+    }
+
+    .bk-counter-btn {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        border: 1.5px solid var(--bk-border);
+        background: var(--bk-card-bg);
+        color: var(--bk-accent-1);
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        transition: all .15s ease;
+    }
+
+        .bk-counter-btn:hover {
+            background: var(--bk-accent-gradient);
+            color: #fff;
+            border-color: transparent;
+        }
+
+    .bk-counter-value {
+        min-width: 22px;
+        text-align: center;
+        font-weight: 700;
+        color: var(--text-color);
+    }
+
+    /* ---------- Room search bar ---------- */
+    .bk-room-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .75rem;
+        margin-bottom: 1.25rem;
+        align-items: flex-end;
+    }
+
+        .bk-room-toolbar .bk-field {
+            margin-bottom: 0;
+            flex: 1 1 200px;
+        }
+
+        .bk-room-toolbar .bk-btn-check-avail {
+            flex: 0 0 auto;
+        }
+
+    .btn-bk-check {
+        border-radius: var(--bk-radius-sm);
+        background: var(--bk-accent-gradient);
+        color: #fff;
+        border: none;
+        font-weight: 600;
+        padding: 0 1.4rem;
+        height: 54px;
+        white-space: nowrap;
+        box-shadow: var(--hover-glow);
+        transition: opacity .15s ease;
+    }
+
+        .btn-bk-check.is-loading {
+            opacity: .7;
+            pointer-events: none;
+        }
+
+    /* ---------- Room table ---------- */
+    .bk-table-wrap {
+        border-radius: var(--bk-radius-md);
+        border: 1px solid var(--bk-border);
+        overflow: hidden;
+        /* Reserve a minimum height so swapping table rows via AJAX
+               doesn't collapse/expand the page abruptly (this was part of
+               the "page shakes" feeling on Check Availability). */
+        min-height: 160px;
+    }
+
+        .bk-table-wrap .table-responsive {
+            background: transparent;
+        }
+
+    .table-bk {
+        margin: 0;
+        font-size: .87rem;
+        vertical-align: middle;
+        min-width: 760px;
+        /* FIX: Bootstrap's base .table styles color/background using
+                   --bs-table-bg / --bs-table-color, which are NOT linked to
+                   this app's [data-theme] switch. Left unset, the table
+                   rendered as an opaque white block in dark mode. Force those
+                   variables to the themed card background/text instead. */
+        --bs-table-bg: transparent;
+        --bs-table-color: var(--text-color);
+        --bs-table-striped-bg: transparent;
+        --bs-table-hover-bg: var(--hover-bg);
+        background-color: transparent;
+        color: var(--text-color);
+    }
+
+        .table-bk thead th {
+            background: var(--card-color-2);
+            border-bottom: 1px solid var(--bk-border);
+            font-weight: 700;
+            font-size: .74rem;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            color: var(--bk-muted);
+            padding: .85rem .9rem;
+            white-space: nowrap;
+        }
+
+        .table-bk tbody td {
+            padding: .75rem .9rem;
+            border-bottom: 1px solid var(--bk-border);
+            background-color: transparent;
+            color: var(--text-color);
+        }
+
+        .table-bk tbody tr {
+            background-color: transparent;
+            transition: background .15s ease;
+        }
+
+            .table-bk tbody tr:hover {
+                background: var(--hover-bg);
+            }
+
+                .table-bk tbody tr:hover td {
+                    background-color: transparent;
+                }
+
+            .table-bk tbody tr:last-child td {
+                border-bottom: none;
+            }
+
+            .table-bk tbody tr.row-selected,
+            .table-bk tbody tr.row-selected td {
+                background: var(--primary-soft);
+            }
+
+    .bk-room-thumb {
+        width: 56px;
+        height: 44px;
+        border-radius: 8px;
+        object-fit: cover;
+        border: 1px solid var(--bk-border);
+    }
+
+    .bk-status {
+        font-size: .7rem;
+        font-weight: 700;
+        padding: .3rem .65rem;
+        border-radius: 20px;
+        text-transform: uppercase;
+        letter-spacing: .03em;
+        white-space: nowrap;
+    }
+
+    .bk-status-available {
+        background: var(--bk-success-soft);
+        color: var(--bk-success);
+    }
+
+    .bk-status-occupied {
+        background: var(--danger-soft);
+        color: var(--bk-danger);
+    }
+
+    .bk-status-reserved {
+        background: var(--warning-soft);
+        color: var(--bk-warning);
+    }
+
+    .bk-status-maintenance {
+        background: var(--border-soft);
+        color: var(--bk-muted);
+    }
+
+    .btn-bk-select {
+        border-radius: 8px;
+        border: 1.5px solid var(--bk-accent-1);
+        color: var(--bk-accent-1);
+        background: transparent;
+        font-size: .78rem;
+        font-weight: 600;
+        padding: .3rem .8rem;
+        transition: all .15s ease;
+    }
+
+        .btn-bk-select:hover,
+        .btn-bk-select.active {
+            background: var(--bk-accent-gradient);
+            color: #fff;
+            border-color: transparent;
+        }
+
+        .btn-bk-select:disabled {
+            opacity: .5;
+            cursor: not-allowed;
+        }
+
+    /* ---------- Sticky summary ---------- */
+    .bk-summary-sticky {
+        position: sticky;
+        top: 1.25rem;
+    }
+
+    .bk-summary-room {
+        display: flex;
+        gap: .9rem;
+        align-items: center;
+        padding-bottom: 1.1rem;
+        border-bottom: 1px dashed var(--bk-border);
+        margin-bottom: 1.1rem;
+    }
+
+        .bk-summary-room img {
+            width: 76px;
+            height: 62px;
+            border-radius: 10px;
+            object-fit: cover;
+            border: 1px solid var(--bk-border);
+        }
+
+    .bk-summary-room-info .rn {
+        font-weight: 700;
+        font-size: .95rem;
+        color: var(--heading-color);
+    }
+
+    .bk-summary-room-info .rt {
+        font-size: .78rem;
+        color: var(--bk-muted);
+    }
+
+    .bk-summary-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: .7rem 1rem;
+        font-size: .82rem;
+        margin-bottom: 1.1rem;
+    }
+
+        .bk-summary-grid .lbl {
+            color: var(--bk-muted);
+            display: block;
+            font-size: .7rem;
+            text-transform: uppercase;
+            letter-spacing: .03em;
+        }
+
+        .bk-summary-grid .val {
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
+    .bk-price-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: .87rem;
+        padding: .4rem 0;
+        color: var(--bk-muted);
+    }
+
+        .bk-price-row.discount {
+            color: var(--bk-success);
+        }
+
+    .bk-price-total {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-top: .6rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--bk-border);
+    }
+
+        .bk-price-total .lbl {
+            font-weight: 700;
+            font-size: .95rem;
+            color: var(--heading-color);
+        }
+
+        .bk-price-total .amt {
+            font-weight: 800;
+            font-size: 1.65rem;
+            color: var(--bk-accent-1);
+        }
+
+    .bk-advance-box {
+        margin-top: 1.1rem;
+        border-radius: var(--bk-radius-md);
+        background: var(--bk-success-soft);
+        border: 1px solid color-mix(in srgb, var(--bk-success) 30%, transparent);
+        padding: .9rem 1rem;
+    }
+
+        .bk-advance-box .row-line {
+            display: flex;
+            justify-content: space-between;
+            font-size: .83rem;
+            margin-bottom: .25rem;
+            color: var(--text-color);
+        }
+
+            .bk-advance-box .row-line:last-child {
+                margin-bottom: 0;
+                font-weight: 700;
+            }
+
+            .bk-advance-box .row-line .k {
+                color: var(--bk-success);
+            }
+
+    /* ---------- Payment method ---------- */
+    .bk-pay-methods {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: .6rem;
+        margin-bottom: 1.25rem;
+    }
+
+    @@media (max-width: 575.98px) {
+        .bk-pay-methods {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    .bk-pay-method input {
+        display: none;
+    }
+
+    .bk-pay-method label {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: .4rem;
+        border: 1.5px solid var(--bk-border);
+        border-radius: var(--bk-radius-sm);
+        padding: .9rem .4rem;
+        font-size: .76rem;
+        font-weight: 600;
+        color: var(--bk-muted);
+        cursor: pointer;
+        transition: all .18s ease;
+        text-align: center;
+    }
+
+        .bk-pay-method label i {
+            font-size: 1.15rem;
+            color: var(--bk-muted);
+            transition: color .18s ease;
+        }
+
+    .bk-pay-method input:checked + label {
+        border-color: var(--bk-accent-1);
+        background: var(--primary-soft);
+        color: var(--bk-accent-1);
+        box-shadow: var(--hover-glow);
+    }
+
+        .bk-pay-method input:checked + label i {
+            color: var(--bk-accent-1);
+        }
+
+    .bk-coupon-row {
+        display: flex;
+        gap: .6rem;
+    }
+
+        .bk-coupon-row .form-control {
+            border-radius: var(--bk-radius-sm);
+            border: 1.5px solid var(--bk-border);
+            background: var(--input-color);
+            color: var(--text-color);
+            height: 48px;
+        }
+
+    .btn-bk-coupon {
+        border-radius: var(--bk-radius-sm);
+        border: 1.5px solid var(--bk-accent-1);
+        color: var(--bk-accent-1);
+        background: transparent;
+        font-weight: 600;
+        padding: 0 1.1rem;
+        white-space: nowrap;
+        transition: all .18s ease;
+    }
+
+        .btn-bk-coupon:hover {
+            background: var(--bk-accent-gradient);
+            color: #fff;
+            border-color: transparent;
+        }
+
+    #couponFeedback {
+        font-size: .78rem;
+        margin-top: .5rem;
+        display: none;
+    }
+
+    /* ---------- Bottom action bar ---------- */
+    .bk-action-bar {
+        position: sticky;
+        bottom: 0;
+        z-index: 5;
+        margin-top: 2rem;
+        padding: 1rem 1.25rem;
+        border-radius: var(--bk-radius-lg);
+        background: var(--bk-card-bg);
+        border: 1px solid var(--bk-border);
+        box-shadow: var(--bk-shadow-lg);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: .75rem;
+    }
+
+        .bk-action-bar .left-actions,
+        .bk-action-bar .right-actions {
+            display: flex;
+            gap: .6rem;
+            flex-wrap: wrap;
+        }
+
+    .btn-bk-outline-danger {
+        border-radius: 12px;
+        border: 1.5px solid var(--bk-danger);
+        color: var(--bk-danger);
+        background: transparent;
+        font-weight: 600;
+        padding: .55rem 1.1rem;
+        transition: all .18s ease;
+    }
+
+        .btn-bk-outline-danger:hover {
+            background: var(--bk-danger);
+            color: #fff;
+        }
+
+    /* ---------- Room-selection inline warning (replaces alert() spam) ---------- */
+    #roomSelectFeedback {
+        display: none;
+        font-size: .8rem;
+        color: var(--bk-danger);
+        margin-top: .6rem;
+    }
+
+    /* ---------- Non-blocking inline form banner ----------
+           Replaces every alert() popup on this page. Repeated alert()
+           dialogs were the actual cause of the page feeling like it was
+           "shaking"/blinking when Next/Finish/Check Availability was
+           clicked and validation failed. This renders inline instead. */
+    #formBanner {
+        display: none;
+        align-items: center;
+        gap: .6rem;
+        padding: .75rem 1.1rem;
+        border-radius: var(--bk-radius-md);
+        font-size: .85rem;
+        font-weight: 600;
+        margin-bottom: 1.25rem;
+        border: 1px solid transparent;
+    }
+
+        #formBanner.show {
+            display: flex;
+        }
+
+        #formBanner.banner-error {
+            background: var(--danger-soft);
+            color: var(--bk-danger);
+            border-color: color-mix(in srgb, var(--bk-danger) 30%, transparent);
+        }
+
+        #formBanner.banner-info {
+            background: var(--primary-soft-local);
+            color: var(--bk-accent-1);
+            border-color: color-mix(in srgb, var(--bk-accent-1) 30%, transparent);
+        }
+
+    /* Server-side TempData Success/Error message (set by the controller
+           after AddBooking POST). Same visual language as #formBanner. */
+    .bk-form-msg {
+        display: flex;
+        align-items: center;
+        padding: .75rem 1.1rem;
+        border-radius: var(--bk-radius-md);
+        font-size: .85rem;
+        font-weight: 600;
+        margin-bottom: 1.25rem;
+        border: 1px solid transparent;
+    }
+
+    .bk-form-msg-error {
+        background: var(--danger-soft);
+        color: var(--bk-danger);
+        border-color: color-mix(in srgb, var(--bk-danger) 30%, transparent);
+    }
+
+    .bk-form-msg-success {
+        background: var(--bk-success-soft);
+        color: var(--bk-success);
+        border-color: color-mix(in srgb, var(--bk-success) 30%, transparent);
+    }
+
+    /* Server-side validation summary (asp-validation-summary). If the
+           POST to AddBooking fails ModelState validation, this is where
+           the reason will actually show up instead of the page silently
+           re-rendering (which is what looked like an unexplained blink). */
+    .bk-server-errors {
+        margin-bottom: 1.25rem;
+    }
+
+        .bk-server-errors:empty {
+            display: none;
+        }
+
+        .bk-server-errors ul {
+            margin: 0;
+            padding-left: 1.1rem;
+        }
+
+    /* ---------- Misc animations ---------- */
+    .bk-fade-in {
+        animation: bkFadeIn .45s ease both;
+    }
+
+    @@keyframes bkFadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .was-validated .form-control:invalid,
+    .form-control.is-invalid {
+        border-color: var(--bk-danger) !important;
+    }
+
+    @@media (prefers-reduced-motion: reduce) {
+        .booking-page * {
+            animation: none !important;
+            transition: none !important;
+        }
+    }
+</style>
+
+<div class="booking-page container-fluid px-lg-4 py-3">
+
+    @* ================= PAGE HEADER ================= *@
+    <div class="bk-header bk-fade-in">
+        <div>
+            <div class="bk-header-title"><span class="bk-title-dot"></span>New Booking</div>
+            <p class="bk-header-sub">Create a new hotel booking and manage guest reservation details.</p>
+        </div>
+        <div class="bk-header-actions">
+            <a href="@Url.Action("Index", "Booking")" class="btn btn-bk-ghost">
+                <i class="bi bi-arrow-left me-1"></i> Back to Bookings
+            </a>
+            <button type="submit" form="bookingForm" class="btn btn-bk-primary">
+                <i class="bi bi-check2-circle me-1"></i> Save Booking
+            </button>
+        </div>
+    </div>
+
+    @* ================= STEPPER ================= *@
+    <ul class="bk-stepper bk-fade-in" id="bookingStepper">
+        <li class="bk-step completed" data-step="1">
+            <div class="bk-step-circle"><i class="bi bi-check-lg"></i></div>
+            <div class="bk-step-label">Guest Details</div>
+            <div class="bk-step-sub">Step 1</div>
+        </li>
+        <li class="bk-step active" data-step="2">
+            <div class="bk-step-circle">2</div>
+            <div class="bk-step-label">Room Selection</div>
+            <div class="bk-step-sub">Step 2</div>
+        </li>
+        <li class="bk-step" data-step="3">
+            <div class="bk-step-circle">3</div>
+            <div class="bk-step-label">Additional Services</div>
+            <div class="bk-step-sub">Step 3</div>
+        </li>
+        <li class="bk-step" data-step="4">
+            <div class="bk-step-circle">4</div>
+            <div class="bk-step-label">Payment &amp; Summary</div>
+            <div class="bk-step-sub">Step 4</div>
+        </li>
+    </ul>
+
+    <form id="bookingForm" asp-action="AddBooking" asp-controller="Booking" method="post" class="needs-validation" novalidate>
+        @Html.AntiForgeryToken()
+
+        @* Server-side validation errors surface HERE now. If Finish still
+           doesn't redirect to Index after this change, whatever appears
+           in this box (or the AddBooking POST response in DevTools ->
+           Network) tells us exactly what's blocking the save. *@
+        <div asp-validation-summary="All" class="text-danger bk-server-errors"></div>
+
+        @* FOUND BUG: BookingController.AddBooking (POST) catches exceptions from
+           CreateBookingAsync into TempData["Error"], but nothing on this page ever
+           displayed TempData["Error"]/["Success"] — so if saving throws (e.g. the
+           room got booked in between, a DB constraint, etc.) the page just silently
+           re-rendered AddBooking with no visible reason. That silent re-render is
+           very likely the "page blink, Index doesn't open" behavior you're seeing
+           even after all fields are filled correctly. This now shows it. *@
+        @if (TempData["Error"] != null)
+        {
+            <div class="bk-form-msg bk-form-msg-error bk-fade-in">
+                <i class="bi bi-exclamation-triangle me-2"></i>@TempData["Error"]
+            </div>
+        }
+        @if (TempData["Success"] != null)
+        {
+            <div class="bk-form-msg bk-form-msg-success bk-fade-in">
+                <i class="bi bi-check-circle me-2"></i>@TempData["Success"]
+            </div>
+        }
+
+        <div id="formBanner" class="bk-fade-in"></div>
+
+        <div class="row g-4">
+
+            @* ================= LEFT SIDE ================= *@
+            <div class="col-xl-8">
+
+                @* ---- Section 1: Guest Information ---- *@
+                <div class="bk-card bk-fade-in mb-4">
+                    <div class="bk-card-body">
+                        <div class="bk-section-title">
+                            <span class="bk-section-icon"><i class="bi bi-person-vcard"></i></span>
+                            Guest Information
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="bk-field">
+                                    <span class="bk-field-icon"><i class="bi bi-person"></i></span>
+                                    <input type="text" class="form-control" asp-for="GuestName" placeholder="Guest Name" required>
+                                    <label asp-for="GuestName">Guest Name<span class="bk-required">*</span></label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="bk-field">
+                                    <span class="bk-field-icon"><i class="bi bi-envelope"></i></span>
+                                    <input type="email" class="form-control" asp-for="Email" placeholder="Email" required>
+                                    <label asp-for="Email">Email Address<span class="bk-required">*</span></label>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="bk-phone-group">
+                                    <div class="bk-field code-field no-icon">
+                                        <select class="form-select" id="countryCode" required>
+                                            <option value="+91" selected>+91</option>
+                                            <option value="+1">+1</option>
+                                            <option value="+44">+44</option>
+                                            <option value="+61">+61</option>
+                                            <option value="+971">+971</option>
+                                        </select>
+                                        <label for="countryCode">Code</label>
+                                    </div>
+                                    <div class="bk-field number-field">
+                                        <span class="bk-field-icon"><i class="bi bi-telephone"></i></span>
+                                        <input type="tel" class="form-control" asp-for="PhoneNumber" placeholder="Phone Number" required>
+                                        <label asp-for="PhoneNumber">Phone Number<span class="bk-required">*</span></label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="bk-field">
+                                    <span class="bk-field-icon"><i class="bi bi-card-heading"></i></span>
+                                    <select class="form-select" asp-for="IdProofType" required>
+                                        <option value="" selected disabled></option>
+                                        <option>Passport</option>
+                                        <option>Driving License</option>
+                                        <option>National ID</option>
+                                        <option>Aadhaar Card</option>
+                                        <option>Voter ID</option>
+                                    </select>
+                                    <label asp-for="IdProofType">ID Proof Type<span class="bk-required">*</span></label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="bk-field">
+                                    <span class="bk-field-icon"><i class="bi bi-hash"></i></span>
+                                    <input type="text" class="form-control" asp-for="IdProofNumber" placeholder="ID Proof Number" required>
+                                    <label asp-for="IdProofNumber">ID Proof Number<span class="bk-required">*</span></label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                @* ---- Section 2: Booking Details ---- *@
+                <div class="bk-card bk-fade-in mb-4">
+                    <div class="bk-card-body">
+                        <div class="bk-section-title">
+                            <span class="bk-section-icon"><i class="bi bi-calendar2-week"></i></span>
+                            Booking Details
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <div class="bk-field">
+                                    <span class="bk-field-icon"><i class="bi bi-box-arrow-in-right"></i></span>
+                                    <input type="date" class="form-control" asp-for="CheckInDate" placeholder="Check-In" required>
+                                    <label asp-for="CheckInDate">Check-In Date<span class="bk-required">*</span></label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="bk-field">
+                                    <span class="bk-field-icon"><i class="bi bi-box-arrow-in-left"></i></span>
+                                    <input type="date" class="form-control" asp-for="CheckOutDate" placeholder="Check-Out" required>
+                                    <label asp-for="CheckOutDate">Check-Out Date<span class="bk-required">*</span></label>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div id="dateFeedback" class="small text-danger" style="display:none;margin-top:-.5rem;margin-bottom:.6rem"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="bk-field">
+                                    <span class="bk-field-icon"><i class="bi bi-moon-stars"></i></span>
+                                    <input type="text" class="form-control" id="totalNights" placeholder="Nights" readonly value="0 Nights">
+                                    <label for="totalNights">Total Nights</label>
+                                </div>
+                            </div>
+
+                            <div class="col-md-3 col-6">
+                                <div class="bk-counter">
+                                    <div class="bk-counter-label">Adults<small>12+ yrs</small></div>
+                                    <div class="bk-counter-controls">
+                                        <button type="button" class="bk-counter-btn" data-target="adultsCount" data-step="-1">−</button>
+                                        <span class="bk-counter-value" id="adultsCount">2</span>
+                                        <button type="button" class="bk-counter-btn" data-target="adultsCount" data-step="1">+</button>
+                                    </div>
+                                </div>
+                                <input type="hidden" asp-for="Adults" id="AdultsInput" value="2" />
+                            </div>
+                            <div class="col-md-3 col-6">
+                                <div class="bk-counter">
+                                    <div class="bk-counter-label">Children<small>2-11 yrs</small></div>
+                                    <div class="bk-counter-controls">
+                                        <button type="button" class="bk-counter-btn" data-target="childrenCount" data-step="-1">−</button>
+                                        <span class="bk-counter-value" id="childrenCount">0</span>
+                                        <button type="button" class="bk-counter-btn" data-target="childrenCount" data-step="1">+</button>
+                                    </div>
+                                </div>
+                                <input type="hidden" asp-for="Children" id="ChildrenInput" value="0" />
+                            </div>
+
+                            <div class="col-md-3 col-6">
+                                <div class="bk-field">
+                                    <span class="bk-field-icon"><i class="bi bi-building"></i></span>
+                                    <select class="form-select" asp-for="RoomPreference">
+                                        <option value="" selected disabled></option>
+                                        <option>Non-Smoking</option>
+                                        <option>Smoking</option>
+                                        <option>High Floor</option>
+                                        <option>Near Elevator</option>
+                                        <option>Sea View</option>
+                                    </select>
+                                    <label asp-for="RoomPreference">Room Preference</label>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-6">
+                                <div class="bk-field">
+                                    <span class="bk-field-icon"><i class="bi bi-house-heart"></i></span>
+                                    <select class="form-select" asp-for="BedType">
+                                        <option value="" selected disabled></option>
+                                        <option>King Bed</option>
+                                        <option>Queen Bed</option>
+                                        <option>Twin Beds</option>
+                                        <option>Double Bed</option>
+                                    </select>
+                                    <label asp-for="BedType">Bed Type</label>
+                                </div>
+                            </div>
+
+                            <div class="col-12">
+                                <div class="bk-field">
+                                    <span class="bk-field-icon"><i class="bi bi-chat-left-text"></i></span>
+                                    <textarea class="form-control" asp-for="SpecialRequests" placeholder="Special Requests"></textarea>
+                                    <label asp-for="SpecialRequests">Special Requests</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                @* ---- Section 3: Room Selection (real rooms from DB) ---- *@
+                <div class="bk-card bk-fade-in mb-4">
+                    <div class="bk-card-body">
+                        <div class="bk-section-title">
+                            <span class="bk-section-icon"><i class="bi bi-door-open"></i></span>
+                            Room Selection
+                        </div>
+
+                        <div class="bk-room-toolbar">
+                            <div class="bk-field no-icon">
+                                <input type="text" class="form-control" id="roomSearch" placeholder="Search Room">
+                                <label for="roomSearch">Search Room</label>
+                            </div>
+                            <div class="bk-field no-icon">
+                                <select class="form-select" id="roomTypeFilter">
+                                    <option value="" selected>All Types</option>
+                                    @foreach (var t in availableRooms.Select(r => GetProp(r, "RoomType", "Type")).Where(v => !string.IsNullOrWhiteSpace(v)).Distinct())
+                                    {
+                                        <option value="@t">@t</option>
+                                    }
+                                </select>
+                                <label for="roomTypeFilter">Room Type</label>
+                            </div>
+                            <div class="bk-field no-icon">
+                                <select class="form-select" id="floorFilter">
+                                    <option value="" selected>All Floors</option>
+                                    @foreach (var f in availableRooms.Select(r => GetProp(r, "Floor", "FloorName", "FloorNumber")).Where(v => !string.IsNullOrWhiteSpace(v)).Distinct())
+                                    {
+                                        <option value="@f">@f</option>
+                                    }
+                                </select>
+                                <label for="floorFilter">Floor</label>
+                            </div>
+                            <button type="button" class="btn btn-bk-check bk-btn-check-avail">
+                                <i class="bi bi-search me-1"></i> Check Availability
+                            </button>
+                        </div>
+
+                        <div class="bk-table-wrap">
+                            <div class="table-responsive">
+                                <table class="table table-bk mb-0" id="roomTable">
+                                    <thead>
+                                        <tr>
+                                            <th></th>
+                                            <th>Room</th>
+                                            <th>Room No.</th>
+                                            <th>Type</th>
+                                            <th>Floor</th>
+                                            <th>Max Guests</th>
+                                            <th>Price / Night</th>
+                                            <th>Status</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @{
+                                            var isFirst = true;
+                                        }
+                                        @if (!availableRooms.Any())
+                                        {
+                                            <tr><td colspan="9" class="text-center py-4" style="color:var(--text-faint);">No rooms found.</td></tr>
+                                        }
+                                        @foreach (var room in availableRooms)
+                                        {
+                                            // Robustly read properties regardless of exactly which
+                                            // shape the room object arrives in (dictionary, anonymous
+                                            // object, or a typed RoomDto with slightly different
+                                            // property names). See GetProp() in @functions above.
+                                            var o = (object)room;
+
+                                            var rawAvailability = GetProp(o, "Availability", "Status", "RoomStatus", "AvailabilityStatus", "CurrentStatus");
+                                            string availability = rawAvailability ?? "Available";
+
+                                            string img = GetProp(o, "ImagePaths", "ImageUrl", "Image", "ImagePath", "Thumbnail");
+                                            // FOUND BUG: BookingController defaults missing images to
+                                            // "/images/placeholder-room.jpg", but this fallback pointed
+                                            // to a different, likely-nonexistent file
+                                            // ("~/images/room-fallback.png"). Every row would try to
+                                            // load the real image, fail, flash a broken-image icon,
+                                            // then swap to a fallback that also 404'd — that flicker
+                                            // across every row is what looked like "the whole page
+                                            // blinking" when Room Selection rendered. Now both paths
+                                            // match the controller's actual default.
+                                            if (string.IsNullOrWhiteSpace(img)) img = Url.Content("~/images/placeholder-room.jpg");
+
+                                            int capAdult = 0;
+                                            int.TryParse(GetProp(o, "CapacityAdults", "MaxGuests", "MaxAdults", "AdultCapacity", "Capacity"), out capAdult);
+
+                                            int capChild = 0;
+                                            int.TryParse(GetProp(o, "CapacityChildren", "MaxChildren", "ChildCapacity"), out capChild);
+
+                                            decimal price = 0m;
+                                            decimal.TryParse(GetProp(o, "PricePerNight", "Price", "RatePerNight", "Rate"), out price);
+
+                                            string roomNumber = GetProp(o, "RoomNumber", "Number", "RoomNo") ?? string.Empty;
+                                            string roomType = GetProp(o, "RoomType", "Type") ?? string.Empty;
+                                            string floor = GetProp(o, "Floor", "FloorName", "FloorNumber") ?? string.Empty;
+
+                                            int id = 0;
+                                            int.TryParse(GetProp(o, "Id", "RoomId"), out id);
+
+                                            bool isAvailable = string.Equals(availability ?? string.Empty, "Available", StringComparison.OrdinalIgnoreCase);
+                                            string statusClass = (availability ?? "").ToLower() switch
+                                            {
+                                                "available" => "bk-status-available",
+                                                "occupied" => "bk-status-occupied",
+                                                "reserved" => "bk-status-reserved",
+                                                _ => "bk-status-maintenance"
+                                            };
+
+                                            <tr class="@(isAvailable && isFirst ? "row-selected" : "")"
+                                                data-room-id="@id"
+                                                data-room="@roomNumber" data-type="@roomType" data-floor="@floor"
+                                                data-price="@price" data-cap-adult="@capAdult" data-cap-child="@capChild"
+                                                data-img="@img">
+                                                <td><input class="form-check-input" type="radio" name="roomSelectUi" disabled="@(!isAvailable)" checked="@(isAvailable && isFirst)"></td>
+                                                <td><img class="bk-room-thumb" src="@img" alt="Room @roomNumber" onerror="this.onerror=null;this.src='@Url.Content("~/images/placeholder-room.jpg")'"></td>
+                                                <td class="fw-semibold">@roomNumber</td>
+                                                <td>@roomType</td>
+                                                <td>@floor</td>
+                                                <td>@(capAdult + capChild)</td>
+                                                <td class="fw-semibold">₹@((price).ToString("N0"))</td>
+                                                <td><span class="bk-status @statusClass">@availability</span></td>
+                                                <td><button type="button" class="btn btn-bk-select @(isAvailable && isFirst ? "active" : "")" disabled="@(!isAvailable)">@(isAvailable && isFirst ? "Selected" : "Select")</button></td>
+                                            </tr>
+                                            if (isAvailable) { isFirst = false; }
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div id="roomSelectFeedback"><i class="bi bi-exclamation-circle me-1"></i>Please select an available room to continue.</div>
+                        <input type="hidden" asp-for="RoomId" id="RoomIdInput" />
+                    </div>
+                </div>
+
+                @* ---- Payment Section ---- *@
+                <div class="bk-card bk-fade-in mb-4">
+                    <div class="bk-card-body">
+                        <div class="bk-section-title">
+                            <span class="bk-section-icon"><i class="bi bi-credit-card"></i></span>
+                            Payment
+                        </div>
+
+                        <label class="form-label fw-semibold small mb-2">Payment Method</label>
+                        <div class="bk-pay-methods">
+                            <div class="bk-pay-method">
+                                <input type="radio" name="PaymentMethod" id="payCash" value="Cash" checked>
+                                <label for="payCash"><i class="bi bi-cash-stack"></i>Cash</label>
+                            </div>
+                            <div class="bk-pay-method">
+                                <input type="radio" name="PaymentMethod" id="payUpi" value="UPI">
+                                <label for="payUpi"><i class="bi bi-phone"></i>UPI</label>
+                            </div>
+                            <div class="bk-pay-method">
+                                <input type="radio" name="PaymentMethod" id="payCard" value="Card">
+                                <label for="payCard"><i class="bi bi-credit-card-2-front"></i>Card</label>
+                            </div>
+                            <div class="bk-pay-method">
+                                <input type="radio" name="PaymentMethod" id="payNetBanking" value="NetBanking">
+                                <label for="payNetBanking"><i class="bi bi-bank"></i>Net Banking</label>
+                            </div>
+                            <div class="bk-pay-method">
+                                <input type="radio" name="PaymentMethod" id="payWallet" value="Wallet">
+                                <label for="payWallet"><i class="bi bi-wallet2"></i>Wallet</label>
+                            </div>
+                        </div>
+
+                        <label class="form-label fw-semibold small mb-2">Coupon Code</label>
+                        <div class="bk-coupon-row">
+                            <input type="text" class="form-control" asp-for="CouponCode" placeholder="Enter coupon code">
+                            <button type="button" class="btn btn-bk-coupon" id="applyCouponBtn">Apply Coupon</button>
+                        </div>
+                        <div id="couponFeedback"></div>
+                    </div>
+                </div>
+            </div>
+
+            @* ================= RIGHT SIDE — SUMMARY ================= *@
+            <div class="col-xl-4">
+                <div class="bk-summary-sticky">
+                    <div class="bk-card bk-fade-in">
+                        <div class="bk-card-body">
+                            <div class="bk-section-title mb-3">
+                                <span class="bk-section-icon"><i class="bi bi-receipt"></i></span>
+                                Booking Summary
+                            </div>
+
+                            <div class="bk-summary-room">
+                                <img id="summaryRoomImg" src="" alt="Selected room">
+                                <div class="bk-summary-room-info">
+                                    <div class="rn">Room <span id="summaryRoomNo">—</span></div>
+                                    <div class="rt" id="summaryRoomType">—</div>
+                                </div>
+                            </div>
+
+                            <div class="bk-summary-grid">
+                                <div>
+                                    <span class="lbl">Check-In</span>
+                                    <span class="val" id="summaryCheckIn">—</span>
+                                </div>
+                                <div>
+                                    <span class="lbl">Check-Out</span>
+                                    <span class="val" id="summaryCheckOut">—</span>
+                                </div>
+                                <div>
+                                    <span class="lbl">Nights</span>
+                                    <span class="val" id="summaryNights">0</span>
+                                </div>
+                                <div>
+                                    <span class="lbl">Guests</span>
+                                    <span class="val" id="summaryGuests">2 Adults</span>
+                                </div>
+                            </div>
+
+                            <div class="bk-price-breakdown">
+                                <div class="bk-price-row">
+                                    <span>Room Price</span>
+                                    <span id="priceRoom">₹0</span>
+                                </div>
+                                <div class="bk-price-row">
+                                    <span>Extra Bed</span>
+                                    <span id="priceExtraBed">₹0</span>
+                                </div>
+                                <div class="bk-price-row">
+                                    <span>Additional Services</span>
+                                    <span id="priceServices">₹0</span>
+                                </div>
+                                <div class="bk-price-row discount">
+                                    <span>Discount</span>
+                                    <span id="priceDiscount">− ₹0</span>
+                                </div>
+                                <div class="bk-price-row">
+                                    <span>Tax (12%)</span>
+                                    <span id="priceTax">₹0</span>
+                                </div>
+                            </div>
+
+                            <div class="bk-price-total">
+                                <span class="lbl">Total Amount</span>
+                                <span class="amt" id="priceTotal">₹0</span>
+                            </div>
+                            <input type="hidden" asp-for="TotalAmount" id="TotalAmountInput" />
+
+                            <div class="bk-advance-box">
+                                <div class="row-line"><span class="k"><i class="bi bi-shield-check me-1"></i>Advance Payment (30%)</span><span id="advanceAmount">₹0</span></div>
+                                <div class="row-line"><span>Remaining Amount</span><span id="remainingAmount">₹0</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* ================= BOTTOM ACTION BAR ================= *@
+        <div class="bk-action-bar bk-fade-in">
+            <div class="left-actions">
+                <button type="button" class="btn btn-bk-outline-danger" id="resetFormBtn">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i> Reset Form
+                </button>
+                <a href="@Url.Action("Index", "Booking")" class="btn btn-bk-ghost">Cancel</a>
+            </div>
+            <div class="right-actions">
+                <button type="button" class="btn btn-bk-ghost" id="prevStepBtn">
+                    <i class="bi bi-arrow-left me-1"></i> Previous
+                </button>
+                <button type="button" class="btn btn-bk-primary" id="nextStepBtn">
+                    Next Step <i class="bi bi-arrow-right ms-1"></i>
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+<script>
+    (function () {
+        "use strict";
+
+        var scope = document;
+
+        /* ---------------- Non-blocking form banner (replaces alert()) ----------------
+           This is the single biggest fix for the "page shakes/blinks" complaint:
+           every alert() on this page has been replaced with this. */
+        function showBanner(message, type) {
+            var el = scope.getElementById('formBanner');
+            if (!el) return;
+            el.textContent = message;
+            el.className = 'bk-fade-in show banner-' + (type || 'error');
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        function hideBanner() {
+            var el = scope.getElementById('formBanner');
+            if (el) el.classList.remove('show');
+        }
+
+        /* ---------------- Stepper navigation ---------------- */
+        var steps = Array.prototype.slice.call(scope.querySelectorAll("#bookingStepper .bk-step"));
+        var currentStep = 2;
+
+        function renderStepper() {
+            steps.forEach(function (li) {
+                var n = parseInt(li.getAttribute("data-step"), 10);
+                li.classList.remove("active", "completed");
+                var circle = li.querySelector(".bk-step-circle");
+                if (n < currentStep) {
+                    li.classList.add("completed");
+                    circle.innerHTML = '<i class="bi bi-check-lg"></i>';
+                } else if (n === currentStep) {
+                    li.classList.add("active");
+                    circle.textContent = n;
+                } else {
+                    circle.textContent = n;
+                }
+            });
+            var nextBtn = scope.getElementById("nextStepBtn");
+            var prevBtn = scope.getElementById("prevStepBtn");
+            prevBtn.disabled = currentStep === 1;
+            nextBtn.innerHTML = currentStep === 4
+                ? '<i class="bi bi-check2-circle me-1"></i> Finish'
+                : 'Next Step <i class="bi bi-arrow-right ms-1"></i>';
+        }
+
+        function showRoomFeedback(show) {
+            var el = scope.getElementById('roomSelectFeedback');
+            el.style.display = show ? 'block' : 'none';
+            if (show) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        scope.getElementById("nextStepBtn").addEventListener("click", function () {
+            var form = scope.getElementById('bookingForm');
+            hideBanner();
+
+            if (currentStep === 1) {
+                var requiredGuest = ['GuestName', 'Email', 'PhoneNumber', 'IdProofType', 'IdProofNumber'];
+                var ok = true;
+                requiredGuest.forEach(function (id) {
+                    var el = scope.querySelector('[name="' + id + '"]') || scope.getElementById(id);
+                    if (!el || !el.value || el.value.trim() === '') ok = false;
+                });
+                if (!ok) { form.classList.add('was-validated'); showBanner('Please complete required guest details before continuing.', 'error'); return; }
+            }
+            if (currentStep === 2) {
+                if (!calcNights()) { showBanner('Please fix date selection before proceeding.', 'error'); return; }
+                if (!scope.getElementById('RoomIdInput').value) { showRoomFeedback(true); return; }
+                showRoomFeedback(false);
+            }
+            if (currentStep < 4) { currentStep++; renderStepper(); }
+            else if (currentStep === 4) {
+                var pay = scope.querySelector('input[name="PaymentMethod"]:checked');
+                if (!pay) { showBanner('Please select a payment method.', 'error'); return; }
+                if (!form.checkValidity()) {
+                    form.classList.add('was-validated');
+                    showBanner('Please complete all required fields (highlighted above) before finishing.', 'error');
+                    return;
+                }
+                if (!scope.getElementById('RoomIdInput').value) {
+                    currentStep = 2; renderStepper();
+                    showRoomFeedback(true);
+                    showBanner('Room selection is missing — please pick a room before finishing.', 'error');
+                    return;
+                }
+
+                // All client checks passed. Disable the button so a slow
+                // network request can't be triggered twice, and log to
+                // console so we can see in DevTools whether the POST is
+                // actually firing (helps diagnose "Finish doesn't redirect").
+                var finishBtn = this;
+                finishBtn.disabled = true;
+                finishBtn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Saving...';
+                console.log('[AddBooking] submitting booking form to', form.action);
+                form.submit();
+            }
+        });
+        scope.getElementById("prevStepBtn").addEventListener("click", function () {
+            if (currentStep > 1) { currentStep--; renderStepper(); }
+        });
+        steps.forEach(function (li) {
+            li.style.cursor = "pointer";
+            li.addEventListener("click", function () {
+                currentStep = parseInt(li.getAttribute("data-step"), 10);
+                renderStepper();
+            });
+        });
+        renderStepper();
+
+        /* ---------------- Guest / children counters ---------------- */
+        scope.querySelectorAll(".bk-counter-btn").forEach(function (btn) {
+            btn.addEventListener("click", function () {
+                var targetId = btn.getAttribute("data-target");
+                var step = parseInt(btn.getAttribute("data-step"), 10);
+                var el = scope.getElementById(targetId);
+                var val = parseInt(el.textContent, 10) + step;
+                var min = targetId === "adultsCount" ? 1 : 0;
+                if (val < min) val = min;
+                var capacity = null;
+                var selectedRow = scope.querySelector('#roomTable tr.row-selected');
+                if (selectedRow) {
+                    var capAdult = parseInt(selectedRow.getAttribute('data-cap-adult') || '0', 10) || 0;
+                    var capChild = parseInt(selectedRow.getAttribute('data-cap-child') || '0', 10) || 0;
+                    capacity = (capAdult || 0) + (capChild || 0);
+                }
+                if (capacity !== null && !isNaN(capacity) && capacity > 0) {
+                    var otherId = targetId === 'adultsCount' ? 'childrenCount' : 'adultsCount';
+                    var other = parseInt(scope.getElementById(otherId).textContent, 10) || 0;
+                    if (val + other > capacity) {
+                        return;
+                    }
+                } else {
+                    if (val > 10) val = 10;
+                }
+                el.textContent = val;
+                scope.getElementById(targetId === "adultsCount" ? "AdultsInput" : "ChildrenInput").value = val;
+                updateSummaryGuests();
+                recalcTotals();
+            });
+        });
+
+        function updateSummaryGuests() {
+            var adults = scope.getElementById("adultsCount").textContent;
+            var children = scope.getElementById("childrenCount").textContent;
+            var text = adults + " Adult" + (adults == 1 ? "" : "s");
+            if (parseInt(children, 10) > 0) {
+                text += ", " + children + " Child" + (children == 1 ? "" : "ren");
+            }
+            scope.getElementById("summaryGuests").textContent = text;
+        }
+
+        /* ---------------- Date / nights calculation ---------------- */
+        var checkIn = scope.getElementById("CheckInDate");
+        var checkOut = scope.getElementById("CheckOutDate");
+        var nightsField = scope.getElementById("totalNights");
+        var nights = 0;
+        var dateFeedback = scope.getElementById('dateFeedback');
+
+        function calcNights() {
+            dateFeedback.style.display = 'none';
+            if (checkIn.value && checkOut.value) {
+                var d1 = new Date(checkIn.value);
+                var d2 = new Date(checkOut.value);
+                if (d2 <= d1) {
+                    nights = 0;
+                    dateFeedback.textContent = 'Check-out date must be after check-in date.';
+                    dateFeedback.style.display = 'block';
+                } else {
+                    var diff = Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
+                    nights = diff;
+                }
+            } else {
+                nights = 0;
+            }
+            nightsField.value = nights + (nights === 1 ? " Night" : " Nights");
+            scope.getElementById("summaryNights").textContent = nights;
+            scope.getElementById("summaryCheckIn").textContent = checkIn.value
+                ? new Date(checkIn.value).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
+                : "—";
+            scope.getElementById("summaryCheckOut").textContent = checkOut.value
+                ? new Date(checkOut.value).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
+                : "—";
+            recalcTotals();
+            return dateFeedback.style.display === 'none';
+        }
+        if (checkIn && checkOut) {
+            checkIn.addEventListener("change", calcNights);
+            checkOut.addEventListener("change", calcNights);
+        }
+
+        /* ---------------- Room selection (from DB-rendered rows) ---------------- */
+        var roomPricePerNight = 0;
+        var initialRow = scope.querySelector('#roomTable tr.row-selected');
+
+        function selectRoom(row) {
+            scope.querySelectorAll('#roomTable tbody tr[data-room-id]').forEach(function (r) {
+                r.classList.remove("row-selected");
+                var b = r.querySelector(".btn-bk-select");
+                if (b && !b.disabled) { b.classList.remove("active"); b.textContent = "Select"; }
+                var radio = r.querySelector('input[type="radio"]');
+                if (radio) radio.checked = false;
+            });
+            row.classList.add("row-selected");
+            var thisBtn = row.querySelector(".btn-bk-select");
+            if (thisBtn) { thisBtn.classList.add("active"); thisBtn.textContent = "Selected"; }
+            var thisRadio = row.querySelector('input[type="radio"]');
+            if (thisRadio) thisRadio.checked = true;
+
+            roomPricePerNight = parseFloat(row.getAttribute("data-price")) || 0;
+            scope.getElementById("RoomIdInput").value = row.getAttribute("data-room-id");
+            scope.getElementById("summaryRoomNo").textContent = row.getAttribute("data-room");
+            scope.getElementById("summaryRoomType").textContent = row.getAttribute("data-type") + " · " + row.getAttribute("data-floor");
+            scope.getElementById("summaryRoomImg").src = row.getAttribute("data-img");
+            showRoomFeedback(false);
+            recalcTotals();
+        }
+
+        function bindRoomRowEvents() {
+            scope.querySelectorAll('#roomTable .btn-bk-select:not([disabled])').forEach(function (btn) {
+                btn.addEventListener("click", function () { selectRoom(btn.closest("tr")); });
+            });
+            scope.querySelectorAll('#roomTable input[type="radio"]:not([disabled])').forEach(function (radio) {
+                radio.addEventListener("change", function () { selectRoom(radio.closest("tr")); });
+            });
+        }
+        bindRoomRowEvents();
+
+        if (initialRow) { selectRoom(initialRow); }
+
+        // When checking availability via toolbar, call server to refresh list.
+        // FIX: shows an inline loading state on the button instead of an
+        // instant table swap, and reports errors via the banner instead of
+        // alert() — both were contributing to the "page jumps/blinks" feel.
+        scope.querySelector('.bk-btn-check-avail').addEventListener('click', function () {
+            hideBanner();
+            if (!calcNights()) {
+                showBanner('Please fix date selection before searching for availability.', 'error');
+                return;
+            }
+            var ci = scope.getElementById('CheckInDate').value;
+            var co = scope.getElementById('CheckOutDate').value;
+            var adults = parseInt(scope.getElementById('AdultsInput').value || '1', 10) || 1;
+            var children = parseInt(scope.getElementById('ChildrenInput').value || '0', 10) || 0;
+            var type = scope.getElementById('roomTypeFilter').value || '';
+            var floor = scope.getElementById('floorFilter').value || '';
+
+            var btn = this;
+            var originalHtml = btn.innerHTML;
+            btn.classList.add('is-loading');
+            btn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Checking...';
+
+            var url = '/Booking/GetAvailableRooms?checkIn=' + encodeURIComponent(ci) + '&checkOut=' + encodeURIComponent(co) + '&adults=' + adults + '&children=' + children + '&roomType=' + encodeURIComponent(type) + '&floor=' + encodeURIComponent(floor);
+            fetch(url)
+                .then(function (r) {
+                    if (!r.ok) { throw new Error('Server responded ' + r.status); }
+                    return r.json();
+                })
+                .then(function (rooms) {
+                    var tbody = scope.querySelector('#roomTable tbody');
+                    tbody.innerHTML = '';
+                    if (!rooms || rooms.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="9" class="text-center py-4" style="color:var(--text-faint);">No rooms found.</td></tr>';
+                        return;
+                    }
+                    var firstSet = false;
+                    rooms.forEach(function (room) {
+                        var availRaw = (room.availability || room.status || '').toString();
+                        var isAvailable = availRaw === '' ? true : availRaw.toLowerCase() === 'available';
+                        var img = room.imagePaths || room.imageUrl || '/images/placeholder-room.jpg';
+                        var capAdult = room.capacityAdults || room.maxGuests || 0;
+                        var capChild = room.capacityChildren || 0;
+                        var tr = document.createElement('tr');
+                        if (isAvailable && !firstSet) { tr.classList.add('row-selected'); firstSet = true; }
+                        tr.setAttribute('data-room-id', room.id || room.roomId || '');
+                        tr.setAttribute('data-room', room.roomNumber || '');
+                        tr.setAttribute('data-type', room.roomType || '');
+                        tr.setAttribute('data-floor', room.floor || '');
+                        tr.setAttribute('data-price', room.pricePerNight || room.price || 0);
+                        tr.setAttribute('data-cap-adult', capAdult);
+                        tr.setAttribute('data-cap-child', capChild);
+                        tr.setAttribute('data-img', img);
+
+                        tr.innerHTML = '\n<td><input class="form-check-input" type="radio" name="roomSelectUi" ' + (isAvailable ? '' : 'disabled') + (isAvailable && tr.classList.contains('row-selected') ? ' checked' : '') + '></td>' +
+                            '<td><img class="bk-room-thumb" src="' + img + '" onerror="this.onerror=null;this.src=\'/images/placeholder-room.jpg\'" /></td>' +
+                            '<td class="fw-semibold">' + (room.roomNumber || '') + '</td>' +
+                            '<td>' + (room.roomType || '') + '</td>' +
+                            '<td>' + (room.floor || '') + '</td>' +
+                            '<td>' + (capAdult + capChild) + '</td>' +
+                            '<td class="fw-semibold">₹' + (Math.round((room.pricePerNight || room.price || 0))).toLocaleString('en-IN') + '</td>' +
+                            '<td><span class="bk-status ' + (isAvailable ? 'bk-status-available' : 'bk-status-occupied') + '">' + (availRaw || 'Available') + '</span></td>' +
+                            '<td><button type="button" class="btn btn-bk-select ' + (isAvailable && tr.classList.contains('row-selected') ? 'active' : '') + '" ' + (isAvailable ? '' : 'disabled') + '>' + (isAvailable ? (tr.classList.contains('row-selected') ? 'Selected' : 'Select') : 'N/A') + '</button></td>';
+                        tbody.appendChild(tr);
+                    });
+                    bindRoomRowEvents();
+                    var first = scope.querySelector('#roomTable tr.row-selected');
+                    if (first) selectRoom(first);
+                })
+                .catch(function (err) {
+                    console.error('[AddBooking] GetAvailableRooms failed:', err);
+                    showBanner('Could not load rooms right now (' + err.message + '). Please try again.', 'error');
+                })
+                .finally(function () {
+                    btn.classList.remove('is-loading');
+                    btn.innerHTML = originalHtml;
+                });
+        });
+
+        /* ---------------- Room filters (client-side over server-rendered rows) ---------------- */
+        function applyRoomFilters() {
+            var q = (scope.getElementById("roomSearch").value || "").trim().toLowerCase();
+            var type = scope.getElementById("roomTypeFilter").value;
+            var floor = scope.getElementById("floorFilter").value;
+            scope.querySelectorAll('#roomTable tbody tr[data-room-id]').forEach(function (row) {
+                var matchesQ = !q || row.getAttribute("data-room").toLowerCase().indexOf(q) !== -1;
+                var matchesType = !type || row.getAttribute("data-type") === type;
+                var matchesFloor = !floor || row.getAttribute("data-floor") === floor;
+                row.style.display = (matchesQ && matchesType && matchesFloor) ? "" : "none";
+            });
+        }
+        scope.getElementById("roomSearch").addEventListener("input", applyRoomFilters);
+        scope.getElementById("roomTypeFilter").addEventListener("change", applyRoomFilters);
+        scope.getElementById("floorFilter").addEventListener("change", applyRoomFilters);
+
+        /* ---------------- Coupon ---------------- */
+        var discountAmount = 0;
+        var appliedCoupon = null;
+        scope.getElementById("applyCouponBtn").addEventListener("click", function () {
+            var code = scope.getElementById("CouponCode").value.trim().toUpperCase();
+            var feedback = scope.getElementById("couponFeedback");
+            feedback.style.display = "block";
+            if (!code) {
+                discountAmount = 0; appliedCoupon = null;
+                feedback.className = "text-danger";
+                feedback.innerHTML = '<i class="bi bi-exclamation-circle me-1"></i>Please enter a coupon code.';
+                recalcTotals();
+                return;
+            }
+            if (appliedCoupon && appliedCoupon === code) {
+                feedback.className = "text-success";
+                feedback.innerHTML = '<i class="bi bi-check-circle me-1"></i>Coupon already applied.';
+                return;
+            }
+            var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+            var roomTotal = parseFloat(scope.getElementById('TotalAmountInput').value || '0') || 0;
+            fetch('/Booking/ApplyCoupon', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': token
+                },
+                body: new URLSearchParams({ code: code, roomTotal: roomTotal })
+            }).then(function (r) { return r.json(); }).then(function (res) {
+                if (res && res.valid) {
+                    discountAmount = (res.discountPercent || 0) / 100.0;
+                    appliedCoupon = code;
+                    feedback.className = 'text-success';
+                    feedback.innerHTML = '<i class="bi bi-check-circle me-1"></i>' + (res.message || 'Coupon applied');
+                    scope.getElementById('applyCouponBtn').disabled = true;
+                } else {
+                    discountAmount = 0; appliedCoupon = null;
+                    feedback.className = 'text-danger';
+                    feedback.innerHTML = '<i class="bi bi-exclamation-circle me-1"></i>' + (res.message || 'Invalid coupon code.');
+                }
+                recalcTotals();
+            }).catch(function (err) { console.error(err); feedback.className = 'text-danger'; feedback.innerHTML = 'Server error validating coupon.'; });
+        });
+
+        /* ---------------- Totals calculation (preview only) ---------------- */
+        function formatCurrency(n) {
+            return "₹" + Math.round(n).toLocaleString("en-IN");
+        }
+
+        function recalcTotals() {
+            var roomTotal = roomPricePerNight * nights;
+            var extraBed = 0;
+            var services = 0;
+            var discount = roomTotal * discountAmount;
+            var taxable = roomTotal + extraBed + services - discount;
+            var tax = taxable > 0 ? taxable * 0.12 : 0;
+            var total = taxable + tax;
+            var advance = total * 0.30;
+            var remaining = total - advance;
+
+            scope.getElementById("priceRoom").textContent = formatCurrency(roomTotal);
+            scope.getElementById("priceExtraBed").textContent = formatCurrency(extraBed);
+            scope.getElementById("priceServices").textContent = formatCurrency(services);
+            scope.getElementById("priceDiscount").textContent = "− " + formatCurrency(discount);
+            scope.getElementById("priceTax").textContent = formatCurrency(tax);
+            scope.getElementById("priceTotal").textContent = formatCurrency(total > 0 ? total : 0);
+            scope.getElementById("advanceAmount").textContent = formatCurrency(advance > 0 ? advance : 0);
+            scope.getElementById("remainingAmount").textContent = formatCurrency(remaining > 0 ? remaining : 0);
+            scope.getElementById("TotalAmountInput").value = (total > 0 ? total : 0).toFixed(2);
+        }
+        recalcTotals();
+
+        /* ---------------- Reset form ---------------- */
+        scope.getElementById("resetFormBtn").addEventListener("click", function () {
+            if (!confirm("Reset all entered booking details?")) return;
+            scope.getElementById("bookingForm").reset();
+            scope.getElementById("adultsCount").textContent = "2";
+            scope.getElementById("childrenCount").textContent = "0";
+            discountAmount = 0;
+            scope.getElementById("couponFeedback").style.display = "none";
+            showRoomFeedback(false);
+            hideBanner();
+            calcNights();
+            updateSummaryGuests();
+            recalcTotals();
+        });
+
+        /* ---------------- Client-side validation on save (Save Booking header button) ---------------- */
+        scope.getElementById("bookingForm").addEventListener("submit", function (e) {
+            var form = e.target;
+            if (!form.checkValidity() || !scope.getElementById("RoomIdInput").value) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!scope.getElementById("RoomIdInput").value) {
+                    showRoomFeedback(true);
+                }
+                showBanner('Please complete all required fields before saving.', 'error');
+            }
+            form.classList.add("was-validated");
+        });
+
+        updateSummaryGuests();
+        calcNights();
+    })();
+</script>

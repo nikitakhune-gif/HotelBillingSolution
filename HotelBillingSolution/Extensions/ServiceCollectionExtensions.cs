@@ -11,6 +11,8 @@ namespace HotelBilling.Web.Extensions
             // Register application layer services here
             services.AddScoped<ICustomerService, CustomerService>();
             services.AddScoped<IBillingService, BillingService>();
+            // Register settings service implementation
+            services.AddScoped<ISettingsService, SettingsService>();
 
             // Add more services if needed
             // e.g., services.AddScoped<IReportService, ReportService>();

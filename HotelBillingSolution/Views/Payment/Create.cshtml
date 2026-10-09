@@ -1,0 +1,863 @@
+﻿
+@model HotelBillingWeb.Models.PaymentViewModel
+@{
+    ViewData["Title"] = "New Payment";
+}
+
+<style>
+    /* Use global site.css theme tokens; remove per-page root overrides */
+    .cp-page {
+        background: var(--bg-color);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: var(--text-color);
+        padding: 28px clamp(14px, 3vw, 36px) 60px;
+        min-height: 100vh;
+    }
+
+        .cp-page * {
+            box-sizing: border-box;
+        }
+
+    /* ===== Breadcrumb + Header ===== */
+    .cp-breadcrumb {
+        font-size: 12.5px;
+        color: var(--text-muted);
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+        .cp-breadcrumb a {
+            color: var(--text-muted);
+            text-decoration: none;
+        }
+
+            .cp-breadcrumb a:hover {
+                color: var(--primary);
+            }
+
+        .cp-breadcrumb .current {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+    .cp-header {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        align-items: flex-start;
+        justify-content: space-between;
+        margin-bottom: 24px;
+    }
+
+        .cp-header h1 {
+            font-size: 27px;
+            font-weight: 800;
+            margin: 0;
+            letter-spacing: -0.02em;
+        }
+
+        .cp-header p {
+            margin: 4px 0 0;
+            color: var(--text-muted);
+            font-size: 14.5px;
+        }
+
+    .cp-header-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .btn-cp {
+        border-radius: 12px;
+        padding: 10px 18px;
+        font-size: 14px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid var(--border-color);
+        background: var(--input-color);
+        color: var(--text-color);
+        transition: all .2s ease;
+        white-space: nowrap;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+        .btn-cp:hover {
+            box-shadow: var(--shadow-sm);
+            transform: translateY(-1px);
+            color: var(--text-color);
+        }
+
+    .btn-cp-primary {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-color-2) 100%);
+        border: none;
+        color: var(--on-primary, #fff);
+        box-shadow: 0 6px 16px rgba(37, 99, 235, 0.28);
+    }
+
+        .btn-cp-primary:hover {
+            box-shadow: 0 12px 24px rgba(37, 99, 235, 0.36);
+            transform: translateY(-2px);
+            color: #fff;
+        }
+
+    /* ===== Card base ===== */
+    .cp-card {
+        background: var(--card-color);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+        padding: 22px;
+    }
+
+    .cp-card-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 4px;
+    }
+
+        .cp-card-title .icon-badge {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            background: var(--primary-soft);
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            flex-shrink: 0;
+        }
+
+        .cp-card-title h5 {
+            font-size: 16.5px;
+            font-weight: 700;
+            margin: 0;
+        }
+
+    .cp-card-subtitle {
+        font-size: 13px;
+        color: var(--text-muted);
+        margin: 0 0 18px 48px;
+    }
+
+    /* ===== Main grid: 40 / 45 / 15 ===== */
+    .cp-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 22px;
+        align-items: flex-start;
+        margin-bottom: 22px;
+    }
+
+    .cp-col-left {
+        flex: 1 1 40%;
+        min-width: 320px;
+    }
+
+    .cp-col-center {
+        flex: 1 1 45%;
+        min-width: 340px;
+    }
+
+    .cp-col-right {
+        flex: 1 1 15%;
+        min-width: 260px;
+    }
+
+    @@media (max-width: 1199px) {
+        .cp-col-left, .cp-col-center {
+            flex: 1 1 48%;
+        }
+
+        .cp-col-right {
+            flex: 1 1 100%;
+        }
+    }
+
+    @@media (max-width: 640px) {
+        .cp-col-left, .cp-col-center, .cp-col-right {
+            flex: 1 1 100%;
+        }
+    }
+
+    /* ===== Floating label inputs ===== */
+    .form-floating > .form-control,
+    .form-floating > .form-select,
+    .form-floating > textarea {
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        background: var(--input-color);
+        color: var(--text-color);
+        font-size: 14px;
+    }
+
+    .form-floating > label {
+        color: var(--text-muted);
+        font-size: 13.5px;
+    }
+
+    .form-floating > .form-control:focus,
+    .form-floating > .form-select:focus,
+    .form-floating > textarea:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 4px var(--primary-soft);
+        background: var(--input-color);
+        color: var(--text-color);
+    }
+
+    .form-floating textarea.form-control {
+        height: 100px !important;
+    }
+
+    .req-star {
+        color: #DC2626;
+    }
+
+    .field-row {
+        margin-bottom: 16px;
+    }
+
+    /* ===== Payment method cards ===== */
+    .pm-row {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 12px;
+        margin-bottom: 22px;
+    }
+
+    @@media (max-width: 860px) {
+        .pm-row {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .pm-row {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    .pm-card {
+        border: 1.5px solid var(--border-color);
+        border-radius: 14px;
+        padding: 16px 10px;
+        text-align: center;
+        cursor: pointer;
+        background: var(--input-color);
+        color: var(--text-color);
+        transition: all .2s ease;
+        user-select: none;
+    }
+
+        .pm-card:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .pm-card.active {
+            border-color: var(--primary-color);
+            background: var(--primary-soft);
+            box-shadow: 0 0 0 4px var(--primary-soft);
+        }
+
+        .pm-card .pm-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            background: var(--card-color);
+            border: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 17px;
+            color: var(--text-muted);
+            margin: 0 auto 10px;
+            transition: all .2s ease;
+        }
+
+        .pm-card.active .pm-icon {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            color: var(--on-primary, #fff);
+        }
+
+        .pm-card .pm-label {
+            font-size: 12.5px;
+            font-weight: 700;
+            color: var(--text-color);
+        }
+
+    /* ===== Card details (conditional) ===== */
+    #cardDetails {
+        border-top: 1px dashed var(--border-color);
+        padding-top: 18px;
+        margin-top: 4px;
+    }
+
+    .form-check-cp {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13.5px;
+        color: var(--text-muted);
+        margin: 4px 0 20px;
+    }
+
+        .form-check-cp input {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+    .btn-pay {
+        width: 100%;
+        border: none;
+        border-radius: 14px;
+        padding: 15px;
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--on-primary, #fff);
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-color-2) 100%);
+        box-shadow: 0 10px 22px rgba(37, 99, 235, 0.30);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        transition: all .2s ease;
+    }
+
+        .btn-pay:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 28px rgba(37, 99, 235, 0.38);
+        }
+
+    /* ===== Payment Summary (right) ===== */
+    .summary-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 9px 0;
+        font-size: 13.5px;
+    }
+
+        .summary-row .label {
+            color: var(--text-muted);
+        }
+
+        .summary-row .val {
+            font-weight: 700;
+            color: var(--heading-color);
+        }
+
+            .summary-row .val.neg {
+                color: var(--danger-color);
+            }
+
+    .summary-divider {
+        border-top: 1px dashed var(--border-color);
+        margin: 12px 0;
+    }
+
+    .summary-total {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding-top: 4px;
+    }
+
+        .summary-total .lbl {
+            font-size: 12.5px;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .summary-total .amt {
+            font-size: 26px;
+            font-weight: 800;
+            color: var(--heading-color);
+            letter-spacing: -0.02em;
+        }
+
+    .summary-badge {
+        margin-top: 16px;
+        background: var(--success-soft);
+        color: var(--success-color);
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-size: 12px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    /* Ensure nav underline not applied */
+    .hb-nav-link, .hb-nav-link * {
+        text-decoration: none !important;
+    }
+
+    /* ===== Bottom feature section ===== */
+    .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        margin-top: 18px;
+    }
+
+    @@media (max-width: 900px) {
+        .feature-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .feature-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .feature-card {
+        border: 1px solid var(--border-color);
+        border-radius: 14px;
+        padding: 20px 16px;
+        text-align: center;
+        transition: all .25s ease;
+        background: var(--card-color);
+    }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-md);
+            border-color: var(--primary-color);
+            background: var(--card-color-2);
+        }
+
+        .feature-card .f-icon {
+            width: 54px;
+            height: 54px;
+            border-radius: 14px;
+            background: var(--primary-soft);
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            margin: 0 auto 14px;
+        }
+
+        .feature-card h6 {
+            font-size: 14.5px;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .feature-card p {
+            font-size: 12.5px;
+            color: var(--text-muted);
+            margin: 0;
+            line-height: 1.5;
+        }
+</style>
+
+<div class="cp-page">
+
+    <!-- ================= HEADER ================= -->
+    <div class="cp-breadcrumb">
+        <a href="#">Dashboard</a>
+        <i class="fa-solid fa-angle-right" style="font-size:10px;"></i>
+        <a href="#">Billing</a>
+        <i class="fa-solid fa-angle-right" style="font-size:10px;"></i>
+        <a href="#">Payment</a>
+        <i class="fa-solid fa-angle-right" style="font-size:10px;"></i>
+        <span class="current">New Payment</span>
+    </div>
+
+    <div class="cp-header">
+        <div>
+            <h1>New Payment</h1>
+            <p>Create a new payment for the selected invoice.</p>
+        </div>
+        <div class="cp-header-actions">
+            <a class="btn-cp" asp-controller="Payment" asp-action="Index">
+                <i class="fa-solid fa-arrow-left"></i> Back to Payments
+            </a>
+            <button type="button" class="btn-cp" id="clearFormBtn"><i class="fa-solid fa-eraser"></i> Clear</button>
+            <button type="button" class="btn-cp btn-cp-primary" id="saveFormBtn"><i class="fa-solid fa-floppy-disk"></i> Save Payment</button>
+        </div>
+    </div>
+
+    <form id="paymentForm" class="needs-validation" novalidate asp-controller="Payment" asp-action="Create" method="post">
+
+        <!-- ================= MAIN GRID (40 / 45 / 15) ================= -->
+        <div class="cp-grid">
+
+            <!-- LEFT: Payment Information -->
+            <div class="cp-col-left">
+                <div class="cp-card h-100">
+                    <div class="cp-card-title">
+                        <span class="icon-badge"><i class="fa-solid fa-file-invoice"></i></span>
+                        <h5>Payment Information</h5>
+                    </div>
+                    <p class="cp-card-subtitle">Basic details about this payment.</p>
+
+                    <div class="field-row form-floating">
+                        <!-- bind to nested Payment.BillId so model binding works on post -->
+                        <select class="form-select" id="invoiceSelect" name="Payment.BillId" required>
+                            <option value="" selected disabled>Choose...</option>
+                            @if (Model?.Invoices != null)
+                            {
+                                foreach (var invoice in Model.Invoices)
+                                {
+                                    <!-- option value is invoice id; data-amount used by client JS to compute totals -->
+                                    <option value="@invoice.Id" data-amount="@invoice.TotalAmount"> 
+                                        @invoice.BillNumber &middot; @invoice.CustomerName
+                                    </option>
+                                }
+                            }
+                        </select>
+                        <label for="invoiceSelect">Invoice <span class="req-star">*</span></label>
+                        <div class="invalid-feedback">Please select an invoice.</div>
+                    </div>
+
+                    <div class="field-row form-floating">
+                        <!-- bind to nested Payment.CustomerId -->
+                        <select class="form-select" id="guestSelect" name="Payment.CustomerId">
+                            <option value="" selected>Same as invoice guest</option>
+                            @if (Model?.Guests != null)
+                            {
+                                foreach (var guest in Model.Guests)
+                                {
+                                    <option value="@guest.Id">@guest.FullName</option>
+                                }
+                            }
+                        </select>
+                        <label for="guestSelect">Guest</label>
+                    </div>
+
+                    <div class="field-row form-floating">
+                        <input type="date" class="form-control" id="paymentDate" name="Payment.PaymentDate" value="@((Model?.Payment?.PaymentDate ?? DateTime.Today).ToString("yyyy-MM-dd"))" required>
+                        <label for="paymentDate">Payment Date <span class="req-star">*</span></label>
+                        <div class="invalid-feedback">Please select a payment date.</div>
+                    </div>
+
+                    <div class="field-row form-floating">
+                        <select class="form-select" id="paymentMethodField" name="Payment.Method" required>
+                            <option value="" selected disabled>Choose...</option>
+                            <option value="card">Credit / Debit Card</option>
+                            <option value="upi">UPI</option>
+                            <option value="netbanking">Net Banking</option>
+                            <option value="wallet">Wallet</option>
+                            <option value="cash">Cash</option>
+                        </select>
+                        <label for="paymentMethodField">Payment Method <span class="req-star">*</span></label>
+                        <div class="invalid-feedback">Please select a payment method.</div>
+                    </div>
+
+                    <div class="field-row form-floating">
+                        <input type="text" class="form-control" id="transactionId" name="Payment.TransactionId" placeholder="TXN000000" value="@Model?.Payment?.TransactionId">
+                        <label for="transactionId">Transaction ID</label>
+                    </div>
+
+                    <div class="field-row form-floating">
+                        <input type="text" class="form-control" id="referenceNumber" name="Payment.ReferenceNumber" placeholder="REF000000" value="@Model?.Payment?.ReferenceNumber">
+                        <label for="referenceNumber">Reference Number</label>
+                    </div>
+
+                    <div class="field-row form-floating mb-0">
+                        <textarea class="form-control" id="notes" name="Payment.Notes" placeholder="Notes">@Model?.Payment?.Notes</textarea>
+                        <label for="notes">Notes</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CENTER: Payment Method -->
+            <div class="cp-col-center">
+                <div class="cp-card h-100">
+                    <div class="cp-card-title">
+                        <span class="icon-badge"><i class="fa-solid fa-credit-card"></i></span>
+                        <h5>Payment Method</h5>
+                    </div>
+                    <p class="cp-card-subtitle">Select a payment method.</p>
+
+                    <div class="pm-row" id="pmRow">
+                        <div class="pm-card active" data-method="card">
+                            <div class="pm-icon"><i class="fa-solid fa-credit-card"></i></div>
+                            <div class="pm-label">Card</div>
+                        </div>
+                        <div class="pm-card" data-method="upi">
+                            <div class="pm-icon"><i class="fa-solid fa-mobile-screen"></i></div>
+                            <div class="pm-label">UPI</div>
+                        </div>
+                        <div class="pm-card" data-method="netbanking">
+                            <div class="pm-icon"><i class="fa-solid fa-building-columns"></i></div>
+                            <div class="pm-label">Net Banking</div>
+                        </div>
+                        <div class="pm-card" data-method="wallet">
+                            <div class="pm-icon"><i class="fa-solid fa-wallet"></i></div>
+                            <div class="pm-label">Wallet</div>
+                        </div>
+                        <div class="pm-card" data-method="cash">
+                            <div class="pm-icon"><i class="fa-solid fa-money-bill-wave"></i></div>
+                            <div class="pm-label">Cash</div>
+                        </div>
+                    </div>
+
+                    <!-- Card Details (visible only when Card is selected) -->
+                    <div id="cardDetails">
+                        <div class="row g-3 mb-2">
+                            <div class="col-12 form-floating">
+                                <input type="text" class="form-control" id="cardNumber" placeholder="Card Number" maxlength="19">
+                                <label for="cardNumber">Card Number</label>
+                            </div>
+                            <div class="col-6 form-floating">
+                                <input type="text" class="form-control" id="cardExpiry" placeholder="MM/YY" maxlength="5">
+                                <label for="cardExpiry">Expiry Date</label>
+                            </div>
+                            <div class="col-6 form-floating">
+                                <input type="password" class="form-control" id="cardCvv" placeholder="CVV" maxlength="4">
+                                <label for="cardCvv">CVV</label>
+                            </div>
+                            <div class="col-12 form-floating">
+                                <input type="text" class="form-control" id="cardholderName" placeholder="Cardholder Name">
+                                <label for="cardholderName">Cardholder Name</label>
+                            </div>
+                        </div>
+
+                        <label class="form-check-cp">
+                            <input type="checkbox" id="saveCard">
+                            Save card for future payments
+                        </label>
+
+                        <button type="button" class="btn-pay" id="payNowBtn">
+                            <i class="fa-solid fa-lock"></i>
+                            <span>Pay <span id="payBtnAmount">₹0.00</span></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT: Payment Summary -->
+            <div class="cp-col-right">
+                <div class="cp-card h-100">
+                    <div class="cp-card-title" style="margin-bottom:14px;">
+                        <span class="icon-badge"><i class="fa-solid fa-receipt"></i></span>
+                        <h5>Payment Summary</h5>
+                    </div>
+
+                    <div class="summary-row">
+                        <span class="label">Invoice Amount</span>
+                        <span class="val" id="sumInvoice">₹0.00</span>
+                    </div>
+                    <div class="summary-row">
+                        <span class="label">Discount</span>
+                        <span class="val neg" id="sumDiscount">-₹0.00</span>
+                    </div>
+                    <div class="summary-row">
+                        <span class="label">Other Charges</span>
+                        <span class="val" id="sumOther">₹0.00</span>
+                    </div>
+                    <div class="summary-row">
+                        <span class="label">Taxes (12%)</span>
+                        <span class="val" id="sumTax">₹0.00</span>
+                    </div>
+
+                    <div class="summary-divider"></div>
+
+                    <div class="summary-total">
+                        <span class="lbl">Total Amount</span>
+                        <span class="amt" id="sumTotal">₹0.00</span>
+                    </div>
+
+                    <div class="summary-badge">
+                        <i class="fa-solid fa-shield-halved"></i>
+                        Secured by 256-bit encryption
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= BOTTOM: Why Pay With Us ================= -->
+        <div class="cp-card">
+            <div class="cp-card-title" style="margin-bottom:0;">
+                <span class="icon-badge"><i class="fa-solid fa-star"></i></span>
+                <h5>Why Pay With Us?</h5>
+            </div>
+
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="f-icon"><i class="fa-solid fa-shield-halved"></i></div>
+                    <h6>Secure Payment</h6>
+                    <p>Encrypted payment information.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="f-icon"><i class="fa-solid fa-arrows-rotate"></i></div>
+                    <h6>Instant Confirmation</h6>
+                    <p>Payment confirmed instantly.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="f-icon"><i class="fa-solid fa-receipt"></i></div>
+                    <h6>Receipt</h6>
+                    <p>Email receipt after payment.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="f-icon"><i class="fa-solid fa-headset"></i></div>
+                    <h6>Need Help?</h6>
+                    <p>24&times;7 customer support.</p>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    (function () {
+        var invoiceSelect = document.getElementById('invoiceSelect');
+        var paymentMethodField = document.getElementById('paymentMethodField');
+        var pmRow = document.getElementById('pmRow');
+        var cardDetails = document.getElementById('cardDetails');
+        var payBtnAmount = document.getElementById('payBtnAmount');
+
+        var sumInvoice = document.getElementById('sumInvoice');
+        var sumDiscount = document.getElementById('sumDiscount');
+        var sumOther = document.getElementById('sumOther');
+        var sumTax = document.getElementById('sumTax');
+        var sumTotal = document.getElementById('sumTotal');
+
+        var state = {
+            invoiceAmount: 0,
+            discount: 0,
+            otherCharges: 0
+        };
+
+        function formatCurrency(n) {
+            return '₹' + n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function recalcSummary() {
+            var taxable = state.invoiceAmount - state.discount + state.otherCharges;
+            if (taxable < 0) taxable = 0;
+            var tax = taxable * 0.12;
+            var total = taxable + tax;
+
+            sumInvoice.textContent = formatCurrency(state.invoiceAmount);
+            sumDiscount.textContent = '-' + formatCurrency(state.discount);
+            sumOther.textContent = formatCurrency(state.otherCharges);
+            sumTax.textContent = formatCurrency(tax);
+            sumTotal.textContent = formatCurrency(total);
+            payBtnAmount.textContent = formatCurrency(total);
+        }
+
+        // Update invoice amount when invoice selection changes
+        // NOTE: this reads the amount from the option's value (now populated
+        // from Model.Invoices). If you'd rather fetch live invoice totals
+        // (discount / other charges) from the server, wire an AJAX call here
+        // to something like GET /Payment/GetInvoiceSummary?invoiceId=... and
+        // populate state.invoiceAmount / state.discount / state.otherCharges
+        // from the response instead of the 3% placeholder calc below.
+        if (invoiceSelect) {
+            invoiceSelect.addEventListener('change', function () {
+                // read amount from data-amount attribute on selected option
+                var opt = this.options[this.selectedIndex];
+                var amt = parseFloat(opt?.getAttribute('data-amount')) || 0;
+                state.invoiceAmount = amt;
+                state.discount = Math.round(amt * 0.03);
+                state.otherCharges = amt > 0 ? 50 : 0;
+                recalcSummary();
+            });
+        }
+
+        // Payment method card selection
+        function setActiveMethod(method) {
+            document.querySelectorAll('.pm-card').forEach(function (card) {
+                card.classList.toggle('active', card.dataset.method === method);
+            });
+            if (paymentMethodField) paymentMethodField.value = method;
+            cardDetails.style.display = (method === 'card') ? 'block' : 'none';
+        }
+
+        if (pmRow) {
+            pmRow.querySelectorAll('.pm-card').forEach(function (card) {
+                card.addEventListener('click', function () {
+                    setActiveMethod(card.dataset.method);
+                });
+            });
+        }
+
+        // Keep dropdown and card selector in sync
+        if (paymentMethodField) {
+            paymentMethodField.addEventListener('change', function () {
+                setActiveMethod(this.value);
+            });
+        }
+
+        // Card number formatting (grouped in 4s)
+        var cardNumber = document.getElementById('cardNumber');
+        if (cardNumber) {
+            cardNumber.addEventListener('input', function () {
+                var digits = this.value.replace(/\D/g, '').slice(0, 16);
+                this.value = digits.replace(/(.{4})/g, '$1 ').trim();
+            });
+        }
+
+        // Expiry formatting MM/YY
+        var cardExpiry = document.getElementById('cardExpiry');
+        if (cardExpiry) {
+            cardExpiry.addEventListener('input', function () {
+                var digits = this.value.replace(/\D/g, '').slice(0, 4);
+                if (digits.length > 2) {
+                    this.value = digits.slice(0, 2) + '/' + digits.slice(2);
+                } else {
+                    this.value = digits;
+                }
+            });
+        }
+
+        // Clear form
+        var clearBtn = document.getElementById('clearFormBtn');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', function () {
+                document.getElementById('paymentForm').reset();
+                document.getElementById('paymentForm').classList.remove('was-validated');
+                state = { invoiceAmount: 0, discount: 0, otherCharges: 0 };
+                recalcSummary();
+                setActiveMethod('card');
+            });
+        }
+
+        // Save / validate form
+        var saveBtn = document.getElementById('saveFormBtn');
+        var form = document.getElementById('paymentForm');
+        if (saveBtn && form) {
+            saveBtn.addEventListener('click', function () {
+                if (!form.checkValidity()) {
+                    form.classList.add('was-validated');
+                    return;
+                }
+                form.submit();
+            });
+        }
+
+        var payNowBtn = document.getElementById('payNowBtn');
+        if (payNowBtn) {
+            payNowBtn.addEventListener('click', function () {
+                if (form && form.checkValidity()) {
+                    form.submit();
+                } else if (form) {
+                    form.classList.add('was-validated');
+                }
+            });
+        }
+
+        // Init defaults
+        cardDetails.style.display = 'block';
+        recalcSummary();
+    })();
+</script>

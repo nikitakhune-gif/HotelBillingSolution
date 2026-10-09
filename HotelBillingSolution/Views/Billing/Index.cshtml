@@ -1,36 +1,1319 @@
-@model IEnumerable<HotelBilling.Application.DTOs.Response.BillResponse>
-
 @{
-    ViewData["Title"] = "Bills";
+    ViewData["Title"] = "Billing";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h2>Bills</h2>
-    <a asp-action="Create" class="btn btn-primary">Generate Bill</a>
+@using System.Linq
+@using HotelBilling.Application.DTOs.Bill
+@using HotelBilling.Application.DTOs.Customer
+@using HotelBilling.Application.DTOs.Room
+@model IEnumerable<BillDto>
+
+@{
+    // ---- Aggregates computed from the real Model (no more hardcoded dummy numbers) ----
+    var totalAmountSum = Model != null && Model.Any() ? Model.Sum(b => b.TotalAmount) : 0m;
+    var dueAmountSum = Model != null && Model.Any() ? Model.Sum(b => b.DueAmount) : 0m;
+    var paidAmountSum = totalAmountSum - dueAmountSum;
+}
+
+<style>
+    /* ===================== Billing Page Scoped Styles ===================== */
+    /* Use shared tokens from site.css for colors/surfaces/ borders */
+    .billing-page {
+        --bp-primary: var(--primary-color);
+        --bp-primary-dark: var(--primary-color-2);
+        --bp-primary-light: color-mix(in srgb, var(--card-color) 88%, var(--primary-color) 12%);
+        --bp-green: var(--success-color);
+        --bp-green-light: var(--success-soft);
+        --bp-orange: var(--warning-color);
+        --bp-orange-light: var(--warning-soft);
+        --bp-red: var(--danger-color);
+        --bp-red-light: var(--danger-soft);
+        --bp-purple: #7C3AED;
+        --bp-purple-light: color-mix(in srgb, var(--card-color) 88%, #7C3AED 12%);
+        --bp-blue-badge: var(--primary-color);
+        --bp-blue-light: color-mix(in srgb, var(--card-color) 88%, var(--primary-color) 12%);
+        --bp-text: var(--text-color);
+        --bp-text-muted: var(--text-muted);
+        --bp-border: var(--border-color);
+        --bp-radius: 18px;
+        --bp-shadow: var(--shadow-sm);
+        --bp-shadow-hover: var(--shadow-md);
+        color: var(--text-color);
+        font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+    }
+
+        .billing-page * {
+            box-sizing: border-box;
+        }
+
+        .billing-page .bp-card {
+            background: var(--card-color);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            border: 1px solid var(--bp-border);
+            border-radius: var(--bp-radius);
+            box-shadow: var(--bp-shadow);
+            transition: box-shadow .25s ease, transform .25s ease;
+        }
+
+            .billing-page .bp-card:hover {
+                box-shadow: var(--bp-shadow-hover);
+            }
+
+    /* ---- Page Header ---- */
+    .bp-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 24px;
+    }
+
+        .bp-header h1 {
+            font-size: 1.65rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin: 0 0 4px 0;
+            color: var(--bp-text);
+        }
+
+        .bp-header p {
+            margin: 0;
+            color: var(--bp-text-muted);
+            font-size: 0.92rem;
+        }
+
+    .bp-header-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .bp-btn {
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 0.86rem;
+        padding: 0.55rem 1.1rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all .2s ease;
+        border: 1px solid transparent;
+        white-space: nowrap;
+        cursor: pointer;
+    }
+
+    .bp-btn-outline {
+        background: var(--input-color);
+        border-color: var(--bp-border);
+        color: var(--bp-text);
+    }
+
+        .bp-btn-outline:hover {
+            border-color: var(--bp-primary);
+            color: var(--bp-primary);
+            transform: translateY(-1px);
+        }
+
+    .bp-btn-primary {
+        background: linear-gradient(135deg, var(--bp-primary), var(--bp-primary-dark));
+        color: var(--on-primary, #fff);
+        border: none;
+        box-shadow: 0 8px 18px color-mix(in srgb, var(--bp-primary) 40%, transparent);
+    }
+
+        .bp-btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 12px 22px color-mix(in srgb, var(--bp-primary) 50%, transparent);
+            color: var(--on-primary, #fff);
+        }
+
+    /* ---- Filter Card ---- */
+    .bp-filter-card {
+        padding: 20px 22px;
+        margin-bottom: 22px;
+    }
+
+    .bp-filter-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+    }
+
+    .bp-field label {
+        font-size: 0.76rem;
+        font-weight: 600;
+        color: var(--bp-text-muted);
+        margin-bottom: 6px;
+        display: block;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+
+    .bp-field .form-control,
+    .bp-field .form-select {
+        border-radius: 10px;
+        border: 1px solid var(--bp-border);
+        font-size: 0.88rem;
+        padding: 0.5rem 0.75rem;
+        background-color: var(--input-color);
+        color: var(--text-color);
+    }
+
+        .bp-field .form-control::placeholder {
+            color: var(--bp-text-muted);
+            opacity: .75;
+        }
+
+        .bp-field .form-control:focus,
+        .bp-field .form-select:focus {
+            border-color: var(--bp-primary);
+            box-shadow: 0 0 0 3px var(--primary-soft);
+            background-color: var(--input-color);
+            color: var(--text-color);
+        }
+
+        .bp-field .form-select option {
+            background: var(--card-color);
+            color: var(--text-color);
+        }
+
+    .bp-input-icon {
+        position: relative;
+    }
+
+        .bp-input-icon i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--bp-text-muted);
+            font-size: 0.82rem;
+        }
+
+        .bp-input-icon input {
+            padding-left: 32px;
+        }
+
+    .bp-filter-actions {
+        display: flex;
+        align-items: flex-end;
+        gap: 10px;
+    }
+
+        .bp-filter-actions .bp-btn {
+            width: 100%;
+            justify-content: center;
+        }
+
+    /* ---- Stat Cards ---- */
+    .bp-stats-row {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 16px;
+        margin-bottom: 22px;
+    }
+
+    .bp-stat-card {
+        padding: 18px 20px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .bp-stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        flex-shrink: 0;
+    }
+
+        .bp-stat-icon.blue {
+            background: var(--bp-primary-light);
+            color: var(--bp-primary);
+        }
+
+        .bp-stat-icon.green {
+            background: var(--bp-green-light);
+            color: var(--bp-green);
+        }
+
+        .bp-stat-icon.orange {
+            background: var(--bp-orange-light);
+            color: var(--bp-orange);
+        }
+
+        .bp-stat-icon.red {
+            background: var(--bp-red-light);
+            color: var(--bp-red);
+        }
+
+        .bp-stat-icon.purple {
+            background: var(--bp-purple-light);
+            color: var(--bp-purple);
+        }
+
+    .bp-stat-label {
+        font-size: 0.78rem;
+        color: var(--bp-text-muted);
+        font-weight: 600;
+        margin-bottom: 2px;
+    }
+
+    .bp-stat-value {
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: var(--bp-text);
+        letter-spacing: -0.02em;
+        line-height: 1.1;
+    }
+
+    .bp-stat-sub {
+        font-size: 0.74rem;
+        color: var(--bp-text-muted);
+        margin-top: 2px;
+    }
+
+    /* ---- Main Layout ---- */
+    .bp-main-row {
+        display: grid;
+        grid-template-columns: 75% 25%;
+        gap: 20px;
+        align-items: start;
+    }
+
+    @@media (max-width: 1199.98px) {
+        .bp-main-row {
+            grid-template-columns: 1fr;
+        }
+
+        .bp-stats-row {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .bp-filter-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @@media (max-width: 575.98px) {
+        .bp-stats-row {
+            grid-template-columns: 1fr;
+        }
+
+        .bp-filter-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* ---- Billing List Card ---- */
+    .bp-list-card {
+        padding: 20px 22px 8px 22px;
+    }
+
+    .bp-list-card-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+        .bp-list-card-head h5 {
+            font-weight: 700;
+            font-size: 1.05rem;
+            margin: 0;
+            color: var(--bp-text);
+        }
+
+    .bp-show-entries {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.82rem;
+        color: var(--bp-text-muted);
+    }
+
+        .bp-show-entries select {
+            border-radius: 8px;
+            border: 1px solid var(--bp-border);
+            padding: 0.3rem 0.6rem;
+            font-size: 0.82rem;
+            background: var(--input-color);
+            color: var(--text-color);
+        }
+
+    .bp-table-wrap {
+        overflow-x: auto;
+    }
+
+    table.bp-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        min-width: 900px;
+        color: var(--bp-text);
+    }
+
+        table.bp-table thead th {
+            text-transform: uppercase;
+            font-size: 0.70rem;
+            letter-spacing: 0.04em;
+            color: var(--bp-text-muted);
+            font-weight: 700;
+            border-bottom: 1px solid var(--bp-border);
+            padding: 10px 12px;
+            white-space: nowrap;
+            background: var(--card-color-2);
+        }
+
+        table.bp-table tbody tr {
+            background: var(--card-color);
+            transition: background .18s ease;
+        }
+
+        table.bp-table tbody td {
+            padding: 14px 12px;
+            font-size: 0.86rem;
+            border-bottom: 1px solid var(--bp-border);
+            vertical-align: middle;
+            white-space: nowrap;
+            color: var(--bp-text);
+            background: transparent;
+        }
+
+        table.bp-table tbody tr:hover {
+            background: color-mix(in srgb, var(--card-color) 85%, var(--bp-primary) 15%);
+        }
+
+        table.bp-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+    .bp-invoice-no {
+        font-weight: 700;
+        color: var(--bp-primary);
+    }
+
+    .bp-guest {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .bp-guest-avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--bp-primary), #60A5FA);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.78rem;
+        flex-shrink: 0;
+    }
+
+    .bp-guest-name {
+        font-weight: 600;
+        color: var(--bp-text);
+    }
+
+    .bp-amount {
+        font-weight: 700;
+    }
+
+    .bp-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0.32rem 0.7rem;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        font-weight: 700;
+    }
+
+        .bp-badge::before {
+            content: "";
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+    .bp-badge-paid {
+        background: var(--bp-green-light);
+        color: var(--bp-green);
+    }
+
+        .bp-badge-paid::before {
+            background: var(--bp-green);
+        }
+
+    .bp-badge-partial {
+        background: var(--bp-orange-light);
+        color: var(--bp-orange);
+    }
+
+        .bp-badge-partial::before {
+            background: var(--bp-orange);
+        }
+
+    .bp-badge-pending {
+        background: var(--bp-red-light);
+        color: var(--bp-red);
+    }
+
+        .bp-badge-pending::before {
+            background: var(--bp-red);
+        }
+
+    .bp-badge-completed {
+        background: var(--bp-green-light);
+        color: var(--bp-green);
+    }
+
+        .bp-badge-completed::before {
+            background: var(--bp-green);
+        }
+
+    .bp-badge-checkedout {
+        background: var(--bp-blue-light);
+        color: var(--bp-blue-badge);
+    }
+
+        .bp-badge-checkedout::before {
+            background: var(--bp-blue-badge);
+        }
+
+    .bp-badge-due {
+        background: var(--bp-orange-light);
+        color: var(--bp-orange);
+    }
+
+        .bp-badge-due::before {
+            background: var(--bp-orange);
+        }
+
+    .bp-action-group {
+        display: flex;
+        gap: 6px;
+    }
+
+    .bp-icon-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+        border: 1px solid var(--bp-border);
+        background: var(--input-color);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--bp-text-muted);
+        font-size: 0.8rem;
+        transition: all .18s ease;
+    }
+
+        .bp-icon-btn:hover {
+            background: var(--bp-primary);
+            border-color: var(--bp-primary);
+            color: #fff;
+            transform: translateY(-1px);
+        }
+
+    /* ---- Pagination ---- */
+    .bp-table-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 0 18px 0;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .bp-rows-per-page {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.82rem;
+        color: var(--bp-text-muted);
+    }
+
+        .bp-rows-per-page select {
+            border-radius: 8px;
+            border: 1px solid var(--bp-border);
+            padding: 0.3rem 0.6rem;
+            font-size: 0.82rem;
+            background: var(--input-color);
+            color: var(--text-color);
+        }
+
+    .bp-pagination {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+        .bp-pagination .page-item {
+            display: inline-flex;
+        }
+
+        .bp-pagination .page-link {
+            border: 1px solid var(--bp-border);
+            border-radius: 10px;
+            background: var(--input-color);
+            color: var(--bp-text);
+            font-size: 0.82rem;
+            font-weight: 600;
+            padding: 0.42rem 0.72rem;
+            transition: all .18s ease;
+            text-decoration: none;
+        }
+
+        .bp-pagination .page-item.active .page-link {
+            background: var(--bp-primary);
+            border-color: var(--bp-primary);
+            color: #fff;
+        }
+
+        .bp-pagination .page-link:hover {
+            border-color: var(--bp-primary);
+            color: var(--bp-primary);
+        }
+
+        .bp-pagination .page-item.disabled .page-link {
+            color: var(--bp-text-muted);
+            opacity: .55;
+            pointer-events: none;
+        }
+
+    /* ---- Right Sidebar Cards ---- */
+    .bp-side-card {
+        padding: 20px 22px;
+        margin-bottom: 20px;
+    }
+
+        .bp-side-card h6 {
+            font-weight: 700;
+            font-size: 0.98rem;
+            margin-bottom: 16px;
+            color: var(--bp-text);
+        }
+
+    .bp-summary-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 0.86rem;
+        color: var(--bp-text-muted);
+        margin-bottom: 12px;
+    }
+
+        .bp-summary-row span.bp-val {
+            color: var(--bp-text);
+            font-weight: 600;
+        }
+
+        .bp-summary-row .text-success-val {
+            color: var(--bp-green) !important;
+        }
+
+    .bp-divider {
+        border: none;
+        border-top: 1px dashed var(--bp-border);
+        margin: 14px 0;
+    }
+
+    .bp-total-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 16px;
+    }
+
+    .bp-total-label {
+        font-weight: 700;
+        font-size: 0.95rem;
+        color: var(--bp-text);
+    }
+
+    .bp-total-value {
+        font-weight: 800;
+        font-size: 1.3rem;
+        color: var(--bp-primary);
+        letter-spacing: -0.02em;
+    }
+
+    .bp-paid-due {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    .bp-mini-box {
+        border-radius: 12px;
+        padding: 10px 12px;
+        text-align: center;
+    }
+
+        .bp-mini-box.paid {
+            background: var(--bp-green-light);
+        }
+
+        .bp-mini-box.due {
+            background: var(--bp-red-light);
+        }
+
+        .bp-mini-box .bp-mini-label {
+            font-size: 0.70rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            margin-bottom: 4px;
+        }
+
+        .bp-mini-box.paid .bp-mini-label {
+            color: var(--bp-green);
+        }
+
+        .bp-mini-box.due .bp-mini-label {
+            color: var(--bp-red);
+        }
+
+        .bp-mini-box .bp-mini-value {
+            font-weight: 800;
+            font-size: 0.98rem;
+        }
+
+        .bp-mini-box.paid .bp-mini-value {
+            color: var(--bp-green);
+        }
+
+        .bp-mini-box.due .bp-mini-value {
+            color: var(--bp-red);
+        }
+
+    /* ---- Bottom side row: Quick Actions + Payment Methods side-by-side ---- */
+    .bp-side-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+
+        .bp-side-row .bp-side-card {
+            margin-bottom: 0;
+        }
+
+    @@media (max-width: 767.98px) {
+        .bp-side-row {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* ---- Quick Actions / Payment Methods: clean list rows (matches the
+               Payment Summary / Payment Methods styling used elsewhere in the app) ---- */
+    .bp-quick-actions,
+    .bp-payment-methods {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .bp-quick-action-btn,
+    .bp-payment-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 4px;
+        border: none;
+        border-bottom: 1px solid var(--bp-border);
+        background: transparent;
+        font-size: 0.88rem;
+        font-weight: 600;
+        color: var(--bp-text);
+        transition: background-color .15s ease, padding-left .15s ease;
+        text-align: left;
+        cursor: pointer;
+        width: 100%;
+        border-radius: 8px;
+    }
+
+        .bp-quick-action-btn:last-child,
+        .bp-payment-item:last-child {
+            border-bottom: none;
+        }
+
+        .bp-quick-action-btn:hover,
+        .bp-payment-item:hover {
+            background: var(--bp-primary-light);
+            padding-left: 10px;
+        }
+
+    .bp-quick-action-icon,
+    .bp-payment-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 9px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.85rem;
+        flex-shrink: 0;
+    }
+
+        .bp-quick-action-icon.blue, .bp-payment-icon.blue {
+            background: var(--bp-primary-light);
+            color: var(--bp-primary);
+        }
+
+        .bp-quick-action-icon.green, .bp-payment-icon.green {
+            background: var(--bp-green-light);
+            color: var(--bp-green);
+        }
+
+        .bp-quick-action-icon.orange, .bp-payment-icon.orange {
+            background: var(--bp-orange-light);
+            color: var(--bp-orange);
+        }
+
+        .bp-quick-action-icon.purple, .bp-payment-icon.purple {
+            background: var(--bp-purple-light);
+            color: var(--bp-purple);
+        }
+
+        .bp-quick-action-icon.red, .bp-payment-icon.red {
+            background: var(--bp-red-light);
+            color: var(--bp-red);
+        }
+
+    .bp-quick-action-btn.primary {
+        background: linear-gradient(135deg, var(--bp-primary), var(--bp-primary-dark));
+        color: #fff;
+        border-bottom: none;
+        border-radius: 12px;
+        margin-bottom: 8px;
+        padding: 0.7rem 0.85rem;
+    }
+
+        .bp-quick-action-btn.primary .bp-quick-action-icon {
+            background: rgba(255,255,255,.18);
+            color: #fff;
+        }
+
+        .bp-quick-action-btn.primary:hover {
+            padding-left: 0.85rem;
+            filter: brightness(1.05);
+        }
+
+    .bp-payment-name {
+        font-size: 0.88rem;
+        font-weight: 600;
+        color: var(--bp-text);
+        flex: 1;
+    }
+
+    .bp-empty-state {
+        text-align: center;
+        color: var(--bp-text-muted);
+        padding: 10px;
+    }
+</style>
+
+<div class="billing-page">
+
+    <!-- ===================== PAGE HEADER ===================== -->
+    <div class="bp-header">
+        <div>
+            <h1>Billing</h1>
+            <p>Generate and manage customer bills and invoices.</p>
+        </div>
+        <div class="bp-header-actions">
+            <button type="button" class="bp-btn bp-btn-outline" id="btnPrint">
+                <i class="fa-solid fa-print"></i> Print
+            </button>
+            <button type="button" class="bp-btn bp-btn-outline" id="btnExport">
+                <i class="fa-solid fa-download"></i> Export
+            </button>
+            <button type="button"
+                    class="bp-btn bp-btn-primary"
+                    id="btnNewBill">
+                <i class="fa-solid fa-plus"></i>
+                New Bill
+            </button>
+
+        </div>
+    </div>
+
+    <!-- ===================== FILTER CARD ===================== -->
+    <div class="bp-card bp-filter-card">
+        <div class="bp-filter-grid">
+            <div class="bp-field bp-input-icon">
+                <label for="fSearch">Search Invoice</label>
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" class="form-control" id="fSearch" placeholder="INV-2026-00125">
+            </div>
+
+            <div class="bp-field">
+                <label for="fGuest">Guest</label>
+                <select class="form-select" id="fGuest">
+                    <option selected>All Guests</option>
+                    @if (Model != null)
+                    {
+                        foreach (var guest in Model.Select(b => b.CustomerName).Where(n => !string.IsNullOrWhiteSpace(n)).Distinct())
+                        {
+                            <option>@guest</option>
+                        }
+                    }
+                </select>
+            </div>
+
+            <div class="bp-field">
+                <label for="fRoom">Room Number</label>
+                <select class="form-select" id="fRoom">
+                    <option selected>All Rooms</option>
+                    @if (Model != null)
+                    {
+                        foreach (var room in Model.Select(b => b.RoomNumber).Where(r => r != null).Distinct())
+                        {
+                            <option>@room</option>
+                        }
+                    }
+                </select>
+            </div>
+
+            <div class="bp-field">
+                <label for="fDateRange">Billing Date Range</label>
+                <input type="text" class="form-control" id="fDateRange" placeholder="dd/mm/yyyy - dd/mm/yyyy">
+            </div>
+
+            <div class="bp-field">
+                <label for="fPaymentStatus">Payment Status</label>
+                <select class="form-select" id="fPaymentStatus">
+                    <option selected>All</option>
+                    <option>Paid</option>
+                    <option>Partial</option>
+                    <option>Pending</option>
+                </select>
+            </div>
+
+            <div class="bp-field">
+                <label for="fPaymentMethod">Payment Method</label>
+                <select class="form-select" id="fPaymentMethod">
+                    <option selected>All</option>
+                    <option>Cash</option>
+                    <option>Card</option>
+                    <option>UPI</option>
+                    <option>Net Banking</option>
+                    <option>Wallet</option>
+                </select>
+            </div>
+
+            <div class="bp-field">
+                <label for="fBillStatus">Bill Status</label>
+                <select class="form-select" id="fBillStatus">
+                    <option selected>All</option>
+                    <option>Completed</option>
+                    <option>Checked Out</option>
+                    <option>Due</option>
+                </select>
+            </div>
+
+            <div class="bp-field bp-filter-actions">
+                <button type="button" class="bp-btn bp-btn-outline" id="btnReset">
+                    <i class="fa-solid fa-rotate-left"></i> Reset
+                </button>
+                <button type="button" class="bp-btn bp-btn-primary" id="btnSearch">
+                    <i class="fa-solid fa-magnifying-glass"></i> Search
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================== STATISTICS SECTION ===================== -->
+    <div class="bp-stats-row">
+        <div class="bp-card bp-stat-card">
+            <div class="bp-stat-icon blue"><i class="fa-solid fa-file-invoice"></i></div>
+            <div>
+                <div class="bp-stat-label">Total Bills</div>
+                <div class="bp-stat-value">@Model.Count()</div>
+                <div class="bp-stat-sub">All Time</div>
+            </div>
+        </div>
+
+        <div class="bp-card bp-stat-card">
+            <div class="bp-stat-icon green"><i class="fa-solid fa-circle-check"></i></div>
+            <div>
+                <div class="bp-stat-label">Paid Bills</div>
+                <div class="bp-stat-value">@Model.Count(b => b.PaymentStatus != null && b.PaymentStatus.Equals("Paid", StringComparison.OrdinalIgnoreCase))</div>
+                <div class="bp-stat-sub">@((Model.Count() == 0) ? "0%" : String.Format("{0:0.##}%", Model.Count(b => b.PaymentStatus != null && b.PaymentStatus.Equals("Paid", StringComparison.OrdinalIgnoreCase)) * 100.0 / Model.Count()))</div>
+            </div>
+        </div>
+
+        <div class="bp-card bp-stat-card">
+            <div class="bp-stat-icon orange"><i class="fa-solid fa-clock"></i></div>
+            <div>
+                <div class="bp-stat-label">Pending Bills</div>
+                <div class="bp-stat-value">@Model.Count(b => b.PaymentStatus != null && b.PaymentStatus.Equals("Pending", StringComparison.OrdinalIgnoreCase))</div>
+                <div class="bp-stat-sub">@((Model.Count() == 0) ? "0%" : String.Format("{0:0.##}%", Model.Count(b => b.PaymentStatus != null && b.PaymentStatus.Equals("Pending", StringComparison.OrdinalIgnoreCase)) * 100.0 / Model.Count()))</div>
+            </div>
+        </div>
+
+        <div class="bp-card bp-stat-card">
+            <div class="bp-stat-icon red"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            <div>
+                <div class="bp-stat-label">Overdue Bills</div>
+                <div class="bp-stat-value">@Model.Count(b => b.DueAmount > 0)</div>
+                <div class="bp-stat-sub">@((Model.Count() == 0) ? "0%" : String.Format("{0:0.##}%", Model.Count(b => b.DueAmount > 0) * 100.0 / Model.Count()))</div>
+            </div>
+        </div>
+
+        <div class="bp-card bp-stat-card">
+            <div class="bp-stat-icon purple"><i class="fa-solid fa-indian-rupee-sign"></i></div>
+            <div>
+                <div class="bp-stat-label">Total Revenue</div>
+                <div class="bp-stat-value">₹@String.Format("{0:N2}", Model.Sum(b => b.TotalAmount))</div>
+                <div class="bp-stat-sub">All Time</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================== MAIN CONTENT ===================== -->
+    <div class="bp-main-row">
+
+        <!-- LEFT COLUMN 75% -->
+        <div>
+            <div class="bp-card bp-list-card">
+                <div class="bp-list-card-head">
+                    <h5>Billing List</h5>
+                    <div class="bp-show-entries">
+                        Show
+                        <select id="showEntries">
+                            <option>10</option>
+                            <option selected>25</option>
+                            <option>50</option>
+                            <option>100</option>
+                        </select>
+                        entries
+                    </div>
+                </div>
+
+                <div class="bp-table-wrap">
+                    <table class="bp-table" id="billingTable">
+                        <thead>
+                            <tr>
+                                <th>Invoice No</th>
+                                <th>Guest Name</th>
+                                <th>Room No</th>
+                                <th>Bill Date</th>
+                                <th>Amount (₹)</th>
+                                <th>Payment Status</th>
+                                <th>Bill Status</th>
+                                <th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model != null && Model.Any())
+                            {
+                                foreach (var b in Model)
+                                {
+                                    <tr>
+                                        <td class="bp-invoice-no">@b.BillNumber</td>
+                                        <td>
+                                            <div class="bp-guest">
+                                                <div class="bp-guest-avatar">@((b.CustomerName ?? string.Empty).Split(' ').Select(x => x.FirstOrDefault()).Where(x => x != '\0').Take(2).Aggregate(string.Empty, (a, c) => a + c))</div>
+                                                <span class="bp-guest-name">@b.CustomerName</span>
+                                            </div>
+                                        </td>
+                                        <td>@b.RoomNumber</td>
+                                        <td>@b.BillDate.ToString("dd/MM/yyyy")</td>
+                                        <td class="bp-amount">₹@String.Format("{0:N2}", b.TotalAmount)</td>
+                                        <td>
+                                            @if (!string.IsNullOrWhiteSpace(b.PaymentStatus) && b.PaymentStatus.Equals("Paid", StringComparison.OrdinalIgnoreCase))
+                                            {
+                                                <span class="bp-badge bp-badge-paid">Paid</span>
+                                            }
+                                            else if (!string.IsNullOrWhiteSpace(b.PaymentStatus) && b.PaymentStatus.Equals("Partial", StringComparison.OrdinalIgnoreCase))
+                                            {
+                                                <span class="bp-badge bp-badge-partial">Partial</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="bp-badge bp-badge-pending">@b.PaymentStatus</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <span class="bp-badge @(b.BillStatus == "Completed" ? "bp-badge-completed" : b.BillStatus == "Checked Out" ? "bp-badge-checkedout" : "bp-badge-due")">@b.BillStatus</span>
+                                        </td>
+                                        <td class="text-end">
+                                            <div class="bp-action-group justify-content-end">
+                                                <a class="bp-icon-btn" title="View" href="@Url.Action("Details", "Billing", new { id = b.Id })"><i class="fa-solid fa-eye"></i></a>
+                                                <button type="button" class="bp-icon-btn bp-print-row" data-bill-id="@b.Id" title="Print"><i class="fa-solid fa-print"></i></button>
+                                                <button type="button" class="bp-icon-btn" title="More"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr><td colspan="8" class="bp-empty-state">No billing records found.</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="bp-table-footer">
+                    <div class="bp-rows-per-page">
+                        Rows per page
+                        <select id="rowsPerPage">
+                            <option>10</option>
+                            <option selected>25</option>
+                            <option>50</option>
+                        </select>
+                    </div>
+
+                    <ul class="bp-pagination">
+                        @* Simple client-side pagination placeholders; wire up to real server-side paging once the controller supports page/pageSize query params *@
+                        <li class="page-item disabled"><a class="page-link" href="#">Previous</a></li>
+                        <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                        <li class="page-item"><a class="page-link" href="#">Next</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Quick Actions + Payment Methods now sit side-by-side below the Billing List -->
+            <div class="bp-side-row" style="margin-top:20px;">
+                <div class="bp-card bp-side-card">
+                    <h6>Quick Actions</h6>
+                    <div class="bp-quick-actions">
+                        <button type="button" class="bp-quick-action-btn primary" id="qaNewBill">
+                            <span class="bp-quick-action-icon"><i class="fa-solid fa-plus"></i></span>
+                            New Bill
+                        </button>
+                        <button type="button" class="bp-quick-action-btn">
+                            <span class="bp-quick-action-icon blue"><i class="fa-solid fa-calendar-day"></i></span>
+                            Today's Bills
+                        </button>
+                        <button type="button" class="bp-quick-action-btn">
+                            <span class="bp-quick-action-icon orange"><i class="fa-solid fa-hourglass-half"></i></span>
+                            Due Bills
+                        </button>
+                        <button type="button" class="bp-quick-action-btn">
+                            <span class="bp-quick-action-icon green"><i class="fa-solid fa-receipt"></i></span>
+                            Receipts
+                        </button>
+                        <button type="button" class="bp-quick-action-btn">
+                            <span class="bp-quick-action-icon purple"><i class="fa-solid fa-chart-column"></i></span>
+                            Reports
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bp-card bp-side-card">
+                    <h6>Payment Methods</h6>
+                    <div class="bp-payment-methods">
+                        <div class="bp-payment-item">
+                            <span class="bp-payment-icon green"><i class="fa-solid fa-money-bill-wave"></i></span>
+                            <span class="bp-payment-name">Cash</span>
+                        </div>
+                        <div class="bp-payment-item">
+                            <span class="bp-payment-icon purple"><i class="fa-solid fa-credit-card"></i></span>
+                            <span class="bp-payment-name">Card</span>
+                        </div>
+                        <div class="bp-payment-item">
+                            <span class="bp-payment-icon blue"><i class="fa-solid fa-mobile-screen-button"></i></span>
+                            <span class="bp-payment-name">UPI</span>
+                        </div>
+                        <div class="bp-payment-item">
+                            <span class="bp-payment-icon green"><i class="fa-solid fa-building-columns"></i></span>
+                            <span class="bp-payment-name">Net Banking</span>
+                        </div>
+                        <div class="bp-payment-item">
+                            <span class="bp-payment-icon red"><i class="fa-solid fa-wallet"></i></span>
+                            <span class="bp-payment-name">Wallet</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN 25% -->
+        <div>
+            <!-- Bill Summary (aggregated from the real billing list, not static dummy figures) -->
+            <div class="bp-card bp-side-card" style="margin-bottom:0;">
+                <h6>Bill Summary</h6>
+
+                <div class="bp-summary-row">
+                    <span>Total Bills</span>
+                    <span class="bp-val">@(Model?.Count() ?? 0)</span>
+                </div>
+                <div class="bp-summary-row">
+                    <span>Total Billed</span>
+                    <span class="bp-val">₹@String.Format("{0:N2}", totalAmountSum)</span>
+                </div>
+
+                <hr class="bp-divider">
+
+                <div class="bp-total-row">
+                    <span class="bp-total-label">Total Amount</span>
+                    <span class="bp-total-value">₹@String.Format("{0:N2}", totalAmountSum)</span>
+                </div>
+
+                <div class="bp-paid-due">
+                    <div class="bp-mini-box paid">
+                        <div class="bp-mini-label">Paid</div>
+                        <div class="bp-mini-value">₹@String.Format("{0:N2}", paidAmountSum)</div>
+                    </div>
+                    <div class="bp-mini-box due">
+                        <div class="bp-mini-label">Due</div>
+                        <div class="bp-mini-value">₹@String.Format("{0:N2}", dueAmountSum)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>Id</th>
-            <th>Customer</th>
-            <th>Room</th>
-            <th>Total</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-    @foreach (var b in Model)
-    {
-        <tr>
-            <td>@b.Id</td>
-            <td>@b.CustomerId</td>
-            <td>@b.RoomId</td>
-            <td>@b.TotalAmount</td>
-            <td>
-                <a asp-action="Details" asp-route-id="@b.Id" class="btn btn-sm btn-secondary me-1">Details</a>
-            </td>
-        </tr>
-    }
-    </tbody>
-</table>
+<script>
+    (function () {
+        'use strict';
+
+        var btnPrint = document.getElementById('btnPrint');
+        if (btnPrint) {
+            btnPrint.addEventListener('click', function () {
+                window.print();
+            });
+        }
+
+        // ---- Export billing list as CSV ----
+        function csvEscape(value) {
+            var str = (value === null || value === undefined) ? '' : String(value);
+            str = str.replace(/\s+/g, ' ').trim();
+            if (str.indexOf(',') !== -1 || str.indexOf('"') !== -1 || str.indexOf('\n') !== -1) {
+                str = '"' + str.replace(/"/g, '""') + '"';
+            }
+            return str;
+        }
+
+        function exportBillingCsv() {
+            var table = document.getElementById('billingTable');
+            if (!table) return;
+
+            var rows = [];
+
+            // Header row (skip the Action column, last th)
+            var headerCells = table.querySelectorAll('thead th');
+            var headerRow = [];
+            headerCells.forEach(function (th, idx) {
+                if (idx === headerCells.length - 1) return; // skip Action column
+                headerRow.push(csvEscape(th.textContent));
+            });
+            rows.push(headerRow.join(','));
+
+            // Body rows
+            var bodyRows = table.querySelectorAll('tbody tr');
+            bodyRows.forEach(function (tr) {
+                var cells = tr.querySelectorAll('td');
+                if (cells.length === 0) return;
+                // Skip the "no records" placeholder row
+                if (cells.length === 1 && cells[0].hasAttribute('colspan')) return;
+
+                var rowData = [];
+                cells.forEach(function (td, idx) {
+                    if (idx === cells.length - 1) return; // skip Action column
+                    rowData.push(csvEscape(td.textContent));
+                });
+                rows.push(rowData.join(','));
+            });
+
+            if (rows.length <= 1) {
+                console.log('No billing records available to export.');
+                return;
+            }
+
+            var csvContent = rows.join('\r\n');
+            var blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            var url = URL.createObjectURL(blob);
+
+            var link = document.createElement('a');
+            var stamp = new Date().toISOString().slice(0, 10);
+            link.href = url;
+            link.setAttribute('download', 'billing-list-' + stamp + '.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        var btnExport = document.getElementById('btnExport');
+        if (btnExport) {
+            btnExport.addEventListener('click', exportBillingCsv);
+        }
+
+        var btnNewBill = document.getElementById('btnNewBill');
+        if (btnNewBill) {
+            btnNewBill.addEventListener('click', function () {
+                window.location.href = '@Url.Action("Create", "Billing")';
+            });
+        }
+
+        var qaNewBill = document.getElementById('qaNewBill');
+        if (qaNewBill) {
+            qaNewBill.addEventListener('click', function () {
+                window.location.href = '@Url.Action("Create", "Billing")';
+            });
+        }
+
+        var btnReset = document.getElementById('btnReset');
+        if (btnReset) {
+            btnReset.addEventListener('click', function () {
+                var filterCard = document.querySelector('.bp-filter-card');
+                if (!filterCard) return;
+                filterCard.querySelectorAll('input').forEach(function (el) { el.value = ''; });
+                filterCard.querySelectorAll('select').forEach(function (el) { el.selectedIndex = 0; });
+            });
+        }
+
+        var btnSearch = document.getElementById('btnSearch');
+        if (btnSearch) {
+            btnSearch.addEventListener('click', function () {
+                console.log('Search billing records with current filters');
+            });
+        }
+
+        // Row action buttons (View / Print / More)
+        // View and More actions already have links — wire Print to download/print the invoice
+        document.querySelectorAll('.bp-print-row').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var id = btn.getAttribute('data-bill-id');
+                if (!id) return;
+                // Option A: open the PDF download
+                var url = '@Url.Action("DownloadPdf", "Billing")'.replace('?','').split('?')[0] + '/' + id;
+                // Open in new tab to let user save or view
+                window.open(url, '_blank');
+            });
+        });
+
+        // Pagination click handling (visual state only)
+        document.querySelectorAll('.bp-pagination .page-item:not(.disabled) .page-link').forEach(function (link) {
+            link.addEventListener('click', function (e) {
+                e.preventDefault();
+                var text = link.textContent.trim();
+                if (text === 'Next' || text === 'Previous') { return; }
+                document.querySelectorAll('.bp-pagination .page-item').forEach(function (item) {
+                    item.classList.remove('active');
+                });
+                link.closest('.page-item').classList.add('active');
+            });
+        });
+    })();
+</script>

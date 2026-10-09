@@ -1,70 +1,299 @@
 ﻿@{
     ViewData["Title"] = "Dashboard";
+    ViewBag.ActiveMenu = "Dashboard";
 }
 
-<div class="dashboard-cards">
-    <div class="dashboard-card bg-blue">
-        <h5>Total Customers</h5>
-        <h2>120</h2>
+@model HotelBillingSolution.Models.DashboardViewModel
+@using System.Linq
+
+<!-- ============ WELCOME BANNER ============ -->
+<div class="hb-welcome hb-anim hb-anim-1">
+    <div class="hb-welcome-text">
+        <h2 class="hb-welcome-title">Good Morning, Admin 👋</h2>
+        <p class="hb-welcome-sub">Here's what's happening across your property today — @Model.CheckInsToday check-ins, @Model.CheckOutsToday check-outs, and @Model.OccupancyPercent% occupancy.</p>
     </div>
-    <div class="dashboard-card bg-green">
-        <h5>Total Revenue</h5>
-        <h2>₹50,000</h2>
-    </div>
-    <div class="dashboard-card bg-orange">
-        <h5>Active Bookings</h5>
-        <h2>15</h2>
-    </div>
-    <div class="dashboard-card bg-red">
-        <h5>Pending Bills</h5>
-        <h2>5</h2>
-    </div>
+    <div class="hb-welcome-art"><i class="fa-solid fa-hotel"></i></div>
 </div>
 
-<div class="row">
-    <div class="col-md-6 chart-card">
-        <h5>Sales Overview</h5>
-        <canvas id="salesChart" height="200"></canvas>
-    </div>
-    <div class="col-md-6 chart-card">
-        <h5>Active Users</h5>
-        <canvas id="usersChart" height="200"></canvas>
-    </div>
-</div>
+@* Embed JSON data for charts *@
+@{
+    var js = System.Text.Json.JsonSerializer.Serialize(Model.RevenueSeries);
+    var labels = System.Text.Json.JsonSerializer.Serialize(Model.RevenueLabels);
+    var roomStatus = System.Text.Json.JsonSerializer.Serialize(Model.RoomStatusCounts);
+    var occ = Model.OccupancyPercent;
+}
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    const salesCtx = document.getElementById('salesChart').getContext('2d');
-    const salesChart = new Chart(salesCtx, {
-        type: 'line',
-        data: {
-            labels: ['Jan','Feb','Mar','Apr','May','Jun'],
-            datasets: [{
-                label: 'Revenue',
-                data: [12000, 19000, 14000, 22000, 20000, 25000],
-                borderColor: '#0288d1',
-                backgroundColor: 'rgba(2,136,209,0.2)',
-                fill: true
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: { legend: { display: false } },
-            scales: { y: { beginAtZero: true } }
-        }
-    });
-
-    const usersCtx = document.getElementById('usersChart').getContext('2d');
-    const usersChart = new Chart(usersCtx, {
-        type: 'bar',
-        data: {
-            labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
-            datasets: [{
-                label: 'Active Users',
-                data: [50, 75, 60, 80, 70, 90, 60],
-                backgroundColor: '#43a047'
-            }]
-        },
-        options: { responsive: true, plugins: { legend: { display: false } } }
-    });
+    window.__hb_revenue_series = @Html.Raw(js);
+    window.__hb_revenue_labels = @Html.Raw(labels);
+    window.__hb_room_status = @Html.Raw(roomStatus);
+    window.__hb_occupancy = @occ;
 </script>
+
+@* Include ApexCharts CDN and dashboard script *@
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@3"></script>
+<script src="/js/dashboard.js"></script>
+
+<!-- ============ KPI CARDS (5) — 1 col mobile / 2 tablet / 3 laptop / 5 desktop ============ -->
+<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-5 g-3 hb-kpi-row">
+    <div class="col">
+        <div class="hb-kpi-card hb-kpi-blue hb-anim hb-anim-1">
+            <div class="hb-kpi-top">
+                <div class="hb-kpi-icon"><i class="fa-solid fa-bed"></i></div>
+            </div>
+            <span class="hb-kpi-label">Total Rooms</span>
+            <span class="hb-kpi-value">@Model.TotalRooms</span>
+            <span class="hb-kpi-delta"><i class="fa-solid fa-arrow-up"></i> 4 new this month</span>
+            <div class="hb-kpi-spark" id="sparkRooms" data-spark="8,10,9,12,11,14,13"></div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="hb-kpi-card hb-kpi-green hb-anim hb-anim-2">
+            <div class="hb-kpi-top">
+                <div class="hb-kpi-icon"><i class="fa-solid fa-door-open"></i></div>
+            </div>
+            <span class="hb-kpi-label">Available Rooms</span>
+            <span class="hb-kpi-value">@Model.AvailableRooms</span>
+            <span class="hb-kpi-delta"><i class="fa-solid fa-arrow-down"></i> 6 fewer than yesterday</span>
+            <div class="hb-kpi-spark" id="sparkAvail" data-spark="14,12,13,10,9,8,7"></div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="hb-kpi-card hb-kpi-purple hb-anim hb-anim-3">
+            <div class="hb-kpi-top">
+                <div class="hb-kpi-icon"><i class="fa-solid fa-users"></i></div>
+            </div>
+            <span class="hb-kpi-label">Total Customers</span>
+            <span class="hb-kpi-value">@Model.TotalCustomers</span>
+            <span class="hb-kpi-delta"><i class="fa-solid fa-arrow-up"></i> @((Model.TotalCustomers>0)?"updated":"0 new this week")</span>
+            <div class="hb-kpi-spark" id="sparkCust" data-spark="5,8,6,10,12,11,15"></div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="hb-kpi-card hb-kpi-orange hb-anim hb-anim-4">
+            <div class="hb-kpi-top">
+                <div class="hb-kpi-icon"><i class="fa-solid fa-sack-dollar"></i></div>
+            </div>
+            <span class="hb-kpi-label">Today's Revenue</span>
+            <span class="hb-kpi-value">@(Model.TodaysRevenue.ToString("C0"))</span>
+            <span class="hb-kpi-delta"><i class="fa-solid fa-arrow-up"></i> vs yesterday</span>
+            <div class="hb-kpi-spark" id="sparkRev" data-spark="20,18,24,22,28,26,32"></div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="hb-kpi-card hb-kpi-cyan hb-anim hb-anim-5">
+            <div class="hb-kpi-top">
+                <div class="hb-kpi-icon"><i class="fa-solid fa-calendar-check"></i></div>
+            </div>
+            <span class="hb-kpi-label">Total Bookings</span>
+            <span class="hb-kpi-value">@Model.TotalBookings</span>
+            <span class="hb-kpi-delta"><i class="fa-solid fa-arrow-up"></i> @Model.TodaysBookings today</span>
+            <div class="hb-kpi-spark" id="sparkBook" data-spark="10,14,12,16,15,19,18"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ============ SECOND ROW: Revenue / Room Status / Occupancy / Quick Actions ============ -->
+<div class="row g-3 mb-2">
+    <div class="col-lg-5">
+        <div class="hb-card hb-card-pad h-100 hb-anim hb-anim-1">
+            <div class="hb-card-header">
+                <div>
+                    <p class="hb-revenue-value">@(Model.RevenueSeries.Sum().ToString("C0"))</p>
+                    <span class="hb-revenue-label">Revenue Overview</span>
+                </div>
+                <span class="hb-revenue-growth"><i class="fa-solid fa-arrow-trend-up"></i>&nbsp;+18.2%</span>
+            </div>
+            <div class="hb-chart-wrap" id="hbRevenueChart"></div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6">
+        <div class="hb-card hb-card-pad h-100 hb-anim hb-anim-2">
+            <div class="hb-card-header">
+                <h3 class="hb-card-title">Room Status</h3>
+            </div>
+            <div class="hb-donut-wrap">
+                <div id="hbRoomStatusChart"></div>
+                <div class="hb-donut-center"><strong>@Model.TotalRooms</strong><span>Total Rooms</span></div>
+            </div>
+            <ul class="hb-legend">
+                @{
+                    var occCount = Model.RoomStatusCounts.ContainsKey("Occupied") ? Model.RoomStatusCounts["Occupied"] : 0;
+                    var availCount = Model.RoomStatusCounts.ContainsKey("Available") ? Model.RoomStatusCounts["Available"] : 0;
+                    var resCount = Model.RoomStatusCounts.ContainsKey("Reserved") ? Model.RoomStatusCounts["Reserved"] : 0;
+                    var mntCount = Model.RoomStatusCounts.ContainsKey("Maintenance") ? Model.RoomStatusCounts["Maintenance"] : 0;
+                    var occPct = Model.TotalRooms>0 ? Math.Round((decimal)occCount*100/Model.TotalRooms) : 0;
+                    var availPct = Model.TotalRooms>0 ? Math.Round((decimal)availCount*100/Model.TotalRooms) : 0;
+                    var resPct = Model.TotalRooms>0 ? Math.Round((decimal)resCount*100/Model.TotalRooms) : 0;
+                    var mntPct = Model.TotalRooms>0 ? Math.Round((decimal)mntCount*100/Model.TotalRooms) : 0;
+                }
+                <li><span class="hb-dot" style="background:var(--primary-color)"></span><div class="hb-legend-text"><strong>Occupied</strong></div><span class="hb-legend-val">@occPct%</span></li>
+                <li><span class="hb-dot" style="background:var(--success-color)"></span><div class="hb-legend-text"><strong>Available</strong></div><span class="hb-legend-val">@availPct%</span></li>
+                <li><span class="hb-dot" style="background:var(--warning-color)"></span><div class="hb-legend-text"><strong>Reserved</strong></div><span class="hb-legend-val">@resPct%</span></li>
+                <li><span class="hb-dot" style="background:var(--danger-color)"></span><div class="hb-legend-text"><strong>Maintenance</strong></div><span class="hb-legend-val">@mntPct%</span></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="col-lg-4 col-md-6">
+        <div class="hb-card hb-card-pad h-100 hb-anim hb-anim-3">
+            <div class="hb-card-header">
+                <h3 class="hb-card-title">Occupancy</h3>
+            </div>
+            <div class="hb-radial-wrap">
+                <div id="hbOccupancyChart"></div>
+                <!-- FIX: the closing </strong> tag was broken ("%/strong>") which made the
+                     literal text "/strong>" render on screen instead of closing the tag. -->
+                <div class="hb-occ-center"><strong>@Model.OccupancyPercent%</strong><span>Occupied</span></div>
+            </div>
+            <p class="hb-occ-growth"><i class="fa-solid fa-arrow-up"></i> 5.1% vs last week</p>
+        </div>
+    </div>
+</div>
+
+<!-- ============ QUICK ACTIONS STRIP ============ -->
+<div class="row g-3 mb-2">
+    <div class="col-12">
+        <div class="hb-card hb-card-pad hb-anim hb-anim-4">
+            <div class="hb-card-header">
+                <h3 class="hb-card-title">Quick Actions</h3>
+            </div>
+            <div class="hb-quick-list hb-quick-strip">
+                <!-- FIX: these were all href="#" so nothing happened on click.
+                     Point them at the real controller/action routes so each
+                     button actually opens its page. Adjust the action names
+                     below (Create / CheckIn / CheckOut / Create) if your
+                     controllers use different method names. -->
+                <a asp-controller="Booking" asp-action="AddBooking" class="hb-quick-item">
+                    <div class="hb-quick-icon hb-quick-icon-blue"><i class="fa-solid fa-plus"></i></div>
+                    <div class="hb-quick-text">
+                        <span class="hb-quick-label">New Booking</span>
+                        <span class="hb-quick-desc">Add a new room booking</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right hb-quick-chev"></i>
+                </a>
+                <a asp-controller="Customer" asp-action="Index" class="hb-quick-item">
+                    <div class="hb-quick-icon hb-quick-icon-cyan"><i class="fa-solid fa-right-to-bracket"></i></div>
+                    <div class="hb-quick-text">
+                        <span class="hb-quick-label">Check In</span>
+                        <span class="hb-quick-desc">Check in a guest</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right hb-quick-chev"></i>
+                </a>
+                <a asp-controller="Room" asp-action="Index" class="hb-quick-item">
+                    <div class="hb-quick-icon hb-quick-icon-green"><i class="fa-solid fa-square-check"></i></div>
+                    <div class="hb-quick-text">
+                        <span class="hb-quick-label">Check Out</span>
+                        <span class="hb-quick-desc">Check out a guest</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right hb-quick-chev"></i>
+                </a>
+                <a asp-controller="Payment" asp-action="Index" class="hb-quick-item">
+                    <div class="hb-quick-icon hb-quick-icon-orange"><i class="fa-solid fa-box-archive"></i></div>
+                    <div class="hb-quick-text">
+                        <span class="hb-quick-label">Add Expense</span>
+                        <span class="hb-quick-desc">Record new expense</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right hb-quick-chev"></i>
+                </a>
+                <a asp-controller="Billing" asp-action="Index" class="hb-quick-item">
+                    <div class="hb-quick-icon hb-quick-icon-pink"><i class="fa-solid fa-file-invoice"></i></div>
+                    <div class="hb-quick-text">
+                        <span class="hb-quick-label">Generate Invoice</span>
+                        <span class="hb-quick-desc">Create new invoice</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right hb-quick-chev"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============ THIRD ROW: Recent Bookings / Top Customers ============ -->
+<div class="row g-3 mb-2">
+    <div class="col-lg-8">
+        <div class="hb-card hb-card-pad hb-anim hb-anim-1">
+            <div class="hb-card-header">
+                <div>
+                    <h3 class="hb-card-title">Recent Bookings</h3>
+                    <span class="hb-card-sub">Latest reservations across all rooms</span>
+                </div>
+                <a asp-controller="Booking" asp-action="Index" class="hb-link-muted">View All <i class="fa-solid fa-arrow-right"></i></a>
+            </div>
+            <div class="hb-table-scroll">
+                <table class="hb-table">
+                    <thead>
+                        <tr>
+                            <th>Guest</th>
+                            <th>Booking ID</th>
+                            <th>Room</th>
+                            <th>Check-in</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.RecentBookings == null || !Model.RecentBookings.Any())
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center">No bookings yet</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            foreach (var b in Model.RecentBookings)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="hb-cust">
+                                            <img src="@(string.IsNullOrWhiteSpace(b.AvatarUrl)?"/img/maleavtar.png":b.AvatarUrl)" alt="" />
+                                            <span>@b.GuestName</span>
+                                        </div>
+                                    </td>
+                                    <td class="hb-badge-id">#@b.BookingNumber</td>
+                                    <td>@b.RoomLabel</td>
+                                    <td>@b.CheckInDate.ToString("dd MMM yyyy")</td>
+                                    <td>
+                                        <span class="hb-pill hb-pill-@b.BookingStatus.ToLower()">@b.BookingStatus</span>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="hb-card hb-card-pad hb-anim hb-anim-2">
+            <div class="hb-card-header">
+                <h3 class="hb-card-title">Top Customers</h3>
+                <a asp-controller="Customer" asp-action="Index" class="hb-link-muted">View All</a>
+            </div>
+            <div class="hb-customer-list">
+                @if (Model.TopCustomers == null || !Model.TopCustomers.Any())
+                {
+                    <div class="text-center p-3">No top customers yet</div>
+                }
+                else
+                {
+                    foreach (var c in Model.TopCustomers)
+                    {
+                        <div class="hb-customer-row">
+                            <img src="@(string.IsNullOrWhiteSpace(c.AvatarUrl)?"/img/maleavtar.png":c.AvatarUrl)" alt="" />
+                            <div class="hb-customer-info">
+                                <strong>@c.Name</strong>
+                                <span>@c.Email</span>
+                            </div>
+                            <div class="hb-customer-stats">
+                                <strong>@c.TotalSpent.ToString("C0")</strong>
+                                <span>@c.StayCount stays</span>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+</div>

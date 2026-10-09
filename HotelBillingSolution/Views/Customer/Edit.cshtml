@@ -1,24 +1,961 @@
-@model HotelBilling.Application.DTOs.Response.CustomerResponse
-
+@model HotelBilling.Application.DTOs.Customer.CustomerDto
 @{
     ViewData["Title"] = "Edit Customer";
 }
 
-<h2>Edit Customer</h2>
+<div class="ec-page">
 
-<form asp-action="Edit" method="post">
-    <input type="hidden" name="id" value="@Model.Id" />
-    <div class="mb-3">
-        <label class="form-label">Name</label>
-        <input name="Name" value="@Model.Name" class="form-control" />
+    <!-- ============ PAGE HEADER ============ -->
+    <div class="ec-header">
+        <div class="ec-header__text">
+            <h1 class="ec-header__title">Edit Customer</h1>
+            <p class="ec-header__subtitle">Update details for @Model.FirstName @Model.LastName</p>
+        </div>
+        <div class="ec-header__actions">
+            <a asp-controller="Customer" asp-action="Details" asp-route-id="@Model.Id" class="ecbtn ecbtn-ghost">
+                <i class="fa-solid fa-eye"></i>
+                <span>View Profile</span>
+            </a>
+            <a asp-controller="Customer" asp-action="Index" class="ecbtn ecbtn-ghost">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span>Back to Customers</span>
+            </a>
+            <button type="submit" form="editCustomerForm" class="ecbtn ecbtn-primary-glow">
+                <i class="fa-solid fa-floppy-disk"></i>
+                <span>Save Changes</span>
+            </button>
+        </div>
     </div>
-    <div class="mb-3">
-        <label class="form-label">Email</label>
-        <input name="Email" value="@Model.Email" class="form-control" />
-    </div>
-    <div class="mb-3">
-        <label class="form-label">Phone</label>
-        <input name="Phone" value="@Model.Phone" class="form-control" />
-    </div>
-    <button class="btn btn-primary">Update</button>
-</form>
+
+    <form asp-controller="Customer" asp-action="Edit" asp-route-id="@Model.Id" method="post" enctype="multipart/form-data" id="editCustomerForm" class="ec-form" novalidate>
+        <input type="hidden" asp-for="Id" />
+
+        <!-- ============ SECTION 1 — PERSONAL INFORMATION ============ -->
+        <div class="ec-card">
+            <div class="ec-card__header">
+                <span class="ec-card__icon"><i class="fa-solid fa-user"></i></span>
+                <div>
+                    <h2 class="ec-card__title">Personal Information</h2>
+                    <p class="ec-card__desc">Basic identity and contact details</p>
+                </div>
+            </div>
+
+            <div class="ec-card__body">
+                <div class="ec-grid ec-grid--photo-first">
+
+                    <div class="ec-photo-upload">
+                        <div class="ec-photo-preview" id="photoPreview">
+                            @if (!string.IsNullOrEmpty(Model.ProfilePhotoPath))
+                            {
+                                <img src="@Model.ProfilePhotoPath" alt="@Model.FirstName" />
+                            }
+                            else
+                            {
+                                <i class="fa-solid fa-camera"></i>
+                            }
+                        </div>
+                        <label for="profilePhotoInput" class="ecbtn ecbtn-ghost ec-photo-btn">
+                            <i class="fa-solid fa-upload"></i>
+                            <span>Change Photo</span>
+                        </label>
+                        <input type="file" id="profilePhotoInput" name="profilePhoto" accept="image/*" />
+                        <span class="ec-photo-hint">PNG or JPG, up to 2MB</span>
+                    </div>
+
+                    <div class="ec-field-group">
+                        <div class="ec-field">
+                            <input asp-for="FirstName" class="ec-input" placeholder=" " />
+                            <label for="FirstName"><i class="fa-solid fa-signature"></i> First Name <span class="req">*</span></label>
+                            <div class="ec-invalid-feedback">First name is required.</div>
+                        </div>
+
+                        <div class="ec-field">
+                            <input asp-for="LastName" class="ec-input" placeholder=" " />
+                            <label for="LastName"><i class="fa-solid fa-signature"></i> Last Name <span class="req">*</span></label>
+                            <div class="ec-invalid-feedback">Last name is required.</div>
+                        </div>
+
+                        <div class="ec-field">
+                            <input asp-for="Email" class="ec-input" placeholder=" " />
+                            <label for="Email"><i class="fa-solid fa-envelope"></i> Email <span class="req">*</span></label>
+                            <div class="ec-invalid-feedback">Enter a valid email address.</div>
+                        </div>
+
+                        <div class="ec-field">
+                            <input asp-for="MobileNumber" class="ec-input" placeholder=" " />
+                            <label for="MobileNumber"><i class="fa-solid fa-phone"></i> Mobile Number <span class="req">*</span></label>
+                            <div class="ec-invalid-feedback">Enter a valid mobile number.</div>
+                        </div>
+
+                        <div class="ec-field">
+                            <input asp-for="DateOfBirth" type="date" class="ec-input" />
+                            <label for="DateOfBirth"><i class="fa-solid fa-cake-candles"></i> Date of Birth</label>
+                        </div>
+
+                        <div class="ec-field">
+                            <select asp-for="Gender" class="ec-input ec-select" id="Gender">
+                                <option value="" hidden></option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                            <label for="Gender"><i class="fa-solid fa-venus-mars"></i> Gender</label>
+                        </div>
+
+                        <div class="ec-field">
+                            <select asp-for="Nationality" class="ec-input ec-select" id="Nationality">
+                                <option value="" hidden></option>
+                                <option value="Indian">Indian</option>
+                                <option value="American">American</option>
+                                <option value="British">British</option>
+                                <option value="Emirati">Emirati</option>
+                                <option value="Other">Other</option>
+                            </select>
+                            <label for="Nationality"><i class="fa-solid fa-flag"></i> Nationality</label>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ SECTION 2 — ACCOUNT INFORMATION ============ -->
+        <div class="ec-card">
+            <div class="ec-card__header">
+                <span class="ec-card__icon"><i class="fa-solid fa-id-card-clip"></i></span>
+                <div>
+                    <h2 class="ec-card__title">Account Information</h2>
+                    <p class="ec-card__desc">Membership tier and login credentials</p>
+                </div>
+            </div>
+
+            <div class="ec-card__body">
+                <div class="ec-grid">
+
+                    <div class="ec-field">
+                        <select asp-for="CustomerType" class="ec-input ec-select">
+                            <option value="Regular">Regular</option>
+                            <option value="VIP">VIP</option>
+                            <option value="Corporate">Corporate</option>
+                        </select>
+                        <label for="CustomerType"><i class="fa-solid fa-user-tag"></i> Customer Type</label>
+                    </div>
+
+                    <div class="ec-field">
+                        <select asp-for="Membership" class="ec-input ec-select">
+                            <option value="Silver">Silver</option>
+                            <option value="Gold">Gold</option>
+                            <option value="Platinum">Platinum</option>
+                        </select>
+                        <label for="Membership"><i class="fa-solid fa-award"></i> Membership</label>
+                    </div>
+
+                    <div class="ec-field">
+                        <select asp-for="Status" class="ec-input ec-select">
+                            <option value="Active">Active</option>
+                            <option value="Inactive">Inactive</option>
+                            <option value="Blocked">Blocked</option>
+                        </select>
+                        <label for="Status"><i class="fa-solid fa-toggle-on"></i> Status</label>
+                    </div>
+
+                    <div class="ec-field">
+                        <input asp-for="Username" class="ec-input" placeholder=" " />
+                        <label for="Username"><i class="fa-solid fa-at"></i> Username <span class="req">*</span></label>
+                        <div class="ec-invalid-feedback">Username is required.</div>
+                    </div>
+
+                    <div class="ec-field ec-field--password">
+                        <input asp-for="Password" type="password" class="ec-input" placeholder=" " minlength="6" value="" />
+                        <label for="Password"><i class="fa-solid fa-lock"></i> New Password</label>
+                        <button type="button" class="ec-password-toggle" data-target="Password" aria-label="Show password">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
+                        <div class="ec-invalid-feedback">Password must be at least 6 characters.</div>
+                    </div>
+
+                    <div class="ec-field">
+                        <span class="ec-hint-text"><i class="fa-solid fa-circle-info"></i> Leave password blank to keep it unchanged.</span>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ SECTION 3 — ADDRESS INFORMATION ============ -->
+        <div class="ec-card">
+            <div class="ec-card__header">
+                <span class="ec-card__icon"><i class="fa-solid fa-location-dot"></i></span>
+                <div>
+                    <h2 class="ec-card__title">Address Information</h2>
+                    <p class="ec-card__desc">Where the customer can be reached</p>
+                </div>
+            </div>
+
+            <div class="ec-card__body">
+                <div class="ec-grid">
+
+                    <div class="ec-field ec-field--full">
+                        <input asp-for="AddressLine1" type="text" class="ec-input" placeholder=" " />
+                        <label for="AddressLine1"><i class="fa-solid fa-road"></i> Address Line 1</label>
+                    </div>
+
+                    <div class="ec-field ec-field--full">
+                        <input asp-for="AddressLine2" type="text" class="ec-input" placeholder=" " />
+                        <label for="AddressLine2"><i class="fa-solid fa-road"></i> Address Line 2</label>
+                    </div>
+
+                    <div class="ec-field">
+                        <input asp-for="City" type="text" class="ec-input" placeholder=" " />
+                        <label for="City"><i class="fa-solid fa-city"></i> City</label>
+                    </div>
+
+                    <div class="ec-field">
+                        <input asp-for="State" type="text" class="ec-input" placeholder=" " />
+                        <label for="State"><i class="fa-solid fa-map"></i> State</label>
+                    </div>
+
+                    <div class="ec-field">
+                        <input asp-for="Country" type="text" class="ec-input" placeholder=" " />
+                        <label for="Country"><i class="fa-solid fa-earth-asia"></i> Country</label>
+                    </div>
+
+                    <div class="ec-field">
+                        <input asp-for="PostalCode" type="text" class="ec-input" placeholder=" " />
+                        <label for="PostalCode"><i class="fa-solid fa-mail-bulk"></i> Postal Code</label>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ SECTION 4 — IDENTITY INFORMATION ============ -->
+        <div class="ec-card">
+            <div class="ec-card__header">
+                <span class="ec-card__icon"><i class="fa-solid fa-fingerprint"></i></span>
+                <div>
+                    <h2 class="ec-card__title">Identity Information</h2>
+                    <p class="ec-card__desc">Verification and professional details</p>
+                </div>
+            </div>
+
+            <div class="ec-card__body">
+                <div class="ec-grid">
+
+                    <div class="ec-field">
+                        <select asp-for="IdProofType" class="ec-input ec-select">
+                            <option value="" hidden></option>
+                            <option value="Passport">Passport</option>
+                            <option value="Aadhar">Aadhar</option>
+                            <option value="PAN">PAN</option>
+                            <option value="Driving License">Driving License</option>
+                        </select>
+                        <label for="IdProofType"><i class="fa-solid fa-id-card"></i> ID Proof Type</label>
+                    </div>
+
+                    <div class="ec-field">
+                        <input asp-for="IdNumber" type="text" class="ec-input" placeholder=" " />
+                        <label for="IdNumber"><i class="fa-solid fa-hashtag"></i> ID Number</label>
+                    </div>
+
+                    <div class="ec-field">
+                        <input asp-for="CompanyName" type="text" class="ec-input" placeholder=" " />
+                        <label for="CompanyName"><i class="fa-solid fa-building"></i> Company Name</label>
+                    </div>
+
+                    <div class="ec-field">
+                        <input asp-for="Occupation" type="text" class="ec-input" placeholder=" " />
+                        <label for="Occupation"><i class="fa-solid fa-briefcase"></i> Occupation</label>
+                    </div>
+
+                    <div class="ec-field">
+                        <input asp-for="GstNumber" type="text" class="ec-input" placeholder=" " />
+                        <label for="GstNumber"><i class="fa-solid fa-receipt"></i> GST Number (Optional)</label>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ SECTION 5 — EMERGENCY CONTACT ============ -->
+        <div class="ec-card">
+            <div class="ec-card__header">
+                <span class="ec-card__icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
+                <div>
+                    <h2 class="ec-card__title">Emergency Contact</h2>
+                    <p class="ec-card__desc">Who to reach in case of an emergency</p>
+                </div>
+            </div>
+
+            <div class="ec-card__body">
+                <div class="ec-grid">
+
+                    <div class="ec-field">
+                        <input asp-for="EmergencyContactPerson" type="text" class="ec-input" placeholder=" " />
+                        <label for="EmergencyContactPerson"><i class="fa-solid fa-user-shield"></i> Contact Person</label>
+                    </div>
+
+                    <div class="ec-field">
+                        <input asp-for="EmergencyRelationship" type="text" class="ec-input" placeholder=" " />
+                        <label for="EmergencyRelationship"><i class="fa-solid fa-people-arrows"></i> Relationship</label>
+                    </div>
+
+                    <div class="ec-field">
+                        <input asp-for="EmergencyMobile" type="tel" class="ec-input" placeholder=" " />
+                        <label for="EmergencyMobile"><i class="fa-solid fa-phone"></i> Mobile Number</label>
+                    </div>
+
+                    <div class="ec-field">
+                        <input asp-for="EmergencyAltMobile" type="tel" class="ec-input" placeholder=" " />
+                        <label for="EmergencyAltMobile"><i class="fa-solid fa-phone-volume"></i> Alternative Mobile</label>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ SECTION 6 — ADDITIONAL INFORMATION ============ -->
+        <div class="ec-card">
+            <div class="ec-card__header">
+                <span class="ec-card__icon"><i class="fa-solid fa-note-sticky"></i></span>
+                <div>
+                    <h2 class="ec-card__title">Additional Information</h2>
+                    <p class="ec-card__desc">Preferences and special requirements</p>
+                </div>
+            </div>
+
+            <div class="ec-card__body">
+                <div class="ec-grid">
+
+                    <div class="ec-field ec-field--full">
+                        <textarea asp-for="CustomerNotes" class="ec-input ec-textarea" rows="3"></textarea>
+                        <label for="CustomerNotes"><i class="fa-solid fa-pen"></i> Customer Notes</label>
+                    </div>
+
+                    <div class="ec-field ec-field--full">
+                        <textarea asp-for="SpecialRequirements" class="ec-input ec-textarea" rows="3"></textarea>
+                        <label for="SpecialRequirements"><i class="fa-solid fa-star"></i> Special Requirements</label>
+                    </div>
+
+                    <div class="ec-field">
+                        <select asp-for="PreferredRoomType" class="ec-input ec-select">
+                            <option value="" hidden></option>
+                            <option value="Deluxe Room">Deluxe Room</option>
+                            <option value="Superior Room">Superior Room</option>
+                            <option value="Suite Room">Suite Room</option>
+                            <option value="Executive Room">Executive Room</option>
+                            <option value="Presidential Suite">Presidential Suite</option>
+                        </select>
+                        <label for="PreferredRoomType"><i class="fa-solid fa-bed"></i> Preferred Room Type</label>
+                    </div>
+
+                    <div class="ec-field">
+                        <select asp-for="MealPreference" class="ec-input ec-select">
+                            <option value="" hidden></option>
+                            <option value="Vegetarian">Vegetarian</option>
+                            <option value="Non-Vegetarian">Non-Vegetarian</option>
+                            <option value="Vegan">Vegan</option>
+                            <option value="Jain">Jain</option>
+                            <option value="No Preference">No Preference</option>
+                        </select>
+                        <label for="MealPreference"><i class="fa-solid fa-utensils"></i> Meal Preference</label>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ BOTTOM ACTION BAR ============ -->
+        <div class="ec-action-bar">
+            <a asp-controller="Customer" asp-action="Delete" asp-route-id="@Model.Id"
+               class="ecbtn ecbtn-outline-danger"
+               onclick="return confirm('Delete this customer permanently? This cannot be undone.');">
+                <i class="fa-solid fa-trash"></i>
+                <span>Delete Customer</span>
+            </a>
+            <div class="ec-action-bar__right">
+                <a asp-controller="Customer" asp-action="Index" class="ecbtn ecbtn-ghost">
+                    <i class="fa-solid fa-xmark"></i>
+                    <span>Cancel</span>
+                </a>
+                <button type="submit" class="ecbtn ecbtn-primary-glow">
+                    <i class="fa-solid fa-floppy-disk"></i>
+                    <span>Save Changes</span>
+                </button>
+            </div>
+        </div>
+
+    </form>
+
+</div>
+
+<style>
+    /* ==========================================================================
+           EDIT CUSTOMER — Premium Dark/Light SaaS Form UI
+           Scoped under .ec-page / ec- prefix, reuses shared theme tokens from
+           site.css (--text-color, --card-color, --border-color, --primary-color...)
+           and additionally defines light-mode defaults with a [data-theme="dark"]
+           override, matching the pattern used on the Customers list page.
+           ========================================================================== */
+    .ec-page {
+        --ec-primary: var(--primary-color, #3b82f6);
+        --ec-primary-2: var(--primary-color-2, #2563eb);
+        --ec-primary-soft: var(--primary-soft, rgba(59,130,246,0.14));
+        --ec-card: var(--card-color, #ffffff);
+        --ec-surface-border: var(--border-color, rgba(15,23,42,0.08));
+        --ec-text-primary: var(--text-color, #0f172a);
+        --ec-text-secondary: var(--text-secondary, #475569);
+        --ec-text-muted: var(--text-muted, #64748b);
+        --ec-red: var(--danger-color, #ef4444);
+        --ec-green: var(--success-color, #22c55e);
+        --ec-radius-lg: 18px;
+        --ec-radius-md: 14px;
+        --ec-radius-sm: 10px;
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: var(--ec-text-primary);
+        background: transparent;
+        animation: ecFadeIn 0.45s ease;
+        padding-bottom: 12px;
+    }
+
+    [data-theme="dark"] .ec-page {
+        --ec-card: var(--card-color, #101a2e);
+        --ec-surface-border: var(--border-color, rgba(255,255,255,0.08));
+        --ec-text-primary: var(--text-color, #eef2f7);
+        --ec-text-secondary: var(--text-secondary, #94a3b8);
+        --ec-text-muted: var(--text-muted, #64748b);
+    }
+
+    @@keyframes ecFadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(6px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .ec-page * {
+        box-sizing: border-box;
+    }
+
+    /* ============ HEADER ============ */
+    .ec-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .ec-header__title {
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        margin: 0;
+        color: var(--ec-text-primary);
+    }
+
+    .ec-header__subtitle {
+        margin: 4px 0 0;
+        font-size: 14px;
+        color: var(--ec-text-secondary);
+    }
+
+    .ec-header__actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .ecbtn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13.5px;
+        font-weight: 600;
+        padding: 10px 18px;
+        border-radius: var(--ec-radius-sm);
+        border: 1px solid transparent;
+        cursor: pointer;
+        transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+        white-space: nowrap;
+        text-decoration: none;
+    }
+
+        .ecbtn:active {
+            transform: translateY(1px) scale(0.98);
+        }
+
+    .ecbtn-ghost {
+        background: rgba(127, 127, 127, 0.06);
+        border-color: var(--ec-surface-border);
+        color: var(--ec-text-secondary);
+    }
+
+        .ecbtn-ghost:hover {
+            color: var(--ec-text-primary);
+            background: rgba(127, 127, 127, 0.12);
+            transform: translateY(-2px);
+        }
+
+    .ecbtn-outline-danger {
+        background: transparent;
+        border-color: var(--ec-surface-border);
+        color: var(--ec-red);
+    }
+
+        .ecbtn-outline-danger:hover {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: var(--ec-red);
+            transform: translateY(-2px);
+        }
+
+    .ecbtn-primary-glow {
+        background: linear-gradient(135deg, var(--ec-primary) 0%, var(--ec-primary-2) 100%);
+        color: #ffffff;
+        box-shadow: 0 6px 18px rgba(37, 99, 235, 0.35);
+    }
+
+        .ecbtn-primary-glow:hover {
+            box-shadow: 0 10px 26px rgba(37, 99, 235, 0.5);
+            transform: translateY(-2px);
+        }
+
+    /* ============ CARDS ============ */
+    .ec-card {
+        background: var(--ec-card);
+        border: 1px solid var(--ec-surface-border);
+        border-radius: var(--ec-radius-lg);
+        box-shadow: 0 10px 26px rgba(0, 0, 0, 0.12);
+        margin-bottom: 20px;
+        overflow: hidden;
+        transition: box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+
+        .ec-card:hover {
+            box-shadow: 0 14px 32px rgba(0, 0, 0, 0.16);
+        }
+
+    .ec-card__header {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 20px 24px;
+        border-bottom: 1px solid var(--ec-surface-border);
+    }
+
+    .ec-card__icon {
+        flex-shrink: 0;
+        width: 44px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        background: var(--ec-primary-soft);
+        color: var(--ec-primary);
+        font-size: 17px;
+    }
+
+    .ec-card__title {
+        font-size: 16px;
+        font-weight: 700;
+        margin: 0;
+        color: var(--ec-text-primary);
+    }
+
+    .ec-card__desc {
+        font-size: 12.5px;
+        color: var(--ec-text-muted);
+        margin: 2px 0 0;
+    }
+
+    .ec-card__body {
+        padding: 24px;
+    }
+
+    /* ============ FORM GRID ============ */
+    .ec-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 22px 20px;
+        align-items: start;
+    }
+
+    .ec-grid--photo-first {
+        grid-template-columns: 200px 1fr;
+        gap: 28px;
+    }
+
+    .ec-field-group {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 22px 20px;
+    }
+
+    .ec-field--full {
+        grid-column: 1 / -1;
+    }
+
+    .ec-hint-text {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12.5px;
+        color: var(--ec-text-muted);
+        padding-top: 18px;
+    }
+
+    /* ============ PHOTO UPLOAD ============ */
+    .ec-photo-upload {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        text-align: center;
+    }
+
+        .ec-photo-upload input[type="file"] {
+            position: absolute;
+            left: -9999px;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+        }
+
+    .ec-photo-preview {
+        width: 128px;
+        height: 128px;
+        border-radius: 50%;
+        background: var(--ec-primary-soft);
+        border: 2px dashed rgba(59,130,246,0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 30px;
+        color: var(--ec-primary);
+        overflow: hidden;
+        transition: border-color 0.2s ease, transform 0.2s ease;
+    }
+
+        .ec-photo-preview:hover {
+            transform: scale(1.03);
+            border-color: var(--ec-primary);
+        }
+
+        .ec-photo-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+    .ec-photo-btn {
+        padding: 8px 14px;
+        font-size: 12.5px;
+    }
+
+    .ec-photo-hint {
+        font-size: 11.5px;
+        color: var(--ec-text-muted);
+    }
+
+    /* ============ FLOATING LABEL FIELDS ============ */
+    .ec-field {
+        position: relative;
+    }
+
+    .ec-input {
+        width: 100%;
+        background: rgba(127, 127, 127, 0.06);
+        border: 1px solid var(--ec-surface-border);
+        border-radius: var(--ec-radius-sm);
+        color: var(--ec-text-primary);
+        font-size: 14px;
+        font-weight: 600;
+        padding: 20px 14px 8px 40px;
+        outline: none;
+        transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+        height: 54px;
+    }
+
+    .ec-textarea {
+        height: auto;
+        min-height: 90px;
+        padding: 22px 14px 10px 40px;
+        resize: vertical;
+    }
+
+    .ec-select {
+        appearance: none;
+        -webkit-appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2394a3b8' stroke-width='1.5' fill='none' fill-rule='evenodd'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 14px center;
+        padding-right: 32px;
+        cursor: pointer;
+        color-scheme: light dark;
+    }
+
+        .ec-select option {
+            background-color: var(--ec-card);
+            color: var(--ec-text-primary);
+            font-weight: 600;
+        }
+
+    .ec-field--password .ec-input {
+        padding-right: 44px;
+    }
+
+    .ec-field label {
+        position: absolute;
+        left: 40px;
+        top: 6px;
+        font-size: 10.5px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        color: var(--ec-text-secondary);
+        pointer-events: none;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+    }
+
+    .ec-textarea ~ label {
+        top: 8px;
+    }
+
+    .ec-field label i {
+        font-size: 12px;
+        color: var(--ec-text-muted);
+        width: 14px;
+        text-align: center;
+    }
+
+    .ec-field label .req {
+        color: var(--ec-red);
+        margin-left: 1px;
+    }
+
+    .ec-input:focus ~ label,
+    .ec-select:focus ~ label,
+    .ec-textarea:focus ~ label {
+        color: var(--ec-primary);
+    }
+
+        .ec-input:focus ~ label i,
+        .ec-select:focus ~ label i {
+            color: var(--ec-primary);
+        }
+
+    .ec-input:focus, .ec-select:focus, .ec-textarea:focus {
+        border-color: var(--ec-primary);
+        background: rgba(37, 99, 235, 0.06);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16);
+    }
+
+    .ec-input::placeholder {
+        color: transparent;
+    }
+
+    /* ============ PASSWORD TOGGLE ============ */
+    .ec-password-toggle {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: var(--ec-text-muted);
+        cursor: pointer;
+        font-size: 14px;
+        padding: 4px 6px;
+    }
+
+        .ec-password-toggle:hover {
+            color: var(--ec-primary);
+        }
+
+    /* ============ VALIDATION ============ */
+    .ec-invalid-feedback {
+        display: none;
+        font-size: 11.5px;
+        color: var(--ec-red);
+        margin-top: 6px;
+        padding-left: 2px;
+    }
+
+    .ec-field.is-invalid .ec-input,
+    .ec-field.is-invalid .ec-select,
+    .ec-field.is-invalid .ec-textarea {
+        border-color: var(--ec-red);
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.14);
+    }
+
+    .ec-field.is-invalid .ec-invalid-feedback {
+        display: block;
+    }
+
+    .ec-field.is-invalid label {
+        color: var(--ec-red);
+    }
+
+    .ec-field.is-valid .ec-input,
+    .ec-field.is-valid .ec-select {
+        border-color: var(--ec-green);
+    }
+
+    /* ============ ACTION BAR ============ */
+    .ec-action-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 14px;
+        background: rgba(127, 127, 127, 0.06);
+        border: 1px solid var(--ec-surface-border);
+        border-radius: var(--ec-radius-lg);
+        padding: 18px 22px;
+        margin-top: 4px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+    }
+
+    .ec-action-bar__right {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    /* ============ RESPONSIVE ============ */
+    @@media (max-width: 992px) {
+        .ec-grid--photo-first {
+            grid-template-columns: 1fr;
+            justify-items: center;
+        }
+
+        .ec-field-group {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @@media (max-width: 576px) {
+        .ec-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .ec-header__actions {
+            justify-content: flex-start;
+        }
+
+        .ec-grid, .ec-field-group {
+            grid-template-columns: 1fr;
+        }
+
+        .ec-card__body {
+            padding: 18px;
+        }
+
+        .ec-card__header {
+            padding: 16px 18px;
+        }
+
+        .ec-action-bar {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .ec-action-bar__right {
+            justify-content: stretch;
+        }
+
+            .ec-action-bar__right .ecbtn {
+                flex: 1;
+                justify-content: center;
+            }
+    }
+</style>
+
+<script>
+    (function () {
+        "use strict";
+        document.addEventListener("DOMContentLoaded", initEditCustomerForm);
+
+        function initEditCustomerForm() {
+            const form = document.getElementById("editCustomerForm");
+            if (!form) return;
+
+            // Password show/hide
+            document.querySelectorAll(".ec-password-toggle").forEach((btn) => {
+                btn.addEventListener("click", () => {
+                    const targetId = btn.dataset.target;
+                    const input = document.getElementById(targetId);
+                    if (!input) return;
+                    const icon = btn.querySelector("i");
+                    const isHidden = input.type === "password";
+                    input.type = isHidden ? "text" : "password";
+                    icon.className = isHidden ? "fa-solid fa-eye-slash" : "fa-solid fa-eye";
+                });
+            });
+
+            // Profile photo preview
+            const photoInput = document.getElementById("profilePhotoInput");
+            const photoPreview = document.getElementById("photoPreview");
+            if (photoInput && photoPreview) {
+                photoInput.addEventListener("change", () => {
+                    const file = photoInput.files && photoInput.files[0];
+                    if (!file) return;
+                    if (file.size > 2 * 1024 * 1024) {
+                        alert("Please choose an image under 2MB.");
+                        photoInput.value = "";
+                        return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        photoPreview.innerHTML = `<img src="${e.target.result}" alt="Profile preview" />`;
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            // Basic client-side validation (required fields only — password optional on edit)
+            function validateField(field) {
+                const input = field.querySelector(".ec-input, .ec-select, .ec-textarea");
+                if (!input) return true;
+                const valid = input.checkValidity();
+                field.classList.toggle("is-invalid", !valid);
+                field.classList.toggle("is-valid", valid && input.value.trim() !== "");
+                return valid;
+            }
+
+            form.querySelectorAll(".ec-field").forEach((field) => {
+                const input = field.querySelector(".ec-input, .ec-select, .ec-textarea");
+                if (!input) return;
+                input.addEventListener("blur", () => validateField(field));
+                input.addEventListener("input", () => {
+                    if (field.classList.contains("is-invalid")) validateField(field);
+                });
+            });
+
+            form.addEventListener("submit", (e) => {
+                let formValid = true;
+                form.querySelectorAll(".ec-field").forEach((field) => {
+                    const required = field.querySelector(".ec-input[required], .ec-select[required], .ec-textarea[required]");
+                    if (required && !validateField(field)) formValid = false;
+                });
+                if (!formValid) {
+                    e.preventDefault();
+                    const firstInvalid = form.querySelector(".ec-field.is-invalid");
+                    if (firstInvalid) firstInvalid.scrollIntoView({ behavior: "smooth", block: "center" });
+                }
+            });
+        }
+    })();
+</script>

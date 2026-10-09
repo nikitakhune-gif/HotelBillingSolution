@@ -1,0 +1,1202 @@
+﻿@{
+    ViewData["Title"] = "Payment";
+}
+
+@using HotelBilling.Application.DTOs
+@model HotelBillingWeb.Models.PaymentViewModel
+
+@{
+    // ---- Real data only, no dummy numbers ----
+    var totalPayments = Model?.Summary?.TotalPayments ?? 0;
+    var successCount = Model?.Summary?.SuccessCount ?? 0;
+    var pendingCount = Model?.Summary?.PendingCount ?? 0;
+    var failedCount = totalPayments - successCount - pendingCount;
+    if (failedCount < 0) { failedCount = 0; }
+    var totalReceived = Model?.Summary?.TotalReceived ?? 0m;
+
+    var recentPayments = Model?.Payments != null
+        ? Model.Payments.OrderByDescending(p => p.PaymentDate).Take(4).ToList()
+        : new List<PaymentListDto>();
+}
+
+@* External CSS already loaded via the shared layout; avoid reloading and ensure site.css resets apply correctly *@
+
+<style>
+    /* Use shared tokens from site.css rather than redefining them here */
+    .payment-page {
+        background: var(--bg-color);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: var(--text-color);
+        padding: 28px clamp(14px, 3vw, 36px) 60px;
+        min-height: 100vh;
+    }
+
+        .payment-page * {
+            box-sizing: border-box;
+        }
+
+    /* ===== Header ===== */
+    .pp-header {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        align-items: flex-start;
+        justify-content: space-between;
+        margin-bottom: 24px;
+    }
+
+        .pp-header h1 {
+            font-size: 28px;
+            font-weight: 800;
+            margin: 0;
+            letter-spacing: -0.02em;
+            color: var(--text-color);
+        }
+
+        .pp-header p {
+            margin: 4px 0 0;
+            color: var(--text-muted);
+            font-size: 14.5px;
+        }
+
+    .pp-header-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .btn-pp {
+        border-radius: 12px;
+        padding: 10px 18px;
+        font-size: 14px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid var(--border-color);
+        background: var(--input-color);
+        color: var(--text-color);
+        transition: all .2s ease;
+        white-space: nowrap;
+        cursor: pointer;
+    }
+
+        .btn-pp:hover {
+            box-shadow: var(--shadow-sm);
+            transform: translateY(-1px);
+        }
+
+    /* ===== New Payment (primary CTA) ===== */
+    .btn-pp-primary {
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-color-2));
+        border: none;
+        color: #fff !important;
+        box-shadow: 0 6px 18px color-mix(in srgb, var(--primary-color) 45%, transparent);
+        text-decoration: none;
+        position: relative;
+        overflow: hidden;
+    }
+
+        .btn-pp-primary i {
+            font-size: 13px;
+        }
+
+        .btn-pp-primary:hover {
+            box-shadow: 0 10px 24px color-mix(in srgb, var(--primary-color) 55%, transparent);
+            transform: translateY(-2px);
+            color: #fff !important;
+        }
+
+        .btn-pp-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-pp-primary::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(120deg, transparent, rgba(255,255,255,0.25), transparent);
+            transform: translateX(-120%);
+            transition: transform .5s ease;
+        }
+
+        .btn-pp-primary:hover::before {
+            transform: translateX(120%);
+        }
+
+    /* ===== Cards base ===== */
+    .pp-card {
+        background: var(--card-color);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+    }
+
+    /* ===== Filter Card ===== */
+    .filter-card {
+        padding: 22px;
+        margin-bottom: 22px;
+    }
+
+        .filter-card label {
+            font-size: 12.5px;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        .filter-card .form-control,
+        .filter-card .form-select {
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            font-size: 14px;
+            padding: 9px 12px;
+            background: var(--input-color);
+            color: var(--text-color);
+        }
+
+            .filter-card .form-control::placeholder {
+                color: var(--text-muted);
+                opacity: .75;
+            }
+
+            .filter-card .form-control:focus,
+            .filter-card .form-select:focus {
+                border-color: var(--primary-color);
+                box-shadow: 0 0 0 3px var(--primary-soft);
+                background: var(--input-color);
+                color: var(--text-color);
+            }
+
+            .filter-card .form-select option {
+                background: var(--card-color);
+                color: var(--text-color);
+            }
+
+    .filter-actions {
+        display: flex;
+        gap: 10px;
+        align-items: flex-end;
+        height: 100%;
+    }
+
+    .btn-search {
+        background: var(--primary-color);
+        color: #fff;
+        border: none;
+        border-radius: 10px;
+        padding: 9px 22px;
+        font-weight: 600;
+        font-size: 14px;
+    }
+
+        .btn-search:hover {
+            background: var(--primary-color-2);
+            color: #fff;
+        }
+
+    .btn-reset {
+        background: transparent;
+        border: 1px solid var(--border-color);
+        color: var(--text-muted);
+        border-radius: 10px;
+        padding: 9px 18px;
+        font-weight: 600;
+        font-size: 14px;
+    }
+
+        .btn-reset:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+    /* ===== Stats ===== */
+    .stats-row {
+        margin-bottom: 22px;
+    }
+
+    .stat-card {
+        border-radius: var(--radius);
+        padding: 20px;
+        border: 1px solid var(--border-color);
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+        transition: all .25s ease;
+        height: 100%;
+        background: var(--card-color);
+    }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-hover);
+        }
+
+    .stat-icon {
+        width: 46px;
+        height: 46px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        flex-shrink: 0;
+    }
+
+    .stat-blue {
+        background: color-mix(in srgb, var(--card-color) 88%, var(--primary-color) 12%);
+        color: var(--primary-color);
+    }
+
+    .stat-green {
+        background: color-mix(in srgb, var(--card-color) 88%, #16A34A 12%);
+        color: #16A34A;
+    }
+
+    .stat-orange {
+        background: color-mix(in srgb, var(--card-color) 88%, #EA580C 12%);
+        color: #EA580C;
+    }
+
+    .stat-red {
+        background: color-mix(in srgb, var(--card-color) 88%, #DC2626 12%);
+        color: #DC2626;
+    }
+
+    .stat-purple {
+        background: color-mix(in srgb, var(--card-color) 88%, #7C3AED 12%);
+        color: #7C3AED;
+    }
+
+    .stat-label {
+        font-size: 12.5px;
+        color: var(--text-muted);
+        font-weight: 600;
+        margin-bottom: 2px;
+    }
+
+    .stat-value {
+        font-size: 22px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        line-height: 1.2;
+        color: var(--text-color);
+    }
+
+    .stat-sub {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-top: 2px;
+    }
+
+    /* ===== Section card headers ===== */
+    .section-card {
+        padding: 0;
+        overflow: hidden;
+        margin-bottom: 22px;
+    }
+
+    .section-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 18px 22px;
+        border-bottom: 1px solid var(--border-color);
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+        .section-head h5 {
+            font-size: 16.5px;
+            font-weight: 700;
+            margin: 0;
+            color: var(--text-color);
+        }
+
+    .section-link {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--primary-color);
+        text-decoration: none;
+    }
+
+        .section-link:hover {
+            text-decoration: underline;
+        }
+
+    .entries-select {
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        font-size: 13px;
+        padding: 6px 10px;
+        background: var(--input-color);
+        color: var(--text-color);
+    }
+
+    .entries-label {
+        font-size: 13px;
+        color: var(--text-muted);
+    }
+
+    /* ===== Table ===== */
+    .pp-table-wrap {
+        padding: 0 22px 20px;
+    }
+
+    .table-pp {
+        margin-bottom: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+        color: var(--text-color);
+    }
+
+        .table-pp thead th {
+            background: var(--card-color-2);
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 14px;
+            white-space: nowrap;
+        }
+
+        .table-pp tbody tr {
+            background: var(--card-color);
+        }
+
+        .table-pp tbody td {
+            padding: 14px;
+            font-size: 13.5px;
+            vertical-align: middle;
+            border-bottom: 1px solid var(--border-color);
+            white-space: nowrap;
+            color: var(--text-color);
+            background: transparent;
+        }
+
+        .table-pp tbody tr:nth-child(even) {
+            background: var(--card-color-2);
+        }
+
+        .table-pp tbody tr:hover {
+            background: color-mix(in srgb, var(--card-color) 85%, var(--primary-color) 15%);
+        }
+
+    .guest-cell {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .avatar-sm {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #2563EB, #7C3AED);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+
+    .badge-status {
+        font-size: 11.5px;
+        font-weight: 700;
+        padding: 5px 12px;
+        border-radius: 999px;
+        display: inline-block;
+    }
+
+    .badge-success {
+        background: var(--success-soft, color-mix(in srgb, var(--card-color) 85%, #16A34A 15%));
+        color: var(--success-color, #16A34A);
+    }
+
+    .badge-pending {
+        background: var(--warning-soft, color-mix(in srgb, var(--card-color) 85%, #EA580C 15%));
+        color: var(--warning-color, #EA580C);
+    }
+
+    .badge-failed {
+        background: var(--danger-soft, color-mix(in srgb, var(--card-color) 85%, #DC2626 15%));
+        color: var(--danger-color, #DC2626);
+    }
+
+    .action-icons {
+        display: flex;
+        gap: 6px;
+    }
+
+    .icon-btn {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        background: var(--input-color);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-muted);
+        font-size: 12.5px;
+        transition: all .2s ease;
+    }
+
+        .icon-btn:hover {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            color: #fff;
+        }
+
+    .pp-pagination {
+        display: flex;
+        justify-content: center;
+        padding: 18px 0 4px;
+    }
+
+        .pp-pagination .page-link {
+            border-radius: 8px;
+            margin: 0 3px;
+            border: 1px solid var(--border-color);
+            background: var(--input-color);
+            color: var(--text-color);
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+            .pp-pagination .page-link:hover {
+                background: color-mix(in srgb, var(--card-color) 85%, var(--primary-color) 15%);
+                color: var(--text-color);
+                border-color: var(--primary-color);
+            }
+
+        .pp-pagination .page-item.active .page-link {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            color: #fff;
+        }
+
+    /* ===== Bottom section: sidebar cards in a responsive GRID, not one long column ===== */
+    .pp-bottom-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 22px;
+        margin-top: 22px;
+    }
+
+    @@media (max-width: 900px) {
+        .pp-bottom-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .side-card {
+        padding: 20px 22px;
+        margin-bottom: 0;
+    }
+
+        .side-card .section-head {
+            padding: 0 0 14px;
+            margin-bottom: 14px;
+        }
+
+    .summary-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 9px 0;
+        font-size: 13.5px;
+    }
+
+        .summary-row .label {
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .summary-row .val {
+            font-weight: 700;
+            color: var(--text-color);
+        }
+
+    .summary-divider {
+        border-top: 1px dashed var(--border-color);
+        margin: 10px 0;
+    }
+
+    .summary-total-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        font-size: 14px;
+        font-weight: 700;
+    }
+
+    .txt-blue {
+        color: #3B82F6;
+    }
+
+    .txt-red {
+        color: #F87171;
+    }
+
+    .txt-green {
+        color: #34D399;
+    }
+
+    /* Doughnut chart (pure CSS) */
+    .doughnut-wrap {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 6px 0 14px;
+    }
+
+    .doughnut {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: conic-gradient( #2563EB 0% 38%, #7C3AED 38% 62%, #16A34A 62% 80%, #F59E0B 80% 92%, #EC4899 92% 100% );
+        position: relative;
+    }
+
+        .doughnut::after {
+            content: "";
+            width: 92px;
+            height: 92px;
+            background: var(--card-color);
+            border-radius: 50%;
+            position: absolute;
+        }
+
+    .doughnut-center {
+        position: relative;
+        z-index: 2;
+        text-align: center;
+    }
+
+        .doughnut-center .num {
+            font-size: 15px;
+            font-weight: 800;
+            color: var(--text-color);
+        }
+
+        .doughnut-center .lbl {
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+    .legend-list {
+        display: flex;
+        flex-direction: column;
+        gap: 9px;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 13px;
+    }
+
+        .legend-item .dot-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-muted);
+        }
+
+    .legend-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+
+    .legend-item .pct {
+        font-weight: 700;
+        color: var(--text-color);
+    }
+
+    /* Quick actions */
+    .qa-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 11px 12px;
+        border-radius: 12px;
+        color: var(--text-color);
+        text-decoration: none;
+        font-size: 13.5px;
+        font-weight: 600;
+        transition: all .2s ease;
+        margin-bottom: 4px;
+    }
+
+        .qa-item:hover {
+            background: color-mix(in srgb, var(--card-color) 85%, var(--primary-color) 15%);
+            color: var(--primary-color);
+            transform: translateX(2px);
+        }
+
+    .qa-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        flex-shrink: 0;
+        background: color-mix(in srgb, var(--card-color) 85%, var(--primary-color) 15%);
+        color: var(--primary-color);
+    }
+
+    /* Recent transactions */
+    .rt-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+        .rt-item:last-child {
+            border-bottom: none;
+        }
+
+    .rt-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .rt-name {
+        font-size: 13.5px;
+        font-weight: 700;
+        color: var(--text-color);
+    }
+
+    .rt-method {
+        font-size: 11.5px;
+        color: var(--text-muted);
+    }
+
+    .rt-amount {
+        font-size: 13.5px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .rt-empty {
+        text-align: center;
+        color: var(--text-muted);
+        font-size: 13px;
+        padding: 16px 0;
+    }
+
+    @@media (max-width: 991px) {
+        .pp-header {
+            flex-direction: column;
+        }
+
+        .pp-header-actions {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="payment-page">
+
+    <!-- ================= PAGE HEADER ================= -->
+    <div class="pp-header">
+        <div>
+            <h1>Payment</h1>
+            <p>Manage all payments, transactions and receipts.</p>
+        </div>
+        <div class="pp-header-actions">
+            <button type="button" class="btn-pp" id="btnPrint"><i class="fa-solid fa-print"></i> Print</button>
+            <button type="button" class="btn-pp" id="btnExport"><i class="fa-solid fa-file-export"></i> Export</button>
+
+            <a asp-controller="Payment"
+               asp-action="Create"
+               class="btn-pp btn-pp-primary">
+                <i class="fa-solid fa-plus"></i>
+                <span>New Payment</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- ================= FILTER CARD ================= -->
+    <div class="pp-card filter-card">
+        <div class="row g-3">
+            <div class="col-lg-3 col-md-6">
+                <label>Search Payment</label>
+                <input type="text" class="form-control" placeholder="Search by ID, guest, invoice...">
+            </div>
+            <div class="col-lg-2 col-md-6">
+                <label>Guest</label>
+                <select class="form-select">
+                    <option selected>All Guests</option>
+                    @if (Model?.Payments != null)
+                    {
+                        foreach (var guest in Model.Payments.Select(p => p.CustomerName).Where(n => !string.IsNullOrWhiteSpace(n)).Distinct())
+                        {
+                            <option>@guest</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="col-lg-2 col-md-6">
+                <label>Payment Date Range</label>
+                <input type="text" class="form-control" placeholder="dd/mm/yyyy - dd/mm/yyyy">
+            </div>
+            <div class="col-lg-2 col-md-6">
+                <label>Payment Method</label>
+                <select class="form-select">
+                    <option selected>All Methods</option>
+                    <option>UPI</option>
+                    <option>Card</option>
+                    <option>Net Banking</option>
+                    <option>Cash</option>
+                    <option>Wallet</option>
+                </select>
+            </div>
+            <div class="col-lg-2 col-md-6">
+                <label>Payment Status</label>
+                <select class="form-select">
+                    <option selected>All Status</option>
+                    <option>Success</option>
+                    <option>Pending</option>
+                    <option>Failed</option>
+                </select>
+            </div>
+            <div class="col-lg-1 col-md-6 d-none d-lg-block"></div>
+
+            <div class="col-lg-3 col-md-6">
+                <label>Transaction ID</label>
+                <input type="text" class="form-control" placeholder="TXN000000">
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <label>Amount Range</label>
+                <div class="d-flex gap-2">
+                    <input type="number" class="form-control" placeholder="Min">
+                    <input type="number" class="form-control" placeholder="Max">
+                </div>
+            </div>
+            <div class="col-lg-6 col-md-12">
+                <div class="filter-actions justify-content-lg-end justify-content-start">
+                    <button type="button" class="btn-reset" id="btnReset"><i class="fa-solid fa-rotate-left me-1"></i>Reset</button>
+                    <button type="button" class="btn-search" id="btnSearch"><i class="fa-solid fa-magnifying-glass me-1"></i>Search</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= STATISTICS ================= -->
+    <div class="row g-3 stats-row">
+        <div class="col-xl col-lg-4 col-md-6 col-6">
+            <div class="stat-card">
+                <div class="stat-icon stat-blue"><i class="fa-solid fa-wallet"></i></div>
+                <div>
+                    <div class="stat-label">Total Payments</div>
+                    <div class="stat-value">@totalPayments</div>
+                    <div class="stat-sub">All Time</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl col-lg-4 col-md-6 col-6">
+            <div class="stat-card">
+                <div class="stat-icon stat-green"><i class="fa-solid fa-circle-check"></i></div>
+                <div>
+                    <div class="stat-label">Successful</div>
+                    <div class="stat-value">@successCount</div>
+                    <div class="stat-sub">@((totalPayments == 0) ? "0%" : String.Format("{0:0.##}%", successCount * 100.0 / totalPayments))</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl col-lg-4 col-md-6 col-6">
+            <div class="stat-card">
+                <div class="stat-icon stat-orange"><i class="fa-solid fa-clock"></i></div>
+                <div>
+                    <div class="stat-label">Pending</div>
+                    <div class="stat-value">@pendingCount</div>
+                    <div class="stat-sub">@((totalPayments == 0) ? "0%" : String.Format("{0:0.##}%", pendingCount * 100.0 / totalPayments))</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl col-lg-4 col-md-6 col-6">
+            <div class="stat-card">
+                <div class="stat-icon stat-red"><i class="fa-solid fa-circle-xmark"></i></div>
+                <div>
+                    <div class="stat-label">Failed</div>
+                    <div class="stat-value">@failedCount</div>
+                    <div class="stat-sub">@((totalPayments == 0) ? "0%" : String.Format("{0:0.##}%", failedCount * 100.0 / totalPayments))</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl col-lg-4 col-md-6 col-6">
+            <div class="stat-card">
+                <div class="stat-icon stat-purple"><i class="fa-solid fa-sack-dollar"></i></div>
+                <div>
+                    <div class="stat-label">Total Received</div>
+                    <div class="stat-value">₹@String.Format("{0:N2}", totalReceived)</div>
+                    <div class="stat-sub">All Time</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= PAYMENT LIST (full width) ================= -->
+    <div class="pp-card section-card" id="paymentListCard">
+        <div class="section-head">
+            <h5>Payment List</h5>
+            <div class="d-flex align-items-center gap-2">
+                <span class="entries-label">Show</span>
+                <select class="entries-select">
+                    <option>10</option>
+                    <option selected>25</option>
+                    <option>50</option>
+                    <option>100</option>
+                </select>
+                <span class="entries-label">entries</span>
+            </div>
+        </div>
+
+        <div class="pp-table-wrap">
+            <div class="table-responsive">
+                <table class="table table-pp" id="paymentTable">
+                    <thead>
+                        <tr>
+                            <th>Payment ID</th>
+                            <th>Invoice No</th>
+                            <th>Guest Name</th>
+                            <th>Payment Date</th>
+                            <th>Method</th>
+                            <th>Amount</th>
+                            <th>Transaction ID</th>
+                            <th>Status</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model != null && Model.Payments != null && Model.Payments.Any())
+                        {
+                            foreach (var p in Model.Payments)
+                            {
+                                <tr>
+                                    <td>@(string.IsNullOrWhiteSpace(p.PaymentId) ? ("#PMT-" + p.Id.ToString()) : p.PaymentId)</td>
+                                    <td>@(p.BillRef ?? "")</td>
+                                    <td>
+                                        <div class="guest-cell">
+                                            <div class="avatar-sm">@((p.CustomerName ?? string.Empty).Split(' ').Select(x => x.FirstOrDefault()).Where(x => x != '\0').Take(2).Aggregate(string.Empty, (a, c) => a + c))</div>
+                                            <span>@p.CustomerName</span>
+                                        </div>
+                                    </td>
+                                    <td>@p.PaymentDate.ToString("dd MMM yyyy")</td>
+                                    <td>@p.PaymentMethod</td>
+                                    <td>₹@String.Format("{0:N2}", p.Amount)</td>
+                                    <td>@p.TransactionId</td>
+                                    <td><span class="badge-status @(p.Status == "Success" ? "badge-success" : p.Status == "Pending" ? "badge-pending" : "badge-failed")">@p.Status</span></td>
+                                    <td>
+                                        <div class="action-icons justify-content-end">
+                                            <a class="icon-btn" href="@Url.Action("Details", "Payment", new { id = p.Id })"><i class="fa-solid fa-eye"></i></a>
+                                            <a class="icon-btn" href="@Url.Action("Edit", "Payment", new { id = p.Id })"><i class="fa-solid fa-pen"></i></a>
+                                            <form method="post" asp-controller="Payment" asp-action="Delete" asp-route-id="@p.Id" style="display:inline">
+                                                <button type="submit" class="icon-btn"><i class="fa-solid fa-ellipsis"></i></button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr><td colspan="9" class="text-center">No payment records found.</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <nav class="pp-pagination">
+                <ul class="pagination mb-0">
+                    <li class="page-item"><a class="page-link" href="#"><i class="fa-solid fa-angle-left"></i></a></li>
+                    <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                    <li class="page-item"><a class="page-link" href="#"><i class="fa-solid fa-angle-right"></i></a></li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+
+    <!-- ================= BOTTOM GRID: Summary / Methods / Quick Actions / Recent ================= -->
+    <div class="pp-bottom-grid">
+
+        <!-- Payment Summary -->
+        <div class="pp-card side-card">
+            <div class="section-head">
+                <h5>Payment Summary</h5>
+            </div>
+
+            <div class="summary-row">
+                <span class="label"><i class="fa-solid fa-wallet" style="color:var(--primary-color)"></i> Total Payments</span>
+                <span class="val">@totalPayments</span>
+            </div>
+            <div class="summary-row">
+                <span class="label"><i class="fa-solid fa-circle-check" style="color:#16A34A"></i> Successful</span>
+                <span class="val">@successCount</span>
+            </div>
+            <div class="summary-row">
+                <span class="label"><i class="fa-solid fa-clock" style="color:#EA580C"></i> Pending</span>
+                <span class="val">@pendingCount</span>
+            </div>
+            <div class="summary-row">
+                <span class="label"><i class="fa-solid fa-circle-xmark" style="color:#DC2626"></i> Failed</span>
+                <span class="val">@failedCount</span>
+            </div>
+
+            <div class="summary-divider"></div>
+
+            <div class="summary-total-row">
+                <span>Total Received</span>
+                <span class="txt-blue">₹@String.Format("{0:N2}", totalReceived)</span>
+            </div>
+        </div>
+
+        <!-- Payment Methods Breakdown -->
+        <div class="pp-card side-card">
+            <div class="section-head">
+                <h5>Payment Methods</h5>
+            </div>
+
+            <div class="doughnut-wrap">
+                <div class="doughnut">
+                    <div class="doughnut-center">
+                        <div class="num">@totalPayments</div>
+                        <div class="lbl">Payments</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="legend-list">
+                <div class="legend-item">
+                    <span class="dot-label"><span class="legend-dot" style="background:#2563EB;"></span>UPI</span>
+                    <span class="pct">38%</span>
+                </div>
+                <div class="legend-item">
+                    <span class="dot-label"><span class="legend-dot" style="background:#7C3AED;"></span>Card</span>
+                    <span class="pct">24%</span>
+                </div>
+                <div class="legend-item">
+                    <span class="dot-label"><span class="legend-dot" style="background:#16A34A;"></span>Net Banking</span>
+                    <span class="pct">18%</span>
+                </div>
+                <div class="legend-item">
+                    <span class="dot-label"><span class="legend-dot" style="background:#F59E0B;"></span>Cash</span>
+                    <span class="pct">12%</span>
+                </div>
+                <div class="legend-item">
+                    <span class="dot-label"><span class="legend-dot" style="background:#EC4899;"></span>Wallet</span>
+                    <span class="pct">8%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="pp-card side-card">
+            <div class="section-head">
+                <h5>Quick Actions</h5>
+            </div>
+
+            <a asp-controller="Payment" asp-action="Create" class="qa-item">
+                <span class="qa-icon"><i class="fa-solid fa-plus"></i></span>
+                New Payment
+            </a>
+            <a href="#" class="qa-item">
+                <span class="qa-icon"><i class="fa-solid fa-calendar-day"></i></span>
+                Today's Payments
+            </a>
+            <a href="#" class="qa-item">
+                <span class="qa-icon"><i class="fa-solid fa-hourglass-half"></i></span>
+                Pending Payments
+            </a>
+            <a href="#" class="qa-item">
+                <span class="qa-icon"><i class="fa-solid fa-rotate-left"></i></span>
+                Refunds
+            </a>
+            <a href="#" class="qa-item" id="qaDownloadReport">
+                <span class="qa-icon"><i class="fa-solid fa-download"></i></span>
+                Download Report
+            </a>
+        </div>
+
+        <!-- Recent Transactions (real data, most recent 4 payments) -->
+        <div class="pp-card side-card">
+            <div class="section-head">
+                <h5>Recent Transactions</h5>
+            </div>
+
+            @if (recentPayments.Any())
+            {
+                foreach (var rp in recentPayments)
+                {
+                    var initials = (rp.CustomerName ?? string.Empty).Split(' ').Select(x => x.FirstOrDefault()).Where(x => x != '\0').Take(2).Aggregate(string.Empty, (a, c) => a + c);
+                    var isSuccess = rp.Status == "Success";
+                    var isFailed = rp.Status == "Failed";
+                    var amountClass = isSuccess ? "txt-green" : (isFailed ? "txt-red" : "txt-blue");
+                    var arrowIcon = isSuccess ? "fa-arrow-up" : (isFailed ? "fa-arrow-down" : "fa-clock");
+                    <div class="rt-item">
+                        <div class="rt-left">
+                            <div class="avatar-sm">@initials</div>
+                            <div>
+                                <div class="rt-name">@rp.CustomerName</div>
+                                <div class="rt-method">@rp.PaymentMethod</div>
+                            </div>
+                        </div>
+                        <div class="rt-amount @amountClass">₹@String.Format("{0:N2}", rp.Amount) <i class="fa-solid @arrowIcon"></i></div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="rt-empty">No recent transactions.</div>
+            }
+        </div>
+
+    </div>
+</div>
+
+<script>
+    (function () {
+        // Reset filter fields
+        var resetBtn = document.getElementById('btnReset');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', function () {
+                var filterCard = document.querySelector('.filter-card');
+                filterCard.querySelectorAll('input').forEach(function (el) { el.value = ''; });
+                filterCard.querySelectorAll('select').forEach(function (el) { el.selectedIndex = 0; });
+            });
+        }
+
+        // Search button (placeholder client-side behavior)
+        var searchBtn = document.getElementById('btnSearch');
+        if (searchBtn) {
+            searchBtn.addEventListener('click', function () {
+                console.log('Search payments triggered');
+            });
+        }
+
+        // Entries dropdown -> could re-render table rows in a real implementation
+        var entriesSelect = document.querySelector('.entries-select');
+        if (entriesSelect) {
+            entriesSelect.addEventListener('change', function () {
+                console.log('Entries per page set to: ' + this.value);
+            });
+        }
+
+        // Action icon buttons
+        document.querySelectorAll('.icon-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                console.log('Action clicked: ' + btn.innerText.trim());
+            });
+        });
+
+        // Pagination click handling
+        document.querySelectorAll('.pp-pagination .page-link').forEach(function (link) {
+            link.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelectorAll('.pp-pagination .page-item').forEach(function (li) {
+                    li.classList.remove('active');
+                });
+                if (!isNaN(parseInt(link.textContent))) {
+                    link.parentElement.classList.add('active');
+                }
+            });
+        });
+
+        // ===== Print: print just the Payment List card content =====
+        var btnPrint = document.getElementById('btnPrint');
+        if (btnPrint) {
+            btnPrint.addEventListener('click', function () {
+                window.print();
+            });
+        }
+
+        // ===== Export: download the Payment List table as CSV =====
+        function exportTableToCsv() {
+            var table = document.getElementById('paymentTable');
+            if (!table) return;
+
+            var rows = Array.from(table.querySelectorAll('tr'));
+            var csvLines = rows.map(function (row) {
+                var cells = Array.from(row.querySelectorAll('th,td'));
+                // Drop the last "Action" column from the export
+                cells = cells.slice(0, cells.length - 1);
+                return cells.map(function (cell) {
+                    var text = cell.innerText.replace(/\s+/g, ' ').trim();
+                    text = text.replace(/"/g, '""');
+                    return '"' + text + '"';
+                }).join(',');
+            });
+
+            var csvContent = csvLines.join('\r\n');
+            var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            var url = URL.createObjectURL(blob);
+            var link = document.createElement('a');
+            var today = new Date().toISOString().slice(0, 10);
+            link.href = url;
+            link.setAttribute('download', 'payments_' + today + '.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        var btnExport = document.getElementById('btnExport');
+        if (btnExport) {
+            btnExport.addEventListener('click', exportTableToCsv);
+        }
+
+        var qaDownloadReport = document.getElementById('qaDownloadReport');
+        if (qaDownloadReport) {
+            qaDownloadReport.addEventListener('click', function (e) {
+                e.preventDefault();
+                exportTableToCsv();
+            });
+        }
+    })();
+</script>
+
+<style media="print">
+    /* Only print the payment list card when the Print button is used */
+    body * {
+        visibility: hidden;
+    }
+
+    #paymentListCard, #paymentListCard * {
+        visibility: visible;
+    }
+
+    #paymentListCard {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+    }
+
+    .action-icons, .pp-pagination {
+        display: none !important;
+    }
+</style>

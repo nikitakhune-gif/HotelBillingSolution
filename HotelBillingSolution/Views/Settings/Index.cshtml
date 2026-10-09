@@ -1,0 +1,1006 @@
+﻿@{
+    ViewData["Title"] = "Settings";
+   
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Settings - Hotel Billing System</title>
+    <style>
+            :root {
+                --border-color: #e5e7eb;
+                --bg-page: #f3f4f6;
+                --bg-card: #ffffff;
+                --text-dark: #1e293b;
+                --text-muted: #6b7280;
+                --blue: #2563eb;
+                --blue-light: #eff6ff;
+                --purple: #8b5cf6;
+                --orange: #f59e0b;
+                --green: #10b981;
+                --red: #ef4444;
+            }
+
+            * {
+                box-sizing: border-box;
+            }
+
+            body {
+                margin: 0;
+                font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                background: var(--bg-page);
+                color: var(--text-dark);
+            }
+
+            .settings-wrapper {
+                max-width: 1400px;
+                margin: 0 auto;
+                padding: 32px 24px 60px;
+            }
+
+            /* Header */
+            .settings-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                flex-wrap: wrap;
+                gap: 16px;
+                margin-bottom: 28px;
+            }
+
+            .settings-header-left {
+                display: flex;
+                gap: 14px;
+                align-items: flex-start;
+            }
+
+            .settings-header-icon {
+                width: 40px;
+                height: 40px;
+                border-radius: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+                color: #1e293b;
+            }
+
+                .settings-header-icon svg {
+                    width: 26px;
+                    height: 26px;
+                }
+
+            .settings-header h1 {
+                margin: 0;
+                font-size: 26px;
+                font-weight: 700;
+                color: var(--text-dark);
+            }
+
+            .settings-header p {
+                margin: 4px 0 0;
+                font-size: 14px;
+                color: var(--text-muted);
+            }
+
+            .btn {
+                border-radius: 8px;
+                font-size: 14px;
+                font-weight: 600;
+                padding: 10px 18px;
+                cursor: pointer;
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                border: 1px solid transparent;
+                transition: background .15s ease, border-color .15s ease;
+                white-space: nowrap;
+            }
+
+                .btn svg {
+                    width: 16px;
+                    height: 16px;
+                }
+
+            .btn-primary {
+                background: var(--blue);
+                color: #fff;
+            }
+
+                .btn-primary:hover {
+                    background: #1d4ed8;
+                }
+
+            .btn-outline-blue {
+                background: #fff;
+                border-color: var(--blue);
+                color: var(--blue);
+            }
+
+                .btn-outline-blue:hover {
+                    background: var(--blue-light);
+                }
+
+            .btn-outline-purple {
+                background: #fff;
+                border-color: var(--purple);
+                color: var(--purple);
+            }
+
+                .btn-outline-purple:hover {
+                    background: #f5f3ff;
+                }
+
+            .btn-outline-orange {
+                background: #fff;
+                border-color: var(--orange);
+                color: var(--orange);
+            }
+
+                .btn-outline-orange:hover {
+                    background: #fffbeb;
+                }
+
+            .btn-outline-green {
+                background: #fff;
+                border-color: var(--green);
+                color: var(--green);
+            }
+
+                .btn-outline-green:hover {
+                    background: #ecfdf5;
+                }
+
+            .btn-outline-red {
+                background: #fff;
+                border-color: var(--red);
+                color: var(--red);
+            }
+
+                .btn-outline-red:hover {
+                    background: #fef2f2;
+                }
+
+            /* Layout grid */
+            .settings-grid {
+                display: grid;
+                grid-template-columns: 260px 1fr;
+                gap: 24px;
+                align-items: start;
+            }
+
+            /* Nav card */
+            .settings-nav {
+                background: var(--bg-card);
+                border: 1px solid var(--border-color);
+                border-radius: 10px;
+                box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+                padding: 10px;
+            }
+
+                .settings-nav button {
+                    width: 100%;
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    padding: 11px 12px;
+                    border: none;
+                    background: transparent;
+                    border-radius: 8px;
+                    font-size: 14px;
+                    font-weight: 500;
+                    color: var(--text-dark);
+                    cursor: pointer;
+                    text-align: left;
+                    margin-bottom: 2px;
+                }
+
+                    .settings-nav button svg {
+                        width: 18px;
+                        height: 18px;
+                        flex-shrink: 0;
+                        color: var(--text-muted);
+                    }
+
+                    .settings-nav button:hover {
+                        background: #f9fafb;
+                    }
+
+                    .settings-nav button.active {
+                        background: var(--blue-light);
+                        color: var(--blue);
+                    }
+
+                        .settings-nav button.active svg {
+                            color: var(--blue);
+                        }
+
+            /* Content column - mobile tab panels reuse .card-section */
+            .settings-content {
+                display: flex;
+                flex-direction: column;
+                gap: 24px;
+            }
+
+            .card {
+                background: var(--bg-card);
+                border: 1px solid var(--border-color);
+                border-radius: 10px;
+                box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+                padding: 24px;
+            }
+
+            .card-title {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                font-size: 17px;
+                font-weight: 700;
+                margin: 0 0 20px;
+                color: var(--text-dark);
+            }
+
+                .card-title svg {
+                    width: 20px;
+                    height: 20px;
+                }
+
+            .icon-blue {
+                color: var(--blue);
+            }
+
+            .icon-purple {
+                color: var(--purple);
+            }
+
+            .icon-orange {
+                color: var(--orange);
+            }
+
+            .icon-green {
+                color: var(--green);
+            }
+
+            .icon-red {
+                color: var(--red);
+            }
+
+            /* Profile */
+            .profile-row {
+                display: flex;
+                gap: 28px;
+                align-items: flex-start;
+                flex-wrap: wrap;
+            }
+
+            .avatar-wrap {
+                position: relative;
+                flex-shrink: 0;
+            }
+
+            .avatar {
+                width: 90px;
+                height: 90px;
+                border-radius: 50%;
+                background: #cbd5e1 url('https://i.pravatar.cc/180?img=13') center/cover;
+                border: 2px solid var(--border-color);
+            }
+
+            .avatar-camera {
+                position: absolute;
+                bottom: 0;
+                right: 0;
+                width: 28px;
+                height: 28px;
+                border-radius: 50%;
+                background: #fff;
+                border: 1px solid var(--border-color);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+                cursor: pointer;
+            }
+
+                .avatar-camera svg {
+                    width: 14px;
+                    height: 14px;
+                    color: var(--text-dark);
+                }
+
+            .form-fields {
+                flex: 1;
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 18px;
+                min-width: 280px;
+            }
+
+            .form-group {
+                display: flex;
+                flex-direction: column;
+                gap: 6px;
+            }
+
+                .form-group label {
+                    font-size: 13px;
+                    font-weight: 600;
+                    color: var(--text-dark);
+                }
+
+                .form-group input,
+                .form-group select {
+                    padding: 10px 12px;
+                    border: 1px solid var(--border-color);
+                    border-radius: 8px;
+                    font-size: 14px;
+                    color: var(--text-dark);
+                    background: #fff;
+                    font-family: inherit;
+                    width: 100%;
+                }
+
+                    .form-group input:focus,
+                    .form-group select:focus {
+                        outline: 2px solid #93c5fd;
+                        outline-offset: 1px;
+                        border-color: var(--blue);
+                    }
+
+            .card-footer-btn {
+                display: flex;
+                justify-content: flex-end;
+                margin-top: 20px;
+            }
+
+            /* Account settings grid uses 4 cols */
+            .form-fields.cols-4 {
+                grid-template-columns: repeat(4, 1fr);
+            }
+
+            /* Notifications */
+            .notif-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 0 32px;
+            }
+
+            .notif-col {
+                display: flex;
+                flex-direction: column;
+            }
+
+                .notif-col:first-child {
+                    border-right: 1px solid var(--border-color);
+                    padding-right: 32px;
+                }
+
+                .notif-col:last-child {
+                    padding-left: 0;
+                }
+
+            .notif-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                padding: 14px 0;
+                border-bottom: 1px solid #f1f5f9;
+            }
+
+                .notif-item:last-child {
+                    border-bottom: none;
+                }
+
+            .notif-item-text strong {
+                display: block;
+                font-size: 14px;
+                font-weight: 600;
+                color: var(--text-dark);
+            }
+
+            .notif-item-text span {
+                font-size: 13px;
+                color: var(--text-muted);
+            }
+
+            /* Toggle switch */
+            .switch {
+                position: relative;
+                width: 42px;
+                height: 24px;
+                flex-shrink: 0;
+                margin-left: 12px;
+            }
+
+                .switch input {
+                    opacity: 0;
+                    width: 0;
+                    height: 0;
+                }
+
+            .slider {
+                position: absolute;
+                cursor: pointer;
+                inset: 0;
+                background: #cbd5e1;
+                border-radius: 999px;
+                transition: background .2s ease;
+            }
+
+                .slider::before {
+                    content: "";
+                    position: absolute;
+                    height: 18px;
+                    width: 18px;
+                    left: 3px;
+                    top: 3px;
+                    background: #fff;
+                    border-radius: 50%;
+                    transition: transform .2s ease;
+                    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+                }
+
+            .switch input:checked + .slider {
+                background: var(--blue);
+            }
+
+                .switch input:checked + .slider::before {
+                    transform: translateX(18px);
+                }
+
+            .switch.green input:checked + .slider {
+                background: var(--green);
+            }
+
+            /* Security */
+            .security-grid {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 24px;
+            }
+
+            .security-item {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+
+                .security-item strong {
+                    font-size: 14px;
+                    font-weight: 600;
+                }
+
+                .security-item span {
+                    font-size: 13px;
+                    color: var(--text-muted);
+                    line-height: 1.4;
+                }
+
+                .security-item .btn,
+                .security-item .switch {
+                    margin-top: 4px;
+                    align-self: flex-start;
+                }
+
+            /* Bottom two column layout */
+            .bottom-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 24px;
+            }
+
+            .system-settings-card p {
+                font-size: 13px;
+                color: var(--text-muted);
+                margin: 0 0 18px;
+                line-height: 1.5;
+            }
+
+            /* Mobile nav tabs */
+            .settings-nav-mobile {
+                display: none;
+            }
+
+            /* Toast */
+            .toast {
+                position: fixed;
+                bottom: 24px;
+                left: 50%;
+                transform: translateX(-50%) translateY(20px);
+                background: #1e293b;
+                color: #fff;
+                padding: 12px 22px;
+                border-radius: 8px;
+                font-size: 14px;
+                font-weight: 500;
+                box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity .25s ease, transform .25s ease;
+                z-index: 999;
+            }
+
+                .toast.show {
+                    opacity: 1;
+                    transform: translateX(-50%) translateY(0);
+                }
+
+            /* Panels: on desktop we show all cards stacked in right column already;
+                       tabs control which panel is visible */
+            .settings-panel {
+                display: none;
+                flex-direction: column;
+                gap: 24px;
+            }
+
+                .settings-panel.active {
+                    display: flex;
+                }
+
+            /* Responsive */
+            @@media (max-width: 1024px) {
+                .settings-grid {
+                    grid-template-columns: 220px 1fr;
+                }
+
+                .form-fields, .form-fields.cols-4 {
+                    grid-template-columns: repeat(2, 1fr);
+                }
+
+                .security-grid {
+                    grid-template-columns: 1fr;
+                }
+
+                .bottom-grid {
+                    grid-template-columns: 1fr;
+                }
+            }
+
+            @@media (max-width: 768px) {
+                .settings-grid {
+                    grid-template-columns: 1fr;
+                }
+
+                .settings-nav {
+                    display: none;
+                }
+
+                .settings-nav-mobile {
+                    display: flex;
+                    overflow-x: auto;
+                    gap: 8px;
+                    padding-bottom: 8px;
+                    margin-bottom: 4px;
+                    -webkit-overflow-scrolling: touch;
+                }
+
+                    .settings-nav-mobile button {
+                        flex: 0 0 auto;
+                        padding: 9px 14px;
+                        border-radius: 20px;
+                        border: 1px solid var(--border-color);
+                        background: #fff;
+                        font-size: 13px;
+                        font-weight: 600;
+                        color: var(--text-dark);
+                        cursor: pointer;
+                        white-space: nowrap;
+                    }
+
+                        .settings-nav-mobile button.active {
+                            background: var(--blue);
+                            border-color: var(--blue);
+                            color: #fff;
+                        }
+
+                .form-fields, .form-fields.cols-4 {
+                    grid-template-columns: 1fr;
+                }
+
+                .notif-grid {
+                    grid-template-columns: 1fr;
+                }
+
+                .notif-col:first-child {
+                    border-right: none;
+                    padding-right: 0;
+                    border-bottom: 1px solid var(--border-color);
+                    padding-bottom: 10px;
+                    margin-bottom: 10px;
+                }
+
+                .settings-header {
+                    align-items: stretch;
+                }
+
+                .settings-header-left {
+                    align-items: center;
+                }
+            }
+
+            @@media (max-width: 480px) {
+                .settings-wrapper {
+                    padding: 20px 14px 40px;
+                }
+
+                .settings-header h1 {
+                    font-size: 22px;
+                }
+
+                .card {
+                    padding: 18px;
+                }
+
+                .profile-row {
+                    flex-direction: column;
+                    align-items: center;
+                    text-align: center;
+                }
+
+                .form-fields {
+                    width: 100%;
+                }
+            }
+    </style>
+</head>
+<body>
+
+    <div class="settings-wrapper">
+
+        <!-- Page Header -->
+        <div class="settings-header">
+            <div class="settings-header-left">
+                <div class="settings-header-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                </div>
+                <div>
+                    <h1>Settings</h1>
+                    <p>Manage your account, system preferences and application settings</p>
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="saveChanges()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                Save Changes
+            </button>
+        </div>
+
+        <!-- Mobile tab nav -->
+        <div class="settings-nav-mobile" id="mobileNav"></div>
+
+        <div class="settings-grid">
+
+            <!-- Left nav -->
+            <div class="settings-nav" id="desktopNav">
+                <button class="nav-tab active" data-tab="profile">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                    Profile
+                </button>
+                <button class="nav-tab" data-tab="account">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                    Account
+                </button>
+                <button class="nav-tab" data-tab="notifications">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                    Notifications
+                </button>
+                <button class="nav-tab" data-tab="security">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                    Security
+                </button>
+                <button class="nav-tab" data-tab="preferences">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
+                    Preferences
+                </button>
+                <button class="nav-tab" data-tab="system">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                    System Settings
+                </button>
+            </div>
+
+            <!-- Right content -->
+            <div class="settings-content">
+
+                <!-- PROFILE PANEL -->
+                <div class="settings-panel active" data-panel="profile">
+                    <div class="card">
+                        <h2 class="card-title icon-blue">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                            Profile Settings
+                        </h2>
+                        <div class="profile-row">
+                            <div class="avatar-wrap">
+                                <div class="avatar"></div>
+                                <div class="avatar-camera">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                                </div>
+                            </div>
+                            <div class="form-fields">
+                                <div class="form-group">
+                                    <label for="fullName">Full Name</label>
+                                    <input type="text" id="fullName" value="Admin User" />
+                                </div>
+                                <div class="form-group">
+                                    <label for="email">Email Address</label>
+                                    <input type="email" id="email" value="admin@hotel.com" />
+                                </div>
+                                <div class="form-group">
+                                    <label for="phone">Phone Number</label>
+                                    <input type="text" id="phone" value="+91 9876543210" />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer-btn">
+                            <button class="btn btn-outline-blue" onclick="showToast('Profile updated successfully.')">Update Profile</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ACCOUNT PANEL -->
+                <div class="settings-panel" data-panel="account">
+                    <div class="card">
+                        <h2 class="card-title icon-purple">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                            Account Settings
+                        </h2>
+                        <div class="form-fields cols-4">
+                            <div class="form-group">
+                                <label for="username">Username</label>
+                                <input type="text" id="username" value="admin" />
+                            </div>
+                            <div class="form-group">
+                                <label for="language">Language</label>
+                                <select id="language">
+                                    <option selected>English</option>
+                                    <option>Hindi</option>
+                                    <option>Marathi</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="dateFormat">Date Format</label>
+                                <select id="dateFormat">
+                                    <option selected>DD-MM-YYYY</option>
+                                    <option>MM-DD-YYYY</option>
+                                    <option>YYYY-MM-DD</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="timeZone">Time Zone</label>
+                                <select id="timeZone">
+                                    <option selected>(UTC+05:30) Asia/Kolkata</option>
+                                    <option>(UTC+00:00) UTC</option>
+                                    <option>(UTC-05:00) US Eastern</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="card-footer-btn">
+                            <button class="btn btn-outline-purple" onclick="showToast('Account updated successfully.')">Update Account</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NOTIFICATIONS PANEL -->
+                <div class="settings-panel" data-panel="notifications">
+                    <div class="card">
+                        <h2 class="card-title icon-orange">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                            Notification Settings
+                        </h2>
+                        <div class="notif-grid">
+                            <div class="notif-col">
+                                <div class="notif-item">
+                                    <div class="notif-item-text">
+                                        <strong>Email Notifications</strong>
+                                        <span>Receive email alerts</span>
+                                    </div>
+                                    <label class="switch">
+                                        <input type="checkbox" checked />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="notif-item">
+                                    <div class="notif-item-text">
+                                        <strong>SMS Notifications</strong>
+                                        <span>Receive SMS alerts</span>
+                                    </div>
+                                    <label class="switch">
+                                        <input type="checkbox" checked />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="notif-col">
+                                <div class="notif-item">
+                                    <div class="notif-item-text">
+                                        <strong>System Alerts</strong>
+                                        <span>Important system updates</span>
+                                    </div>
+                                    <label class="switch">
+                                        <input type="checkbox" checked />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="notif-item">
+                                    <div class="notif-item-text">
+                                        <strong>Marketing Emails</strong>
+                                        <span>Receive promotional emails</span>
+                                    </div>
+                                    <label class="switch">
+                                        <input type="checkbox" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer-btn">
+                            <button class="btn btn-outline-orange" onclick="showToast('Notification settings saved successfully.')">Save Notification Settings</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECURITY PANEL -->
+                <div class="settings-panel" data-panel="security">
+                    <div class="card">
+                        <h2 class="card-title icon-green">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                            Security Settings
+                        </h2>
+                        <div class="security-grid">
+                            <div class="security-item">
+                                <strong>Change Password</strong>
+                                <span>Update your account password regularly</span>
+                                <button class="btn btn-outline-green" onclick="showToast('Password update requested.')">Update Password</button>
+                            </div>
+                            <div class="security-item">
+                                <strong>Two-Factor Authentication</strong>
+                                <span>Add an extra layer of security to your account</span>
+                                <label class="switch green">
+                                    <input type="checkbox" checked />
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="security-item">
+                                <strong>Active Sessions</strong>
+                                <span>Manage your active login sessions</span>
+                                <button class="btn btn-outline-green" onclick="showToast('Opening active sessions...')">View Sessions</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PREFERENCES PANEL -->
+                <div class="settings-panel" data-panel="preferences">
+                    <div class="bottom-grid">
+                        <div class="card">
+                            <h2 class="card-title icon-blue">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
+                                Preferences
+                            </h2>
+                            <div class="form-fields" style="grid-template-columns: repeat(3, 1fr);">
+                                <div class="form-group">
+                                    <label for="theme">Theme</label>
+                                    <select id="theme">
+                                        <option selected>Light</option>
+                                        <option>Dark</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="currency">Currency</label>
+                                    <select id="currency">
+                                        <option selected>INR (₹)</option>
+                                        <option>USD ($)</option>
+                                        <option>EUR (€)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="itemsPerPage">Items Per Page</label>
+                                    <select id="itemsPerPage">
+                                        <option selected>10</option>
+                                        <option>25</option>
+                                        <option>50</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="card-footer-btn">
+                                <button class="btn btn-outline-blue" onclick="showToast('Preferences saved successfully.')">Save Preferences</button>
+                            </div>
+                        </div>
+
+                        <!-- SYSTEM SETTINGS is included here so preferences+system show together like the reference bottom row -->
+                        <div class="card system-settings-card" data-panel-inline="system">
+                            <h2 class="card-title icon-red">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                                System Settings
+                            </h2>
+                            <p>Configure system-wide settings and preferences for the application.</p>
+                            <button class="btn btn-outline-red" onclick="showToast('System settings opened.')">Manage System Settings</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SYSTEM PANEL (standalone, shown when System Settings tab is clicked directly) -->
+                <div class="settings-panel" data-panel="system">
+                    <div class="card system-settings-card">
+                        <h2 class="card-title icon-red">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                            System Settings
+                        </h2>
+                        <p>Configure system-wide settings and preferences for the application.</p>
+                        <button class="btn btn-outline-red" onclick="showToast('System settings opened.')">Manage System Settings</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+            (function () {
+                var tabs = ["profile", "account", "notifications", "security", "preferences", "system"];
+                var labels = {
+                    profile: "Profile",
+                    account: "Account",
+                    notifications: "Notifications",
+                    security: "Security",
+                    preferences: "Preferences",
+                    system: "System Settings"
+                };
+
+                var desktopNav = document.getElementById("desktopNav");
+                var mobileNav = document.getElementById("mobileNav");
+
+                // Build mobile nav buttons dynamically (mirrors desktop tabs)
+                tabs.forEach(function (tab) {
+                    var btn = document.createElement("button");
+                    btn.textContent = labels[tab];
+                    btn.setAttribute("data-tab", tab);
+                    if (tab === "profile") btn.classList.add("active");
+                    mobileNav.appendChild(btn);
+                });
+
+                function activateTab(tabName) {
+                    // Update nav buttons (desktop + mobile)
+                    document.querySelectorAll(".settings-nav .nav-tab, .settings-nav-mobile button").forEach(function (b) {
+                        b.classList.toggle("active", b.getAttribute("data-tab") === tabName);
+                    });
+
+                    // Update panels
+                    document.querySelectorAll(".settings-panel").forEach(function (panel) {
+                        panel.classList.toggle("active", panel.getAttribute("data-panel") === tabName);
+                    });
+                }
+
+                desktopNav.addEventListener("click", function (e) {
+                    var btn = e.target.closest("button[data-tab]");
+                    if (!btn) return;
+                    activateTab(btn.getAttribute("data-tab"));
+                });
+
+                mobileNav.addEventListener("click", function (e) {
+                    var btn = e.target.closest("button[data-tab]");
+                    if (!btn) return;
+                    activateTab(btn.getAttribute("data-tab"));
+                });
+
+                // Toast
+                window.showToast = function (message) {
+                    var toast = document.getElementById("toast");
+                    toast.textContent = message;
+                    toast.classList.add("show");
+                    clearTimeout(window.__toastTimer);
+                    window.__toastTimer = setTimeout(function () {
+                        toast.classList.remove("show");
+                    }, 2800);
+                };
+
+                window.saveChanges = function () {
+                    showToast("Settings saved successfully.");
+                };
+            })();
+    </script>
+
+</body>
+</html>

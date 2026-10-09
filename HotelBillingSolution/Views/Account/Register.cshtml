@@ -1,0 +1,640 @@
+﻿@{
+    Layout = null;
+}
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hotel Billing Login</title>
+
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+            @@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+                font-family: 'Poppins',sans-serif;
+            }
+
+            body {
+                height: 100vh;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                background: var(--bg-color, linear-gradient(135deg,#0f172a,#1e293b,#334155));
+                overflow: hidden;
+            }
+
+            .container {
+                position: relative;
+                width: 1000px;
+                height: 600px;
+                margin: auto;
+                background: var(--card-color, #fff);
+                border-radius: 30px;
+                overflow: hidden;
+                box-shadow: var(--shadow-md, 0 20px 40px rgba(0,0,0,.2));
+            }
+
+            .row {
+                width: 100%;
+                height: 100%;
+                display: flex;
+            }
+
+            .col {
+                width: 50%;
+                height: 100%;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                position: relative;
+            }
+
+            .form-wrapper {
+                width: 100%;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+
+            .form {
+                width: 360px;
+                background: #fff;
+                padding: 35px;
+                border-radius: 20px;
+                box-shadow: 0 10px 30px rgba(0,0,0,.15);
+                transition: .5s;
+            }
+
+            .input-group {
+                position: relative;
+                margin: 18px 0;
+            }
+
+                .input-group i {
+                    position: absolute;
+                    left: 15px;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    font-size: 22px;
+                    color: #777;
+                }
+
+                .input-group input {
+                    width: 100%;
+                    padding: 14px 15px 14px 50px;
+                    border: 2px solid #eee;
+                    border-radius: 10px;
+                    outline: none;
+                    font-size: 15px;
+                }
+
+                    .input-group input:focus {
+                        border-color: #2563eb;
+                    }
+
+            button {
+                width: 100%;
+                padding: 13px;
+                border: none;
+                border-radius: 10px;
+                background: #2563eb;
+                color: #fff;
+                font-size: 17px;
+                cursor: pointer;
+                transition: .3s;
+            }
+
+                button:hover {
+                    background: #1d4ed8;
+                }
+
+            .form p {
+                margin-top: 20px;
+                text-align: center;
+                font-size: 14px;
+            }
+
+            .pointer {
+                color: #2563eb;
+                font-weight: 600;
+                cursor: pointer;
+            }
+
+            .content-row {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                pointer-events: none;
+                z-index: 5;
+                display: flex;
+            }
+
+                .content-row .col {
+                    flex-direction: column;
+                    color: #fff;
+                }
+
+            .text h2 {
+                font-size: 42px;
+                margin-bottom: 15px;
+            }
+
+            .text p {
+                font-size: 15px;
+            }
+
+            .container::before {
+                content: "";
+                position: absolute;
+                top: 0;
+                right: 0;
+                width: 300%;
+                height: 100%;
+                background: linear-gradient(-45deg,#2563eb,#1d4ed8);
+                transform: translate(35%,0);
+                transition: 1s;
+                border-radius: 50%;
+                z-index: 2;
+            }
+
+            .sign-in .form.sign-in,
+            .sign-up .form.sign-up {
+                transform: scale(1);
+                z-index: 10;
+            }
+
+            .form.sign-up {
+                display: none;
+            }
+
+            .container.sign-in::before {
+                transform: translate(0);
+                right: 50%;
+            }
+
+            .container.sign-up::before {
+                transform: translate(100%);
+                right: 50%;
+            }
+
+            .text.sign-in {
+                transform: translateX(-250%);
+                transition: 1s;
+            }
+
+            .text.sign-up {
+                transform: translateX(250%);
+                transition: 1s;
+            }
+
+            .container.sign-in .text.sign-in {
+                transform: translateX(0);
+            }
+
+            .container.sign-up .text.sign-up {
+                transform: translateX(0);
+            }
+
+            .container.sign-up .form.sign-up {
+                display: block;
+            }
+
+            .container.sign-up .form.sign-in {
+                display: none;
+            }
+
+            .container.sign-in .form.sign-in {
+                display: block;
+            }
+
+            .container.sign-in .form.sign-up {
+                display: none;
+            }
+
+            .forgot-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(15,23,42,.6);
+                display: none;
+                justify-content: center;
+                align-items: center;
+                z-index: 100;
+            }
+
+                .forgot-overlay.active {
+                    display: flex;
+                }
+
+            .forgot-box {
+                width: 360px;
+                background: #fff;
+                padding: 35px;
+                border-radius: 20px;
+                box-shadow: 0 10px 30px rgba(0,0,0,.25);
+            }
+
+                .forgot-box h2 {
+                    text-align: center;
+                    margin-bottom: 10px;
+                }
+
+                .forgot-box p.desc {
+                    text-align: center;
+                    font-size: 13px;
+                    color: #666;
+                    margin-bottom: 20px;
+                }
+
+            .forgot-msg {
+                text-align: center;
+                font-size: 13px;
+                margin-top: 12px;
+            }
+
+                .forgot-msg.success {
+                    color: #16a34a;
+                }
+
+                .forgot-msg.error {
+                    color: #dc2626;
+                }
+
+            @@media(max - width:768px) {
+
+                .container {
+                    width: 95%;
+                    height: auto;
+                    min-height: 650px;
+                }
+
+                .row {
+                    flex-direction: column;
+                }
+
+                .col {
+                    width: 100%;
+                    padding: 20px;
+                }
+
+                .content-row {
+                    display: none;
+                }
+
+                .container::before {
+                    display: none;
+                }
+
+                .form {
+                    transform: scale(1);
+                    position: relative;
+                }
+
+                    .form.sign-up {
+                        display: none;
+                    }
+
+                .container.sign-up .form.sign-up {
+                    display: block;
+                }
+
+                .container.sign-up .form.sign-in {
+                    display: none;
+                }
+            }
+    </style>
+</head>
+
+<body>
+
+    <div id="container" class="container">
+
+        <div class="row">
+
+            <div class="col">
+
+                <div class="form-wrapper">
+
+                    <div class="form sign-up">
+
+                        <h2 style="text-align:center;margin-bottom:20px;">Create Account</h2>
+
+                        <form method="post" asp-controller="Account" asp-action="Register">
+                            @Html.AntiForgeryToken()
+
+                            <div class="input-group">
+                                <i class='bx bxs-user'></i>
+                                <input name="username" type="text" placeholder="Username" required />
+                            </div>
+
+                            <div class="input-group">
+                                <i class='bx bx-envelope'></i>
+                                <input name="email" type="email" placeholder="Email" required />
+                            </div>
+
+                            <div class="input-group">
+                                <i class='bx bxs-lock-alt'></i>
+                                <input name="password" type="password" placeholder="Password" required />
+                            </div>
+
+                            <div class="input-group">
+                                <i class='bx bxs-lock-alt'></i>
+                                <input name="confirmPassword" type="password" placeholder="Confirm Password" required />
+                            </div>
+
+                            <button type="submit">Sign Up</button>
+                        </form>
+
+                        <p>
+                            Already have an account?
+                            <span class="pointer" onclick="toggle()">Sign In</span>
+                        </p>
+
+                        <div class="divider"><span>or continue with</span></div>
+                        <div class="social-row">
+                            <form asp-controller="Account" asp-action="ExternalLogin" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="provider" value="Google" />
+                                <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+                                <button type="submit" class="social-btn google" title="Continue with Google"><i class='bx bxl-google'></i><span></span></button>
+                            </form>
+
+                            <form asp-controller="Account" asp-action="ExternalLogin" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="provider" value="Microsoft" />
+                                <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+                                <button type="submit" class="social-btn microsoft" title="Continue with Microsoft"><i class='bx bxl-microsoft'></i><span></span></button>
+                            </form>
+
+                            <form asp-controller="Account" asp-action="ExternalLogin" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="provider" value="GitHub" />
+                                <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+                                <button type="submit" class="social-btn github" title="Continue with GitHub"><i class='bx bxl-github'></i><span>GitHub</span></button>
+                            </form>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="col">
+
+                <div class="form-wrapper">
+
+                    <div class="form sign-in">
+
+                        <h2 style="text-align:center;margin-bottom:20px;">Welcome Back</h2>
+
+                        <form method="post" asp-controller="Account" asp-action="Login">
+                            @Html.AntiForgeryToken()
+
+                            <div class="input-group">
+                                <i class='bx bxs-user'></i>
+                                <input name="username" type="text" placeholder="Username" />
+                            </div>
+
+                            <div class="input-group">
+                                <i class='bx bxs-lock-alt'></i>
+                                <input name="password" type="password" placeholder="Password" />
+                            </div>
+
+                            <button type="submit">Login</button>
+                        </form>
+
+                        
+                        <p><span class="pointer" onclick="openForgotPassword()">Forgot Password?</span></p>
+
+                        <p>
+                            Don't have an account?
+                            <span class="pointer" onclick="toggle()">Sign Up</span>
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="content-row">
+
+            <div class="col">
+                <div class="text sign-in">
+                    <h2>Welcome</h2>
+                    <p>Hotel Billing Management System</p>
+                </div>
+            </div>
+
+            <div class="col">
+                <div class="text sign-up">
+                    <h2>Join With Us</h2>
+                    <p>Create your account and manage your hotel billing easily.</p>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <div id="forgotOverlay" class="forgot-overlay">
+        <div class="forgot-box">
+
+            <div id="forgotStep1">
+                <h2>Forgot Password</h2>
+                <p class="desc">Enter your registered email. We'll send you an OTP to reset your password.</p>
+
+                <form id="forgotEmailForm" method="post" asp-controller="Account" asp-action="ForgotPassword">
+                    @Html.AntiForgeryToken()
+
+                    <div class="input-group">
+                        <i class='bx bx-envelope'></i>
+                        <input name="email" id="forgotEmail" type="email" placeholder="Email" required />
+                    </div>
+
+                    <button type="submit">Send OTP</button>
+                </form>
+
+                <div id="forgotMsg1" class="forgot-msg"></div>
+
+                <p><span class="pointer" onclick="closeForgotPassword()">Back to Login</span></p>
+            </div>
+
+            <div id="forgotStep2" style="display:none;">
+                <h2>Reset Password</h2>
+                <p class="desc">Enter the OTP sent to your email along with your new password.</p>
+
+                <form id="forgotResetForm" method="post" asp-controller="Account" asp-action="ResetPassword">
+                    @Html.AntiForgeryToken()
+
+                    <input type="hidden" name="email" id="resetEmail" />
+
+                    <div class="input-group">
+                        <i class='bx bxs-key'></i>
+                        <input name="otp" type="text" placeholder="OTP" required />
+                    </div>
+
+                    <div class="input-group">
+                        <i class='bx bxs-lock-alt'></i>
+                        <input name="newPassword" type="password" placeholder="New Password" required />
+                    </div>
+
+                    <div class="input-group">
+                        <i class='bx bxs-lock-alt'></i>
+                        <input name="confirmNewPassword" type="password" placeholder="Confirm New Password" required />
+                    </div>
+
+                    <button type="submit">Reset Password</button>
+                </form>
+
+                <div id="forgotMsg2" class="forgot-msg"></div>
+
+                <p><span class="pointer" onclick="closeForgotPassword()">Back to Login</span></p>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+
+            let container=document.getElementById("container");
+
+            function toggle(){
+            container.classList.toggle("sign-in");
+            container.classList.toggle("sign-up");
+            }
+
+            setTimeout(()=>{
+            container.classList.add("sign-in");
+            },200);
+
+            let forgotOverlay = document.getElementById("forgotOverlay");
+            let forgotStep1 = document.getElementById("forgotStep1");
+            let forgotStep2 = document.getElementById("forgotStep2");
+            let forgotMsg1 = document.getElementById("forgotMsg1");
+            let forgotMsg2 = document.getElementById("forgotMsg2");
+
+            function openForgotPassword(){
+                forgotOverlay.classList.add("active");
+                forgotStep1.style.display = "block";
+                forgotStep2.style.display = "none";
+                forgotMsg1.textContent = "";
+                forgotMsg2.textContent = "";
+            }
+
+            function closeForgotPassword(){
+                forgotOverlay.classList.remove("active");
+                document.getElementById("forgotEmailForm").reset();
+                document.getElementById("forgotResetForm").reset();
+            }
+
+            document.getElementById("forgotEmailForm").addEventListener("submit", async function(e){
+                e.preventDefault();
+                forgotMsg1.textContent = "";
+                forgotMsg1.className = "forgot-msg";
+
+                let email = document.getElementById("forgotEmail").value;
+                let token = this.querySelector('input[name="__RequestVerificationToken"]').value;
+
+                try{
+                    let res = await fetch(this.action, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/x-www-form-urlencoded",
+                            "RequestVerificationToken": token
+                        },
+                        body: "email=" + encodeURIComponent(email) + "&__RequestVerificationToken=" + encodeURIComponent(token)
+                    });
+
+                    let data = await res.json().catch(()=>({success: res.ok}));
+
+                    if(res.ok && data.success !== false){
+                        forgotMsg1.textContent = "OTP sent to your email.";
+                        forgotMsg1.classList.add("success");
+                        document.getElementById("resetEmail").value = email;
+
+                        setTimeout(()=>{
+                            forgotStep1.style.display = "none";
+                            forgotStep2.style.display = "block";
+                        }, 800);
+                    } else {
+                        forgotMsg1.textContent = data.message || "Email not found. Please try again.";
+                        forgotMsg1.classList.add("error");
+                    }
+                } catch(err){
+                    forgotMsg1.textContent = "Something went wrong. Please try again.";
+                    forgotMsg1.classList.add("error");
+                }
+            });
+
+            document.getElementById("forgotResetForm").addEventListener("submit", async function(e){
+                e.preventDefault();
+                forgotMsg2.textContent = "";
+                forgotMsg2.className = "forgot-msg";
+
+                let formData = new FormData(this);
+                let newPassword = formData.get("newPassword");
+                let confirmNewPassword = formData.get("confirmNewPassword");
+
+                if(newPassword !== confirmNewPassword){
+                    forgotMsg2.textContent = "Passwords do not match.";
+                    forgotMsg2.classList.add("error");
+                    return;
+                }
+
+                let token = this.querySelector('input[name="__RequestVerificationToken"]').value;
+                let params = new URLSearchParams();
+                for (let pair of formData) { params.append(pair[0], pair[1]); }
+
+                try{
+                    let res = await fetch(this.action, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/x-www-form-urlencoded",
+                            "RequestVerificationToken": token
+                        },
+                        body: params.toString()
+                    });
+
+                    let data = await res.json().catch(()=>({success: res.ok}));
+
+                    if(res.ok && data.success !== false){
+                        forgotMsg2.textContent = "Password reset successful. You can login now.";
+                        forgotMsg2.classList.add("success");
+
+                        setTimeout(()=>{
+                            closeForgotPassword();
+                        }, 1200);
+                    } else {
+                        forgotMsg2.textContent = data.message || "Invalid OTP. Please try again.";
+                        forgotMsg2.classList.add("error");
+                    }
+                } catch(err){
+                    forgotMsg2.textContent = "Something went wrong. Please try again.";
+                    forgotMsg2.classList.add("error");
+                }
+            });
+
+    </script>
+
+</body>
+</html>

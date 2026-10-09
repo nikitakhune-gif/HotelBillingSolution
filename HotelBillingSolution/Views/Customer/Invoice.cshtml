@@ -1,0 +1,360 @@
+﻿@model HotelBilling.Application.DTOs.Customer.CustomerDto
+@{
+    ViewData["Title"] = "Customer Invoices";
+    // Controller now populates ViewBag.Invoices with a list of BillDto earlier.
+    var invoices = ViewBag.Invoices as System.Collections.Generic.List<HotelBilling.Application.DTOs.Bill.BillDto> ?? new System.Collections.Generic.List<HotelBilling.Application.DTOs.Bill.BillDto>();
+}
+
+<div class="iv-page">
+
+    <!-- ============ PAGE HEADER ============ -->
+    <div class="iv-header">
+        <div class="iv-header__text">
+            <h1 class="iv-header__title">Customer Invoices</h1>
+            <p class="iv-header__subtitle">@Model.FirstName @Model.LastName · @($"CUST-{Model.Id:D4}")</p>
+        </div>
+        <div class="iv-header__actions">
+            <a asp-controller="Customer" asp-action="Details" asp-route-id="@Model.Id" class="ivbtn ivbtn-ghost">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span>Back to Profile</span>
+            </a>
+            <a asp-controller="Customer" asp-action="BookingHistory" asp-route-id="@Model.Id" class="ivbtn ivbtn-ghost">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+                <span>Booking History</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- ============ SUMMARY STRIP ============ -->
+    <div class="iv-summary-grid">
+        <div class="iv-summary-card iv-summary-card--blue">
+            <span class="iv-summary-card__icon"><i class="fa-solid fa-file-invoice"></i></span>
+            <div>
+                <span class="iv-summary-card__value">@invoices.Count</span>
+                <span class="iv-summary-card__label">Total Invoices</span>
+            </div>
+        </div>
+        <div class="iv-summary-card iv-summary-card--green">
+            <span class="iv-summary-card__icon"><i class="fa-solid fa-circle-check"></i></span>
+            <div>
+                <span class="iv-summary-card__value">₹0</span>
+                <span class="iv-summary-card__label">Total Paid</span>
+            </div>
+        </div>
+        <div class="iv-summary-card iv-summary-card--orange">
+            <span class="iv-summary-card__icon"><i class="fa-solid fa-hourglass-half"></i></span>
+            <div>
+                <span class="iv-summary-card__value">₹0</span>
+                <span class="iv-summary-card__label">Outstanding</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ INVOICES TABLE ============ -->
+    <div class="iv-table-card">
+        <div class="table-responsive">
+            <table class="iv-table">
+                <thead>
+                    <tr>
+                        <th>Invoice ID</th>
+                        <th>Booking Ref</th>
+                        <th>Issue Date</th>
+                        <th>Due Date</th>
+                        <th>Amount</th>
+                        <th>Payment Status</th>
+                        <th class="col-actions">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!invoices.Any())
+                    {
+                        <tr>
+                            <td colspan="7">
+                                <div class="iv-empty">
+                                    <i class="fa-solid fa-file-circle-xmark"></i>
+                                    <p>No invoices found for this customer yet.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var inv in invoices)
+                        {
+                            <tr>
+                                <td>@inv.BillNumber</td>
+                                <td>@(inv.Items != null && inv.Items.Any() ? inv.Items.First().ItemName : "-")</td>
+                                <td>@inv.BillDate.ToString("dd MMM yyyy")</td>
+                                <td>@(inv.PaymentDate?.ToString("dd MMM yyyy") ?? "-")</td>
+                                <td>₹@inv.TotalAmount.ToString("F2")</td>
+                                <td>@inv.PaymentStatus</td>
+                                <td class="col-actions">
+                                    <a asp-controller="Billing" asp-action="Details" asp-route-id="@inv.Id" class="ivbtn ivbtn-ghost">View</a>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<style>
+    /* ==========================================================================
+           CUSTOMER INVOICES — Premium Dark/Light SaaS UI
+           Scoped under .iv-page / iv- prefix, uses shared site.css theme tokens.
+           ========================================================================== */
+    .iv-page {
+        --iv-primary: var(--primary-color, #3b82f6);
+        --iv-primary-2: var(--primary-color-2, #2563eb);
+        --iv-primary-soft: var(--primary-soft, rgba(59,130,246,0.14));
+        --iv-card: var(--card-color, #ffffff);
+        --iv-surface-border: var(--border-color, rgba(15,23,42,0.08));
+        --iv-text-primary: var(--text-color, #0f172a);
+        --iv-text-secondary: var(--text-secondary, #475569);
+        --iv-text-muted: var(--text-muted, #64748b);
+        --iv-green: var(--success-color, #22c55e);
+        --iv-green-soft: var(--success-soft, rgba(34,197,94,0.14));
+        --iv-orange: var(--warning-color, #f59e0b);
+        --iv-orange-soft: var(--warning-soft, rgba(245,158,11,0.14));
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: var(--iv-text-primary);
+        background: transparent;
+        animation: ivFadeIn 0.45s ease;
+    }
+
+    [data-theme="dark"] .iv-page {
+        --iv-card: var(--card-color, #101a2e);
+        --iv-surface-border: var(--border-color, rgba(255,255,255,0.08));
+        --iv-text-primary: var(--text-color, #eef2f7);
+        --iv-text-secondary: var(--text-secondary, #94a3b8);
+        --iv-text-muted: var(--text-muted, #64748b);
+    }
+
+    @@keyframes ivFadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(6px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .iv-page * {
+        box-sizing: border-box;
+    }
+
+    .iv-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin-bottom: 20px;
+    }
+
+    .iv-header__title {
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        margin: 0;
+        color: var(--iv-text-primary);
+    }
+
+    .iv-header__subtitle {
+        margin: 4px 0 0;
+        font-size: 14px;
+        color: var(--iv-text-secondary);
+    }
+
+    .iv-header__actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .ivbtn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13.5px;
+        font-weight: 600;
+        padding: 10px 16px;
+        border-radius: 10px;
+        border: 1px solid transparent;
+        cursor: pointer;
+        transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+        white-space: nowrap;
+        text-decoration: none;
+    }
+
+    .ivbtn-ghost {
+        background: rgba(127,127,127,0.06);
+        border-color: var(--iv-surface-border);
+        color: var(--iv-text-secondary);
+    }
+
+        .ivbtn-ghost:hover {
+            color: var(--iv-text-primary);
+            background: rgba(127,127,127,0.12);
+            transform: translateY(-2px);
+        }
+
+    .ivbtn-primary-glow {
+        background: linear-gradient(135deg, var(--iv-primary), var(--iv-primary-2));
+        color: #fff;
+        box-shadow: 0 6px 18px rgba(37,99,235,0.35);
+    }
+
+        .ivbtn-primary-glow:hover {
+            box-shadow: 0 10px 26px rgba(37,99,235,0.5);
+            transform: translateY(-2px);
+        }
+
+    /* ============ SUMMARY STRIP ============ */
+    .iv-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin-bottom: 20px;
+    }
+
+    .iv-summary-card {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        background: var(--iv-card);
+        border: 1px solid var(--iv-surface-border);
+        border-radius: 16px;
+        padding: 18px 20px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    }
+
+    .iv-summary-card__icon {
+        width: 46px;
+        height: 46px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        flex-shrink: 0;
+        color: #fff;
+    }
+
+    .iv-summary-card--blue .iv-summary-card__icon {
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    }
+
+    .iv-summary-card--green .iv-summary-card__icon {
+        background: linear-gradient(135deg, #22c55e, #15803d);
+    }
+
+    .iv-summary-card--orange .iv-summary-card__icon {
+        background: linear-gradient(135deg, #f59e0b, #b45309);
+    }
+
+    .iv-summary-card__value {
+        display: block;
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--iv-text-primary);
+        line-height: 1.2;
+    }
+
+    .iv-summary-card__label {
+        display: block;
+        font-size: 12px;
+        color: var(--iv-text-muted);
+        font-weight: 500;
+    }
+
+    /* ============ TABLE ============ */
+    .iv-table-card {
+        background: var(--iv-card);
+        border: 1px solid var(--iv-surface-border);
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow: 0 10px 26px rgba(0,0,0,0.12);
+    }
+
+    .iv-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        min-width: 720px;
+    }
+
+        .iv-table thead th {
+            text-align: left;
+            font-size: 11.5px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--iv-text-muted);
+            font-weight: 600;
+            padding: 13px 18px;
+            border-bottom: 1px solid var(--iv-surface-border);
+            white-space: nowrap;
+        }
+
+        .iv-table tbody td {
+            padding: 13px 18px;
+            font-size: 13.5px;
+            font-weight: 600;
+            color: var(--iv-text-primary);
+            border-bottom: 1px solid var(--iv-surface-border);
+            vertical-align: middle;
+        }
+
+        .iv-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .iv-table tbody tr:hover {
+            background: rgba(59,130,246,0.05);
+        }
+
+    .col-actions {
+        text-align: right;
+    }
+
+    .iv-empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        padding: 48px 20px;
+        color: var(--iv-text-muted);
+        text-align: center;
+    }
+
+        .iv-empty i {
+            font-size: 34px;
+            opacity: 0.5;
+        }
+
+        .iv-empty p {
+            margin: 0;
+            font-size: 14px;
+        }
+
+    /* ============ RESPONSIVE ============ */
+    @@media (max-width: 900px) {
+        .iv-summary-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @@media (max-width: 640px) {
+        .iv-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+    }
+</style>

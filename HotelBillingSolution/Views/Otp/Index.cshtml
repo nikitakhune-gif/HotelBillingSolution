@@ -1,0 +1,27 @@
+@{
+    ViewData["Title"] = "Send OTP";
+}
+
+<h2>Send OTP</h2>
+
+<form id="sendForm">
+    <label>Email:</label>
+    <input type="email" id="email" name="email" />
+    <button type="submit">Send OTP</button>
+</form>
+
+<div id="result"></div>
+
+<script>
+    document.getElementById('sendForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var email = document.getElementById('email').value;
+        var resp = await fetch('/Otp/Send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email })
+        });
+        var data = await resp.json();
+        document.getElementById('result').innerText = data.message;
+    });
+</script>
